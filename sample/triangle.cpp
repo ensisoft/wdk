@@ -25,10 +25,6 @@
 #include <iterator>
 #include <cassert>
 
-#ifdef SAMPLE_USE_BOOST
-  namespace po = boost::program_options;
-#endif
-
 class triangle 
 {
 public:
@@ -171,16 +167,18 @@ int main(int argc, char* argv[])
     
     // parse parameters
 #ifdef SAMPLE_USE_BOOST
+    namespace po = boost::program_options;
+
     po::options_description desc("Options");
     desc.add_options()
-      ("width",         po::value<wdk::uint_t>(&p.width)->default_value(640),           "Window width")
-      ("height",        po::value<wdk::uint_t>(&p.height)->default_value(480),          "Window height")
-      ("border",        po::value<bool>(&border)->default_value(true),                  "Border")
-      ("resize",        po::value<bool>(&resize)->default_value(true),                  "Resize")
-      ("videomode",     po::value<wdk::native_vmode_t>(&vmode)->default_value(wdk::DEFAULT_VIDEO_MODE), "Videomode")
-      ("listmodes",     "List available video modes")
-      ("fullscreen",    "Fullscreen")
-      ("help",          "Print help");
+        ("width",         po::value<wdk::uint_t>(&p.width)->default_value(640),           "Window width")
+        ("height",        po::value<wdk::uint_t>(&p.height)->default_value(480),          "Window height")
+        ("border",        po::value<bool>(&border)->default_value(true),                  "Border")
+        ("resize",        po::value<bool>(&resize)->default_value(true),                  "Resize")
+        ("videomode",     po::value<wdk::native_vmode_t>(&vmode)->default_value(wdk::DEFAULT_VIDEO_MODE), "Videomode")
+        ("listmodes",     "List available video modes")
+        ("fullscreen",    "Fullscreen")
+        ("help",          "Print help");
     po::variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
     notify(vm);
@@ -212,7 +210,6 @@ int main(int argc, char* argv[])
         disp.set_video_mode(vmode);
 
 
-
     // finally create our rendering window
     wdk::window win(disp.handle());
     win.event_resize = handle_window_resize;
@@ -240,19 +237,20 @@ int main(int argc, char* argv[])
     
     while (true)
     {
-        if (disp.has_event())
+        while (disp.has_event())
         {
             wdk::event e = {0};
             disp.get_event(e);
 
-			if (!win.dispatch_event(e))
-				if (kb.dispatch_event(e))
-            
-			dispose(e);
-
-			if (!win.exists())
-				break;
+            if (!win.dispatch_event(e))
+                if (kb.dispatch_event(e))
+                    
+            dispose(e);
         }
+
+        if (!win.exists())
+            break;
+        
         model.render();
         context.swap_buffers();
     }
