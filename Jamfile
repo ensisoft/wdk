@@ -1,0 +1,68 @@
+
+import os ;
+import path ;
+
+lib X11     : : <name>X11  ;
+lib Xcb     : : <name>xcb  ;
+lib Xau     : : <name>Xau  ;
+lib Xdmcp   : : <name>Xdmcp ;
+lib Xxf86vm : : <name>Xxf86vm ;
+lib Xext    : : <name>Xext ;
+
+path-constant GLES2_INC : "c:/imgtec_gles_sdk/Include" ;
+path-constant GLES2_LIB : "c:/imgtec_gles_sdk/Lib" ;
+
+project wdk 
+        : requirements
+          <toolset>gcc:<cflags>-std=c++11
+          <toolset>gcc:<cflags>-Wno-deprecated-declarations
+          <toolset>clang:<cflags>-std=c++11
+          <include>.
+          <os>NT:<include>$(GLES2_INC)
+
+        : usage-requirements
+          <toolset>gcc:<cflags>-std=c++11
+          <toolset>clang:<cflags>-std=c++11
+          <os>LINUX:<library>/wdk//Xxf86vm/<link>shared
+          <os>LINUX:<library>/wdk//X11/<link>shared
+          <os>LINUX:<library>/wdk//Xcb/<link>shared
+          <os>LINUX:<library>/wdk//Xau/<link>shared
+          <os>LINUX:<library>/wdk//Xdmcp/<link>shared
+          <os>LINUX:<library>/wdk//Xext/<link>shared
+        ;
+
+if [ os.name ] = LINUX
+{
+  lib EGL   : : <name>EGL ;
+  lib GLES2 : : <name>GLESv2 ;
+  lib GL    : : <name>GL ;
+
+
+   lib wdk-lib 
+   : X11/display.cpp
+     X11/keyboard.cpp
+     X11/keysym2ucs.cpp
+     X11/window.cpp
+   : <link>static ;
+
+   lib wdk-gl   : X11/context.cpp : : <link>static ;
+   lib wdk-gles : EGL/context.cpp : : <link>static ;
+}
+
+if [ os.name ] = NT
+{
+  lib EGL   : : <name>libEGL <search>$(GLES2_LIB) ;
+  lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
+  lib GL    : : <name>opengl32 ;
+
+   lib wdk-lib 
+   : win32/display.cpp
+     win32/keyboard.cpp
+     win32/window.cpp
+   : <link>static ;
+   
+   lib wdk-gl   : win32/context.cpp : : <link>static ;                   
+   lib wdk-gles : EGL/context.cpp   : : <link>static ;
+}
+
+#build-project sample ;
