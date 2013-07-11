@@ -14,27 +14,27 @@ struct window::impl {
     HDC  hdc;
     HDC  screen;
     bool fullscreen;
-	bool resizing;
+    bool resizing;
     int x, y;
 
-	static
-	LRESULT CALLBACK window_startup_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-	{
-		switch (msg)
-		{
-			case WM_CREATE:
-				{
-					CREATESTRUCT* original = reinterpret_cast<CREATESTRUCT*>(lp);
-					CREATESTRUCT* copy = new CREATESTRUCT(*original);
-					PostMessage(hwnd, WM_APP + 1, wp, (LPARAM)copy);
-				}
-				return 0;
-		}
-		return DefWindowProc(hwnd, msg, wp, lp);
-	}
+    static
+    LRESULT CALLBACK window_startup_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+    {
+        switch (msg)
+        {
+            case WM_CREATE:
+                {
+                    CREATESTRUCT* original = reinterpret_cast<CREATESTRUCT*>(lp);
+                    CREATESTRUCT* copy = new CREATESTRUCT(*original);
+                    PostMessage(hwnd, WM_APP + 1, wp, (LPARAM)copy);
+                }
+                return 0;
+        }
+        return DefWindowProc(hwnd, msg, wp, lp);
+    }
 
-	static
-	LRESULT CALLBACK window_message_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+    static
+    LRESULT CALLBACK window_message_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         // windows has posted and sent messages. Functions pumping the event
         // queue (GetMessage, PeekMessage) dispatch (call repeatedly) the window's
@@ -45,66 +45,66 @@ struct window::impl {
         // dispatches it to keyboard/window/mouse objects we *post* the message back
         // into the queue, so that it gets picked up by Get/PeekMessage on a later call.
 
-		LONG_PTR lptr = GetWindowLong(hwnd, GWL_USERDATA);
+        LONG_PTR lptr = GetWindowLong(hwnd, GWL_USERDATA);
 
-		assert(lptr);
+        assert(lptr);
 
-		window::impl* self = reinterpret_cast<window::impl*>(lptr);
+        window::impl* self = reinterpret_cast<window::impl*>(lptr);
 
         switch (msg) 
         {
-			// these messages can be forwarded directly 
+            // these messages can be forwarded directly 
             case WM_CLOSE:
             case WM_KILLFOCUS:
             case WM_SETFOCUS:
                 PostMessage(hwnd, msg, wp, lp);
                 return 0;
 
-			// sent to window when it's size, pos, etc are about to change.
-			// need to handle this in case another application tries to resize
-			// the window with MoveWindow etc.
-			case WM_WINDOWPOSCHANGING:
-				{
-					const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
-					if (style_bits & WS_SIZEBOX)
-						break;
+            // sent to window when it's size, pos, etc are about to change.
+            // need to handle this in case another application tries to resize
+            // the window with MoveWindow etc.
+            case WM_WINDOWPOSCHANGING:
+                {
+                    const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
+                    if (style_bits & WS_SIZEBOX)
+                        break;
 
-					WINDOWPOS* pos = (WINDOWPOS*)lp;
-					pos->flags |= SWP_NOSIZE;
-				}
-				return 0;
-
-			// resizing window generates (from DefWindowProc) multiple WM_SIZING, WM_SIZE and WM_PAINT
-			// messages. posting these directly to the queue won't work as expected (will call back to wndproc directly).
-			// so in case the window is being resized we just ignore these messages and notify once the resize is finished. (WM_EXITSIZEMOVE)
-			// however these messages are also used when a window becomes unobscured or minimize/maximize buttons are hit.
-			case WM_SIZE:
-            case WM_PAINT:				
-				if (self->resizing)
-					return 0;
-				PostMessage(hwnd, msg, wp, lp);
+                    WINDOWPOS* pos = (WINDOWPOS*)lp;
+                    pos->flags |= SWP_NOSIZE;
+                }
                 return 0;
 
-			case WM_ENTERSIZEMOVE:
-				{
-					RECT rc;
-					GetWindowRect(hwnd, &rc);
-					self->x = rc.right - rc.left;
-					self->y = rc.bottom - rc.top;
-					self->resizing = true;
-				}
-				return 0;
+            // resizing window generates (from DefWindowProc) multiple WM_SIZING, WM_SIZE and WM_PAINT
+            // messages. posting these directly to the queue won't work as expected (will call back to wndproc directly).
+            // so in case the window is being resized we just ignore these messages and notify once the resize is finished. (WM_EXITSIZEMOVE)
+            // however these messages are also used when a window becomes unobscured or minimize/maximize buttons are hit.
+            case WM_SIZE:
+            case WM_PAINT:              
+                if (self->resizing)
+                    return 0;
+                PostMessage(hwnd, msg, wp, lp);
+                return 0;
 
-			case WM_EXITSIZEMOVE:
-				{
-					self->resizing = false;
-					RECT rc;
-					GetWindowRect(hwnd, &rc);
-					if (self->x != (rc.right - rc.left) || self->y != (rc.bottom - rc.top))
-						PostMessage(hwnd, WM_SIZE, 0, 0); // post only a notification that size has changed.
-				}
-				break;
-			
+            case WM_ENTERSIZEMOVE:
+                {
+                    RECT rc;
+                    GetWindowRect(hwnd, &rc);
+                    self->x = rc.right - rc.left;
+                    self->y = rc.bottom - rc.top;
+                    self->resizing = true;
+                }
+                return 0;
+
+            case WM_EXITSIZEMOVE:
+                {
+                    self->resizing = false;
+                    RECT rc;
+                    GetWindowRect(hwnd, &rc);
+                    if (self->x != (rc.right - rc.left) || self->y != (rc.bottom - rc.top))
+                        PostMessage(hwnd, WM_SIZE, 0, 0); // post only a notification that size has changed.
+                }
+                break;
+            
             default:
             break;
 
@@ -121,8 +121,8 @@ window::window(native_display_t disp)
     pimpl_->hdc        = NULL;
     pimpl_->screen     = GetDC(GetDesktopWindow());
     pimpl_->fullscreen = false;
-	pimpl_->resizing   = false;
-	
+    pimpl_->resizing   = false;
+    
     WNDCLASSEX cls    = {0};
     cls.cbSize        = sizeof(cls);
     cls.hInstance     = GetModuleHandle(NULL);
@@ -139,8 +139,8 @@ window::~window()
 {
     ReleaseDC(GetDesktopWindow(), pimpl_->screen);
 
-	if (exists())
-		close();
+    if (exists())
+        close();
 }
 
 void window::create(const window_param& how)
@@ -162,7 +162,7 @@ void window::create(const window_param& how)
         if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
             throw std::runtime_error("videomode change failed");
 
-		// todo: is this in device units or logical units?
+        // todo: is this in device units or logical units?
         surface_width   = mode.dmPelsWidth;
         surface_height  = mode.dmPelsHeight;
     }
@@ -215,25 +215,25 @@ void window::create(const window_param& how)
     pimpl_->hdc  = GetDC(hwnd);
     pimpl_->hwnd = hwnd;
     pimpl_->fullscreen = how.fullscreen;
-	pimpl_->x = window.right - window.left;
-	pimpl_->y = window.bottom - window.top;
+    pimpl_->x = window.right - window.left;
+    pimpl_->y = window.bottom - window.top;
  
-	SetWindowLongPtr(hwnd, GWL_USERDATA, (LONG_PTR)pimpl_.get());
-	SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWL_USERDATA, (LONG_PTR)pimpl_.get());
+    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
 
     ShowWindow(hwnd, SW_SHOW);    
 
-	if (pimpl_->fullscreen)
-	{
-		SetForegroundWindow(hwnd);
-		SetFocus(hwnd);
-	}
+    if (pimpl_->fullscreen)
+    {
+        SetForegroundWindow(hwnd);
+        SetFocus(hwnd);
+    }
 }
 
 
 void window::close()
 {
-	assert(exists());
+    assert(exists());
 
     if (pimpl_->fullscreen)
        ChangeDisplaySettings(NULL, 0);
@@ -250,34 +250,34 @@ void window::close()
 
 uint_t window::width() const
 {
-	assert(exists());
+    assert(exists());
 
-	RECT rc;
+    RECT rc;
     GetWindowRect(pimpl_->hwnd, &rc);
     return rc.right - rc.left;
 }
 
 uint_t window::height() const
 {
-	assert(exists());
+    assert(exists());
 
-	RECT rc;
+    RECT rc;
     GetWindowRect(pimpl_->hwnd, &rc);
     return rc.bottom - rc.top;
 }
 
 uint_t window::surface_width() const
 {
-	assert(exists());
+    assert(exists());
 
-	RECT rc;
+    RECT rc;
     GetClientRect(pimpl_->hwnd, &rc);
     return rc.right;
 }
 
 uint_t window::surface_height() const
 {
-	assert(exists());
+    assert(exists());
 
     RECT rc;
     GetClientRect(pimpl_->hwnd, &rc);
@@ -286,7 +286,7 @@ uint_t window::surface_height() const
 
 uint_t window::visualid() const
 {
-	assert(exists());
+    assert(exists());
 
     return 0;
 }
@@ -356,10 +356,10 @@ bool window::dispatch_event(const event& ev)
         {
             if (event_resize)
             {
-				// get new surface dimensions
-				RECT rc;
-				GetClientRect(m.hwnd, &rc);
-				
+                // get new surface dimensions
+                RECT rc;
+                GetClientRect(m.hwnd, &rc);
+                
                 window_event_resize size = {0};
                 size.width = rc.right;
                 size.height = rc.bottom;

@@ -27,12 +27,12 @@ namespace {
         {
 
             // messages posted directly to the queue
-			case WM_SYSKEYDOWN:
+            case WM_SYSKEYDOWN:
             case WM_KEYDOWN: 
                 ev.type = event_type::keyboard_keydown;
                 break;
 
-			case WM_SYSKEYUP:
+            case WM_SYSKEYUP:
             case WM_KEYUP: 
                 ev.type = event_type::keyboard_keyup;
                 break;
