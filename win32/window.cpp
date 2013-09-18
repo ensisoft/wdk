@@ -34,7 +34,7 @@ namespace wdk
 struct window::impl {
     HWND hwnd;
     HDC  hdc;
-	HDC  display;
+    HDC  display;
     bool fullscreen;
     bool resizing;
     int x, y;
@@ -141,7 +141,7 @@ window::window(native_display_t disp)
     pimpl_.reset(new impl);
     pimpl_->hwnd       = NULL;
     pimpl_->hdc        = NULL;
-	pimpl_->display    = disp;
+    pimpl_->display    = disp;
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
     
@@ -222,10 +222,10 @@ void window::create(const window_param& how)
         HDC hdc = GetDC(hwnd);
 
         PIXELFORMATDESCRIPTOR pxd = {0};
-		if (!DescribePixelFormat(hdc, how.visualid, sizeof(pxd), &pxd))
-			throw std::runtime_error("incorrect visualid");
+        if (!DescribePixelFormat(hdc, how.visualid, sizeof(pxd), &pxd))
+            throw std::runtime_error("incorrect visualid");
 
-		SetPixelFormat(hdc, how.visualid, &pxd);
+        SetPixelFormat(hdc, how.visualid, &pxd);
     }
 
     // resize window to match the drawable client area with the desired size

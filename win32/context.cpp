@@ -117,51 +117,51 @@ namespace {
     class dummy_window 
     {
     public:
-		dummy_window() : hwnd_(NULL), hdc_(NULL)
+        dummy_window() : hwnd_(NULL), hdc_(NULL)
         {
         }
-		dummy_window(dummy_window&& other) : hwnd_(other.hwnd_), hdc_(other.hdc_)
-		{
-			other.hwnd_ = NULL;
-			other.hdc_  = NULL;
-		}
-		void create()
-		{
-			WNDCLASSEX cls = { 0 };
-			cls.cbSize        = sizeof(cls);
-			cls.lpfnWndProc   = DefWindowProc;
-			cls.lpszClassName = TEXT("context-dummy-window");
-			RegisterClassEx(&cls);
+        dummy_window(dummy_window&& other) : hwnd_(other.hwnd_), hdc_(other.hdc_)
+        {
+            other.hwnd_ = NULL;
+            other.hdc_  = NULL;
+        }
+        void create()
+        {
+            WNDCLASSEX cls = { 0 };
+            cls.cbSize        = sizeof(cls);
+            cls.lpfnWndProc   = DefWindowProc;
+            cls.lpszClassName = TEXT("context-dummy-window");
+            RegisterClassEx(&cls);
 
-			hwnd_ = CreateWindowEx(
-				WS_EX_APPWINDOW,
-				TEXT("context-dummy-window"),
-				NULL,
-				WS_POPUP,
-				0, 0,
-				1, 1,
-				NULL,
-				NULL,
-				NULL,
-				NULL);
-			if (!hwnd_)
-				throw std::runtime_error("create window failed");
+            hwnd_ = CreateWindowEx(
+                WS_EX_APPWINDOW,
+                TEXT("context-dummy-window"),
+                NULL,
+                WS_POPUP,
+                0, 0,
+                1, 1,
+                NULL,
+                NULL,
+                NULL,
+                NULL);
+            if (!hwnd_)
+                throw std::runtime_error("create window failed");
 
-			hdc_ = GetDC(hwnd_);
-		}
+            hdc_ = GetDC(hwnd_);
+        }
 
        ~dummy_window()
         {
-			if (!hwnd_)
-				return;
-			
-			BOOL ret;
+            if (!hwnd_)
+                return;
+            
+            BOOL ret;
 
-			ret = ReleaseDC(hwnd_, hdc_);
-			assert(ret);
+            ret = ReleaseDC(hwnd_, hdc_);
+            assert(ret);
 
-			ret = DestroyWindow(hwnd_);
-			assert(ret);
+            ret = DestroyWindow(hwnd_);
+            assert(ret);
         }
         HWND window() 
         {
@@ -171,13 +171,13 @@ namespace {
         {
             return hdc_;
         }
-		dummy_window& operator=(dummy_window&& other)
-		{
-			dummy_window t(std::move(*this));
-			std::swap(hwnd_, other.hwnd_);
-			std::swap(hdc_, other.hdc_);
-			return *this;
-		}
+        dummy_window& operator=(dummy_window&& other)
+        {
+            dummy_window t(std::move(*this));
+            std::swap(hwnd_, other.hwnd_);
+            std::swap(hdc_, other.hdc_);
+            return *this;
+        }
     private:
 
         HWND hwnd_;
@@ -208,7 +208,7 @@ struct context::impl
 {
     HGLRC   context;
     HDC     surface;    
-	dummy_window temp_window;	
+    dummy_window temp_window;   
     int     pixelformat;
 
     void release_surface() 
@@ -218,7 +218,7 @@ struct context::impl
         
         HWND hwnd = WindowFromDC(surface);
         BOOL ret = ReleaseDC(hwnd, surface);
-		assert(ret);
+        assert(ret);
 
         surface = NULL;
     }
@@ -226,16 +226,16 @@ struct context::impl
 
 context::context(native_display_t disp, const attributes& attrs)
 {
-	assert(!attrs.render_pixmap && "render to pixmap is not supported on win32");
+    assert(!attrs.render_pixmap && "render to pixmap is not supported on win32");
 
     typedef HGLRC (APIENTRY *wglCreateContextAttribsARBProc)(HDC, HGLRC, const int*);
 
     typedef BOOL (APIENTRY *wglChoosePixelFormatARBProc)(HDC hdc, 
-		const int* piAttribIList, 
-		const FLOAT* pfAttribFList, 
-		UINT nMaxFormats, 
-		int* piFormats, 
-		UINT* nNumFormats);
+        const int* piAttribIList, 
+        const FLOAT* pfAttribFList, 
+        UINT nMaxFormats, 
+        int* piFormats, 
+        UINT* nNumFormats);
 
     // resolve extensions needed
     auto wglCreateContextAttribsARB = reinterpret_cast<wglCreateContextAttribsARBProc>(resolve("wglCreateContextAttribsARB"));
@@ -243,56 +243,56 @@ context::context(native_display_t disp, const attributes& attrs)
 
     if (!wglCreateContextAttribsARB || !wglChoosePixelFormatARB)
         throw std::runtime_error("missing WGL extensions for GL context creation");
-	
-	// create temporary/dummy window/bitmap for the context creation.
-	// we use the dummy window to set the required pixelformat 
-	// of the context configuration. subsequently once the context 
-	// has a pixelformat any call to make_current expects that the 
-	// rendering surface (window, pixmap) has the same pixelformat, 
-	// otherwise the call will fail.
-	dummy_window window;
-	window.create();
-	
-	HDC surface = window.surface();
+    
+    // create temporary/dummy window/bitmap for the context creation.
+    // we use the dummy window to set the required pixelformat 
+    // of the context configuration. subsequently once the context 
+    // has a pixelformat any call to make_current expects that the 
+    // rendering surface (window, pixmap) has the same pixelformat, 
+    // otherwise the call will fail.
+    dummy_window window;
+    window.create();
+    
+    HDC surface = window.surface();
 
-	int sel_pixelformat = attrs.visualid ? attrs.visualid : 0;	
+    int sel_pixelformat = attrs.visualid ? attrs.visualid : 0;  
 
-	const uint_t ARNOLD = 0; // attrib list terminator
+    const uint_t ARNOLD = 0; // attrib list terminator
 
-	if (!sel_pixelformat)
-	{
-		const uint_t color_bits = attrs.red_size + attrs.green_size + attrs.blue_size + attrs.alpha_size;
-	
-		// attribute list for color buffer configuration
-		const uint_t window_config[] = {
-			WGL_SUPPORT_OPENGL_ARB, TRUE,
-			WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
-			WGL_COLOR_BITS_ARB, color_bits,
-			WGL_RED_BITS_ARB, attrs.red_size,
-			WGL_GREEN_BITS_ARB, attrs.green_size,
-			WGL_BLUE_BITS_ARB, attrs.blue_size,
-			WGL_ALPHA_BITS_ARB, attrs.alpha_size,
-			WGL_DEPTH_BITS_ARB, attrs.depth_size,
-			WGL_DOUBLE_BUFFER_ARB, (uint_t)attrs.doublebuffer,			
-			WGL_DRAW_TO_WINDOW_ARB, TRUE,
-			ARNOLD
-		};		
+    if (!sel_pixelformat)
+    {
+        const uint_t color_bits = attrs.red_size + attrs.green_size + attrs.blue_size + attrs.alpha_size;
+    
+        // attribute list for color buffer configuration
+        const uint_t window_config[] = {
+            WGL_SUPPORT_OPENGL_ARB, TRUE,
+            WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+            WGL_COLOR_BITS_ARB, color_bits,
+            WGL_RED_BITS_ARB, attrs.red_size,
+            WGL_GREEN_BITS_ARB, attrs.green_size,
+            WGL_BLUE_BITS_ARB, attrs.blue_size,
+            WGL_ALPHA_BITS_ARB, attrs.alpha_size,
+            WGL_DEPTH_BITS_ARB, attrs.depth_size,
+            WGL_DOUBLE_BUFFER_ARB, (uint_t)attrs.doublebuffer,          
+            WGL_DRAW_TO_WINDOW_ARB, TRUE,
+            ARNOLD
+        };      
 
-		int num_pixelformat = 0;		
-		if (!wglChoosePixelFormatARB(surface, (const int*)&window_config, NULL, 1, &sel_pixelformat, (UINT*)&num_pixelformat))
-			throw std::runtime_error("no such GL color buffer configuration");
+        int num_pixelformat = 0;        
+        if (!wglChoosePixelFormatARB(surface, (const int*)&window_config, NULL, 1, &sel_pixelformat, (UINT*)&num_pixelformat))
+            throw std::runtime_error("no such GL color buffer configuration");
 
-		assert(sel_pixelformat);
-	}
+        assert(sel_pixelformat);
+    }
 
-	assert(surface);
-	assert(sel_pixelformat);
+    assert(surface);
+    assert(sel_pixelformat);
 
-	PIXELFORMATDESCRIPTOR desc = { 0 };
-	const int ret = DescribePixelFormat(surface, sel_pixelformat, sizeof(desc), &desc);
-		
-	if (!SetPixelFormat(surface, sel_pixelformat, &desc))
-		throw std::runtime_error("set pixelformat failed");
+    PIXELFORMATDESCRIPTOR desc = { 0 };
+    const int ret = DescribePixelFormat(surface, sel_pixelformat, sizeof(desc), &desc);
+        
+    if (!SetPixelFormat(surface, sel_pixelformat, &desc))
+        throw std::runtime_error("set pixelformat failed");
 
     const uint_t context_config[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB, attrs.major_version,
@@ -312,7 +312,7 @@ context::context(native_display_t disp, const attributes& attrs)
     pimpl_->context           = context.release();
     pimpl_->surface           = NULL;
     pimpl_->temp_window       = std::move(window);
-	pimpl_->pixelformat       = sel_pixelformat;
+    pimpl_->pixelformat       = sel_pixelformat;
 }
 
 context::~context()
@@ -346,7 +346,7 @@ void context::make_current(native_window_t window)
 
 void context::make_current(native_pixmap_t pixmap)
 {
-	assert(!"not supported");
+    assert(!"not supported");
 }
 
 void context::swap_buffers()
@@ -371,22 +371,22 @@ bool context::has_dri() const
 void* context::resolve(const char* function)
 {
     assert(function && "null function name");
-	
+    
     if (!wglGetCurrentContext())
     {
         // wglGetProcAddress won't work unless there's a current context
         // so we have a special dummy context created with a dummy window
         // and made current just so that we can query for functions
         // with wglGetProcAddress.  (nice huh??)
-		// note that creating a compatible (empty) DC with CreateCompatibleDC
-		// wont work but will crash in makeCurrent (nvidia)
+        // note that creating a compatible (empty) DC with CreateCompatibleDC
+        // wont work but will crash in makeCurrent (nvidia)
         struct dummy_context 
         {
-			dummy_context() : hgl(NULL)
+            dummy_context() : hgl(NULL)
             {
-				wnd.create();
+                wnd.create();
 
-				PIXELFORMATDESCRIPTOR desc = {0};
+                PIXELFORMATDESCRIPTOR desc = {0};
                 desc.nVersion   = 1;
                 desc.dwFlags    = PFD_SUPPORT_OPENGL;
 
@@ -400,7 +400,7 @@ void* context::resolve(const char* function)
             }
            ~dummy_context()
             {              
-				BOOL ret = wglDeleteContext(hgl);
+                BOOL ret = wglDeleteContext(hgl);
                 assert(ret);
             }
             void make_current()
@@ -410,7 +410,7 @@ void* context::resolve(const char* function)
             }
         private:
             dummy_window wnd;
-			HGLRC hgl;
+            HGLRC hgl;
         };
 
         static dummy_context dummy;
