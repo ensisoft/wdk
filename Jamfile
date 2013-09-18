@@ -17,7 +17,6 @@ project wdk
           <toolset>gcc:<cflags>-std=c++11
           <toolset>gcc:<cflags>-Wno-deprecated-declarations
           <toolset>clang:<cflags>-std=c++11
-          <include>.
           <os>NT:<include>$(GLES2_INC)
 
         : usage-requirements
@@ -43,6 +42,7 @@ if [ os.name ] = LINUX
      X11/keyboard.cpp
      X11/keysym2ucs.cpp
      X11/window.cpp
+     X11/pixmap.cpp
    : <link>static ;
 
    lib wdk-gl   : X11/context.cpp : : <link>static ;
@@ -59,6 +59,7 @@ if [ os.name ] = NT
    : win32/display.cpp
      win32/keyboard.cpp
      win32/window.cpp
+     win32/pixmap.cpp
    : <link>static ;
    
    lib wdk-gl   : win32/context.cpp : : <link>static ;                   

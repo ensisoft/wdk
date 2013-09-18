@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <cstring>      // for memcmp
 #include <cassert>
-#include "display.h"
-#include "event.h"
+#include "../display.h"
+#include "../event.h"
 
 namespace {
     void identify_event(const XEvent& xev, wdk::event& ev)
@@ -17,7 +17,7 @@ namespace {
         // layout for all message types for the first 4 entries is always the same. the 5th entry 
         // is the window handle of the window that receives the message, except for keymap notify events
         if (xev.type != KeymapNotify)
-            ev.window = xev.xkey.window;
+            ev.window = native_window_t {xev.xkey.window};
 
         switch (xev.type)
         {
@@ -41,12 +41,12 @@ namespace {
             // id of the newly created window
             case CreateNotify:
                 ev.type = event_type::window_create;
-                ev.window = xev.xcreatewindow.window;
+                ev.window = native_window_t {xev.xcreatewindow.window};
             break;
             // window was destroyed
             case DestroyNotify:
                 ev.type = event_type::window_destroy;
-                ev.window = xev.xdestroywindow.window;
+                ev.window = native_window_t {xev.xdestroywindow.window};
                 break;
 
             // this could be multiple messages but we only use it for query close
@@ -217,6 +217,10 @@ bool display::wait_for_events(native_handle_t* handles, uint_t num_handles, nati
         FD_SET(handles[i], &write);
         max_fd = std::max(max_fd, handles[i]);
     }
+
+    FD_SET(pimpl_->fileno, &read);
+    FD_SET(pimpl_->fileno, &write);
+    max_fd = std::max(max_fd, pimpl_->fileno);
 
     struct timeval tv = {0};
     tv.tv_usec = timeout * 1000;

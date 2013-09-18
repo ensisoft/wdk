@@ -6,9 +6,9 @@
 #include <cassert>
 #include <algorithm>
 #include <iterator>
-#include "keyboard.h"
-#include "events.h"
-#include "event.h"
+#include "../keyboard.h"
+#include "../events.h"
+#include "../event.h"
 
 namespace linux {
     long keysym2ucs(KeySym keysym);

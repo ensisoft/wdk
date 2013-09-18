@@ -6,8 +6,8 @@
 #include <cassert>
 #include <cstring>
 #include <csetjmp>
-#include "display.h"
-#include "event.h"
+#include "../display.h"
+#include "../event.h"
 
 namespace {
     struct dev_mode {

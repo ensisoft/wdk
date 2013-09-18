@@ -221,7 +221,10 @@ int main(int argc, char* argv[])
     kb.event_keydown = [&](const wdk::keyboard_event_keydown& key)
     {
         if (key.symbol == wdk::keysym::escape)
+        {
+            context.make_current(wdk::NULL_WINDOW);
             win.close();
+        }
     };
 
     // render in this window 
@@ -243,7 +246,7 @@ int main(int argc, char* argv[])
             disp.get_event(e);
 
             if (!win.dispatch_event(e))
-                if (kb.dispatch_event(e))
+                kb.dispatch_event(e);
                     
             dispose(e);
         }

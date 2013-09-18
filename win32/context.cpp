@@ -2,142 +2,244 @@
 #include <windows.h>
 #include <cassert>
 #include <stdexcept>
-#include <map>
-#include "context.h"
+#include <functional>
+#include "../context.h"
+#include "../utility.h"
 
-namespace {
-    struct rendering_context {
-        HDC   hdc;
-        HGLRC ctx;
-    };
-} // namespace
+#define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
+#define WGL_CONTEXT_TERMINATOR                  0
 
 namespace wdk
 {
-struct context::impl {
-    std::map<HWND, rendering_context> contexts;
-    HDC current;
-};
 
-context::context(native_display_t disp)
+context::attributes::attributes() : 
+    major_version(3),
+    minor_version(1),
+    red_size(8),
+    green_size(8),
+    blue_size(8),
+    alpha_size(8),
+    depth_size(16),
+    render_window(true),
+    render_pixmap(false),
+    doublebuffer(true),
+    visualid(0)
 {
-    init(disp, nullptr);
 }
 
-context::context(native_display_t disp, const int_t* attrs)
+
+struct context::impl 
 {
-    init(disp, attrs);
+    HGLRC   context;
+    HDC     surface;
+    bool    surface_is_window;
+    HGDIOBJ original;
+    HWND    temp_window;
+    HDC     temp_surface;
+    int     pixelformat;
+
+    void release_surface() 
+    {
+        if (!surface)
+            return;
+        if (surface_is_window)
+        {
+            HWND hwnd = WindowFromDC(surface);
+            ReleaseDC(hwnd, surface);
+        }
+        else
+        {
+            assert(original);
+            SelectObject(surface, original);
+            DeleteDC(surface);
+            original = NULL;
+        }
+        surface = NULL;
+        surface_is_window = false;
+    }
+};
+
+context::context(native_display_t disp, const attributes& attrs)
+{
+    typedef HGLRC (*wglCreateContextAttribsARBProc)(HDC, HGLRC, const int*);
+
+    typedef BOOL (*wglChoosePixelFormatARBProc)(
+        HDC hdc, 
+        const int* piAttribIList,
+        const FLOAT* pfAttribFList,
+        UINT nMaxFormats,
+        int* piFormats,
+        UINT* nNumFormats);
+
+    // resolve extensions needed
+
+    wglCreateContextAttribsARBProc wglCreateContextAttribsARB = reinterpret_cast<wglCreateContextAttribsARBProc>(resolve("wglCreateContextAttribsARB"));
+    wglChoosePixelFormatARBProc wglChoosePixelFormatARB = reinterpret_cast<wglChoosePixelFormatARBProc>(resolve("wglChoosePixelFormatARB"));
+
+    if (!wglCreateContextAttribsARB || !wglChoosePixelFormatARB)
+        throw std::runtime_error("missing WGL extensions for GL context creation");
+
+
+    WNDCLASSEX cls    = {0};
+    cls.cbSize        = sizeof(cls);
+    cls.hInstance     = GetModuleHandle(NULL);
+    cls.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    cls.lpfnWndProc   = DefWindowProc;
+    cls.lpszClassName = TEXT("context-temp-window");
+    RegisterClassEx(&cls);
+
+    auto window = make_unique_ptr(CreateWindowEx(
+        WS_EX_APPWINDOW,
+        TEXT("context-temp-window"),
+        NULL,
+        WS_POPUP,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        1, 1,
+        NULL,
+        NULL, 
+        NULL, 
+        NULL), DestroyWindow);;
+    if (window.get() == NULL)
+        throw std::runtime_error("create temporary context window failed");
+
+    auto surface = make_unique_ptr(GetDC(window.get()), std::bind(ReleaseDC, window.get(), std::placeholders::_1));
+
+    PIXELFORMATDESCRIPTOR pxd = {0};
+
+    int pixelformat = 0;
+
+    if (attrs.visualid)
+    {
+        if (!DescribePixelFormat(surface.get(), attrs.visualid, sizeof(pxd), &pxd))
+            throw std::runtime_error("no such GL config available");
+
+        pixelformat = attrs.visualid;
+    }
+    else
+    {
+        pxd.nSize      = sizeof(pxd);
+        pxd.nVersion   = 1;
+        pxd.dwFlags    = PFD_SUPPORT_OPENGL;
+        pxd.iPixelType = PFD_TYPE_RGBA;
+        pxd.cColorBits = attrs.red_size + attrs.green_size + attrs.blue_size;
+        pxd.cRedBits   = attrs.red_size;
+        pxd.cGreenBits = attrs.green_size;
+        pxd.cBlueBits  = attrs.blue_size;
+        pxd.cAlphaBits = attrs.alpha_size;
+        pxd.cDepthBits = attrs.depth_size;
+
+        if (attrs.render_window)
+            pxd.dwFlags |= PFD_DRAW_TO_WINDOW;
+        if (attrs.render_pixmap)
+            pxd.dwFlags |= PFD_DRAW_TO_BITMAP;
+
+        if (attrs.doublebuffer)
+            pxd.dwFlags |= PFD_DOUBLEBUFFER;
+
+        pixelformat = ChoosePixelFormat(surface.get(), &pxd);
+        if (!pixelformat)
+            throw std::runtime_error("no such GL config available");
+    }
+    if (!SetPixelFormat(surface.get(), pixelformat, &pxd))
+        throw std::runtime_error("set pixel format failed");
+ 
+    const int context_config[] = {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, attrs.major_version,
+        WGL_CONTEXT_MINOR_VERSION_ARB, attrs.minor_version,
+        WGL_CONTEXT_TERMINATOR
+    };
+
+    // now create the context and make it current
+    auto context = make_unique_ptr(wglCreateContextAttribsARB(surface.get(), NULL, context_config), wglDeleteContext);
+    if (!context)
+        throw std::runtime_error("create context failed");
+
+    if (!wglMakeCurrent(surface.get(), context.get()))
+        throw std::runtime_error("make current failed");
+
+    pimpl_.reset(new impl);
+    pimpl_->context           = context.release();
+    pimpl_->surface           = NULL;
+    pimpl_->surface_is_window = false;
+    pimpl_->original          = NULL;
+    pimpl_->temp_window       = window.release();
+    pimpl_->temp_surface      = surface.release();
+    pimpl_->pixelformat       = pixelformat;
 }
 
 context::~context()
 {
-    auto& map = pimpl_->contexts;
-    for (auto it = map.begin(); it != map.end(); ++it)
-    {
-        assert(it->second.hdc);
-        assert(it->second.ctx);
-        wglDeleteContext(it->second.ctx);
-        ReleaseDC(it->first, it->second.hdc);
-    }
+    wglMakeCurrent(NULL, NULL);
+
+    pimpl_->release_surface();
+
+    wglDeleteContext(pimpl_->context);
+
+    ReleaseDC(pimpl_->temp_window, pimpl_->temp_surface);
+    DestroyWindow(pimpl_->temp_window);
 }
 
 void context::make_current(native_window_t window)
 {
+    // wgl has a problem similar to glX that you can't pass NULL for HDC.
+    // so we use the temporary window surface
+    wglMakeCurrent(pimpl_->temp_surface, pimpl_->context);
+
+    pimpl_->release_surface();
+
     if (window == wdk::NULL_WINDOW)
-    {
-        wglMakeCurrent(NULL, NULL);
         return;
-    }
-    auto& map = pimpl_->contexts;
 
-    auto it = map.find(window);
+    HDC hdc = GetDC(window);
 
-    if (it == map.end())
-    {
-        struct auto_dc {
-            HWND wnd;
-            HDC  hdc;
-            auto_dc(HWND window) : wnd(window) {
-                hdc = GetDC(window);
-                if (!hdc)
-                    throw std::runtime_error("get device context failed");
-            }
-           ~auto_dc() {
-               if (hdc)
-                   ReleaseDC(wnd, hdc);
-           }
-           void release() {
-               wnd = NULL;
-               hdc = NULL;
-           }
-        } dc(window);
-        
-        PIXELFORMATDESCRIPTOR desc = {};
-        desc.nSize      = sizeof(desc);
-        desc.nVersion   = 1;
-        desc.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-        desc.iPixelType = PFD_TYPE_RGBA;
-        desc.cColorBits = 32;
-        desc.cRedBits   = 8;
-        desc.cGreenBits = 8;
-        desc.cBlueBits  = 8;
-        desc.cAlphaBits = 8;
-        desc.cDepthBits = 16;
-        
-        int pixelformat = ChoosePixelFormat(dc.hdc, &desc);
-        if (!pixelformat)
-            throw std::runtime_error("choose pixel format failed");
+    if (!wglMakeCurrent(hdc, pimpl_->context))
+        throw std::runtime_error("make current failed");
 
-        if (!SetPixelFormat(dc.hdc, pixelformat, &desc))
-            throw std::runtime_error("set pixel format failed");
+    pimpl_->surface = hdc;
+    pimpl_->surface_is_window = true;
+}
 
-        struct auto_ctx {
-            HGLRC ctx;
-            auto_ctx(HDC hdc) {
-                ctx = wglCreateContext(hdc);
-                if (!ctx)
-                    throw std::runtime_error("create context failed");
-            }
-           ~auto_ctx() {
-               if (ctx)
-                   wglDeleteContext(ctx);
-           }
-           void release() {
-               ctx = NULL;
-           }
-        } ctx(dc.hdc);
-        
-        if (!wglMakeCurrent(dc.hdc, ctx.ctx))
-            throw std::runtime_error("make current failed");
+void context::make_current(native_pixmap_t pixmap)
+{
+    // wgl has a problem similar to glX that you can't pass NULL for HDC.
+    // so we use the temporary window surface
+    wglMakeCurrent(pimpl_->temp_surface, pimpl_->context);
 
-        rendering_context rc = {dc.hdc, ctx.ctx};
-        map.insert(std::make_pair(window, rc));
+    pimpl_->release_surface();
 
-        pimpl_->current = dc.hdc;
+    if (pixmap == wdk::NULL_PIXMAP)
+        return;
 
-        dc.release();
-        ctx.release();
-    }
-    else
-    {
-        assert(it->second.hdc);
-        assert(it->second.ctx);
-        if (!wglMakeCurrent(it->second.hdc, it->second.ctx))
-            throw std::runtime_error("make current failed");
-        pimpl_->current = it->second.hdc;
-    }
+    auto hdc = make_unique_ptr(CreateCompatibleDC(pimpl_->temp_surface), DeleteDC);
+    if (!hdc.get())
+        throw std::runtime_error("error");
+
+    HGDIOBJ original = SelectObject(hdc.get(), pixmap);
+    if (!original)
+        throw std::runtime_error("select object failed");
+
+    if (!wglMakeCurrent(hdc.get(), pimpl_->context))
+        throw std::runtime_error("make current failed");
+
+    pimpl_->surface = hdc.release();
+    pimpl_->original = original;
+    pimpl_->surface_is_window = false;
 }
 
 void context::swap_buffers()
 {
-    assert(pimpl_->current && "context has no valid surface/window. did you forget to call make_current?");
+    assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
     
-    SwapBuffers(pimpl_->current);
+    const BOOL ret = SwapBuffers(pimpl_->surface);
+
+    assert(ret == TRUE);
 }
 
 uint_t context::visualid() const
 {
-    return 0;
+    return pimpl_->pixelformat;
 }
 
 bool context::has_dri() const
@@ -148,17 +250,35 @@ bool context::has_dri() const
 void* context::resolve(const char* function)
 {
     assert(function && "null function name");
+
+    // wglGetProcAddress won't work unless there's a current context
+    // for the calling thread. and for that we'll need a handle to a window
+    if (!wglGetCurrentContext())
+    {
+        struct dummy_context 
+        {
+            dummy_context() 
+            {
+                hdc = GetDC(NULL);
+                hgl = wglCreateContext(hdc);
+            }
+           ~dummy_context()
+            {
+                ReleaseDC(WindowFromDC(hdc), hdc);
+                wglDeleteContext(hgl);
+            }
+            HDC hdc;
+            HGLRC hgl;
+        };
+
+        static dummy_context dummy;
+
+        wglMakeCurrent(dummy.hdc, dummy.hgl);
+    }
     
     void* ret = (void*)wglGetProcAddress(function);
     
     return ret;
 }
-
-void context::init(native_display_t disp, const int_t* attrs)
-{
-    pimpl_.reset(new impl);
-    pimpl_->current = NULL;
-}
-
 
 } // wdk

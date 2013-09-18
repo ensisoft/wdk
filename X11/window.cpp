@@ -7,9 +7,10 @@
 #include <cassert>
 #include <stdexcept>
 #include <cstring>
-#include "events.h"
-#include "window.h"
-#include "event.h"
+#include "../events.h"
+#include "../event.h"
+#include "../window.h"
+#include "error_handler.h"
 
 namespace {
     struct hint {
@@ -95,23 +96,28 @@ void window::create(const window_param& how)
 
     const uint_t chosen_visual = visinfo->visualid;
 
-    Window win  = XCreateWindow(
-        display_handle,
-        root, 
-        0, 0, 
-        window_width, 
-        window_height, 
-        0, 
-        visinfo->depth, InputOutput, visinfo->visual,
-        attr_mask,
-        &attr);
+    factory<Window> win_factory(display_handle);
+
+    Window win = win_factory.create([&](Display* dpy) 
+    {
+        Window ret = XCreateWindow(dpy, 
+            root, 
+            0, 0, 
+            window_width, 
+            window_height, 
+            0,
+            visinfo->depth, 
+            InputOutput,
+            visinfo->visual,
+            attr_mask,
+            &attr);
+        return ret;
+    });
 
     XFree(visinfo);
-
-    if (!win)
-        throw std::runtime_error("cannot create window");
-
-    //XMoveWindow(display_handle, win, 0, 0);
+    
+    if (win_factory.has_error())
+        throw std::runtime_error("failed to create window");
 
     XSetWMProtocols(display_handle, win, &pimpl_->atom_delete_window, 1);
     XMapWindow(display_handle, win);
@@ -176,7 +182,6 @@ void window::create(const window_param& how)
     send.xcreatewindow.x = x;
     send.xcreatewindow.width = width;
     send.xcreatewindow.height = height;
-    //XSendEvent(display_handle, win, False, SubstructureNotifyMask | StructureNotifyMask, &send);
     XSendEvent(display_handle, win, False, 0, &send);
 }
 
@@ -248,13 +253,14 @@ bool window::exists() const
 bool window::dispatch_event(const event& ev) 
 {
     // if the event is not for this window, return quickly
-    if (ev.window != pimpl_->window)
+    if (ev.window.xid != pimpl_->window)
         return false;
 
     const XEvent* event = &ev.ev;
 
-    const native_window_t win   = handle();
-    const native_display_t disp = display();
+    const native_window_t win   = {pimpl_->window};
+    const native_surface_t surf = {pimpl_->window};
+    const native_display_t disp = {pimpl_->disp};
 
     switch (ev.type)
     {
@@ -280,7 +286,7 @@ bool window::dispatch_event(const event& ev)
                     event->xexpose.y,
                     event->xexpose.width,
                     event->xexpose.height,
-                    win, win, disp});
+                    win, surf, disp});
             }
         }
         break;
@@ -294,8 +300,7 @@ bool window::dispatch_event(const event& ev)
                 if (event_resize) {
                     event_resize(window_event_resize{event->xconfigure.width,
                         event->xconfigure.height,
-                        event->xconfigure.window,
-                        win, disp});
+                        win, surf, disp});
                 }
                 // the width and height members are set to the inside size of the 
                 // window not including the border. border_width is the width of the window border (in pixels)
@@ -331,7 +336,7 @@ bool window::dispatch_event(const event& ev)
                     event->xcreatewindow.width,
                     event->xcreatewindow.height,
                     pimpl_->param.fullscreen, 
-                    win, win, disp});
+                    win, surf, disp});
             }
         }
         break;
@@ -352,15 +357,17 @@ bool window::dispatch_event(const event& ev)
 native_window_t window::handle() const
 {
     if (!pimpl_->window)
-        return (native_window_t)wdk::NULL_WINDOW;
-    return pimpl_->window;
+        return wdk::NULL_WINDOW;
+
+    return native_window_t {pimpl_->window};
 }
 
 native_surface_t window::surface() const
 {
     if (!pimpl_->window)
-        return (native_surface_t)wdk::NULL_SURFACE;
-    return pimpl_->window;
+        return wdk::NULL_SURFACE;
+
+    return native_surface_t {pimpl_->window};
 }
 
 native_display_t window::display() const

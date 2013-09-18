@@ -2,9 +2,9 @@
 #include <cassert>
 #include <cstring>              // for memset
 #include <functional>
-#include "window.h"
-#include "events.h"
-#include "event.h"
+#include "../window.h"
+#include "../events.h"
+#include "../event.h"
 
 namespace wdk
 {
@@ -130,7 +130,7 @@ window::window(native_display_t disp)
     cls.hCursor       = LoadCursor(NULL, IDC_ARROW);
     cls.style         = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
     cls.lpfnWndProc   = impl::window_startup_proc;
-    cls.lpszClassName = "WDK-WINDOW";
+    cls.lpszClassName = TEXT("WDK-WINDOW");
     if (!RegisterClassEx(&cls))
         throw std::runtime_error("registerclassex failed");
 }
@@ -183,7 +183,7 @@ void window::create(const window_param& how)
 
     HWND hwnd = CreateWindowEx(
         new_style_bits,
-        "WDK-WINDOW",
+        TEXT("WDK-WINDOW"),
         how.title.c_str(),
         old_style_bits,
         CW_USEDEFAULT,  // x pos 
@@ -197,10 +197,28 @@ void window::create(const window_param& how)
     if (hwnd == NULL)
         throw std::runtime_error("create window failed");
 
+    if (how.visualid)
+    {
+        HDC hdc = GetDC(hwnd);
+
+        PIXELFORMATDESCRIPTOR pxd = {0};
+        DescribePixelFormat(hdc, how.visualid, sizeof(pxd), &pxd);
+
+        if (!SetPixelFormat(hdc, how.visualid, &pxd))
+        {
+            ReleaseDC(hwnd, hdc);
+            DestroyWindow(hwnd);
+            throw std::runtime_error("set pixel format failed");
+        }
+    }
+
+    // resize window to match the drawable client area with the desired size
+    // based on the difference by client and window size.
     RECT client, window;
     GetClientRect(hwnd, &client);
     GetWindowRect(hwnd, &window);
 
+    // resize
     const int dx = (window.right - window.left) - client.right;
     const int dy = (window.bottom - window.top) - client.bottom;
     MoveWindow(hwnd, window.left, window.top, surface_width + dx, surface_height + dy, TRUE);
@@ -250,45 +268,38 @@ void window::close()
 
 uint_t window::width() const
 {
-    assert(exists());
-
-    RECT rc;
+    RECT rc = {0};
     GetWindowRect(pimpl_->hwnd, &rc);
     return rc.right - rc.left;
 }
 
 uint_t window::height() const
 {
-    assert(exists());
-
-    RECT rc;
+    RECT rc = {0};
     GetWindowRect(pimpl_->hwnd, &rc);
     return rc.bottom - rc.top;
 }
 
 uint_t window::surface_width() const
 {
-    assert(exists());
-
-    RECT rc;
+    RECT rc = {0};
     GetClientRect(pimpl_->hwnd, &rc);
     return rc.right;
 }
 
 uint_t window::surface_height() const
 {
-    assert(exists());
-
-    RECT rc;
+    RECT rc = {0};
     GetClientRect(pimpl_->hwnd, &rc);
     return rc.bottom;
 }
 
 uint_t window::visualid() const
 {
-    assert(exists());
+    if (!pimpl_->hwnd)
+        return 0;
 
-    return 0;
+    return GetPixelFormat(pimpl_->hdc);
 }
 
 bool window::exists() const

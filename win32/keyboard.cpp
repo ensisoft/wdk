@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <iterator>
 #include <cassert>
-#include "keyboard.h"
-#include "events.h"
-#include "event.h"
+#include "../keyboard.h"
+#include "../events.h"
+#include "../event.h"
 
 namespace {
     using namespace wdk;
