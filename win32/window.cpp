@@ -34,7 +34,7 @@ namespace wdk
 struct window::impl {
     HWND hwnd;
     HDC  hdc;
-    HDC  screen;
+	HDC  display;
     bool fullscreen;
     bool resizing;
     int x, y;
@@ -141,7 +141,7 @@ window::window(native_display_t disp)
     pimpl_.reset(new impl);
     pimpl_->hwnd       = NULL;
     pimpl_->hdc        = NULL;
-    pimpl_->screen     = GetDC(GetDesktopWindow());
+	pimpl_->display    = disp;
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
     
@@ -159,8 +159,6 @@ window::window(native_display_t disp)
 
 window::~window()
 {
-    ReleaseDC(GetDesktopWindow(), pimpl_->screen);
-
     if (exists())
         close();
 }
@@ -224,14 +222,10 @@ void window::create(const window_param& how)
         HDC hdc = GetDC(hwnd);
 
         PIXELFORMATDESCRIPTOR pxd = {0};
-        DescribePixelFormat(hdc, how.visualid, sizeof(pxd), &pxd);
+		if (!DescribePixelFormat(hdc, how.visualid, sizeof(pxd), &pxd))
+			throw std::runtime_error("incorrect visualid");
 
-        if (!SetPixelFormat(hdc, how.visualid, &pxd))
-        {
-            ReleaseDC(hwnd, hdc);
-            DestroyWindow(hwnd);
-            throw std::runtime_error("set pixel format failed");
-        }
+		SetPixelFormat(hdc, how.visualid, &pxd);
     }
 
     // resize window to match the drawable client area with the desired size
@@ -474,7 +468,8 @@ native_display_t window::display() const
 {
     if (!pimpl_->hwnd)
         return (native_display_t)0;
-    return pimpl_->screen;
+
+    return pimpl_->display;
 }
 
 } // wdk

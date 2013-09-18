@@ -42,7 +42,7 @@ pixmap::pixmap(native_display_t disp, uint_t width, uint_t height, uint_t visual
     assert(width && height);
     assert(visualid);
 
-    auto hdc = make_unique_ptr(CreateCompatibleDC(disp), DeleteDC);
+	auto hdc = make_unique_ptr(CreateCompatibleDC(NULL), DeleteDC);
     if (!hdc.get())
         throw std::runtime_error("create compatible dc failed");
 
