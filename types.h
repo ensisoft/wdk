@@ -22,10 +22,20 @@
 
 #pragma once
 
-#ifdef LINUX
-#  include "X11/types.h"
-#elif defined(WINDOWS) || defined(_WIN32)
+#if defined(WINDOWS) || defined(_WIN32)
 #  include "win32/types.h"
+#else
+#  include "X11/types.h"
+#endif
+
+#ifdef USE_EGL
+#  include "EGL/types.h"
+#else
+#  if defined(WINDOWS) || defined(_WIN32)
+#    include "WGL/types.h"
+#  else
+#    include "GLX/types.h"
+#  endif
 #endif
 
 namespace wdk
@@ -37,5 +47,7 @@ namespace wdk
     typedef unsigned int  errcode_t;
 
     const ms_t NO_TIMEOUT = -1;
+
+
 
 } // wdk

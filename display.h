@@ -60,7 +60,7 @@ namespace wdk
         void set_video_mode(native_vmode_t id);
 
         // get a list of available video modes.
-        void list_video_modes(std::vector<videomode>& modes);
+        std::vector<videomode> list_video_modes() const;
 
         // check if there is a pending event for any of the windows
         // created with this display object

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+    // Copyright (c) 2013 Sami Väisänen, Ensisoft 
 //
 // http://www.ensisoft.com
 //
@@ -31,20 +31,34 @@
 #else
 #  include <GLES2/gl2.h>
 #endif
-#ifdef SAMPLE_USE_BOOST
-#  include <boost/program_options.hpp>
-#endif
 #include <wdk/window.h>
 #include <wdk/events.h>
 #include <wdk/keyboard.h>
 #include <wdk/display.h>
-#include <wdk/context.h>
 #include <wdk/event.h>
+#include <wdk/context.h>
+#include <wdk/config.h>
+#include <wdk/surface.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <cassert>
+#include <cstring>
+
+#define GL_ERR_CLEAR \
+    while (glGetError()) \
+
+
+#define GL_CHECK(statement) \
+    statement; \
+    do { \
+        const int err = glGetError(); \
+        if (err != GL_NO_ERROR) { \
+            printf("GL error 0x%04x @ %s,%d\n", err, __FILE__, __LINE__); \
+            abort(); \
+        }\
+    } while(0)    
 
 class triangle 
 {
@@ -93,28 +107,30 @@ public:
           "}                                                            \n"
           "\n";
 #endif
-        glShaderSource(vert, 1, &v_src, NULL);
-        glCompileShader(vert);
+        GL_CHECK(glShaderSource(vert, 1, &v_src, NULL));
+        GL_CHECK(glCompileShader(vert));
 
-        glShaderSource(frag, 1, &f_src, NULL);
-        glCompileShader(frag);
+        GL_CHECK(glShaderSource(frag, 1, &f_src, NULL));
+        GL_CHECK(glCompileShader(frag));
 
-        glAttachShader(program_, vert);
-        glAttachShader(program_, frag);
-        glLinkProgram(program_);
+        GL_CHECK(glAttachShader(program_, vert));
+        GL_CHECK(glAttachShader(program_, frag));
+        GL_CHECK(glLinkProgram(program_));
 
-        glValidateProgram(program_);
-        glUseProgram(program_);
+        GL_CHECK(glValidateProgram(program_));
+        GL_CHECK(glUseProgram(program_));
 
-        glDeleteShader(vert);
-        glDeleteShader(frag);
+        GL_CHECK(glDeleteShader(vert));
+        GL_CHECK(glDeleteShader(frag));
 #endif
     }
 
     void render()
     {
-        glClearColor(0, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        GL_ERR_CLEAR;
+
+        GL_CHECK(glClearColor(0, 0, 0, 0));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 
 #if defined(MAKE_GL2) || defined(MAKE_GL_ES)
         struct vertex {
@@ -133,23 +149,20 @@ public:
         triangle[2] = vertex(1, -1, 0);
         
         GLint pos = glGetAttribLocation(program_, "a_position");
-        glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle);
-        glEnableVertexAttribArray(pos);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        GL_CHECK(glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
+        GL_CHECK(glEnableVertexAttribArray(pos));
+        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
 #else
-        glLoadIdentity();
-        glColor3f(0, 0.8, 0);
-        glBegin(GL_TRIANGLES);
+        GL_CHECK(glLoadIdentity());
+        GL_CHECK(glColor3f(0, 0.8, 0));
 
-        glVertex3f(0.0f, 1.0f, 0.0f);
-        glVertex3f(-1.0f, -1.0, 0.0f);
-        glVertex3f(1.0f, -1.0f, 0.0f);
-        glEnd();
+        GL_CHECK(glBegin(GL_TRIANGLES));
+          glVertex3f(0.0f, 1.0f, 0.0f);
+          glVertex3f(-1.0f, -1.0, 0.0f);
+          glVertex3f(1.0f, -1.0f, 0.0f);
+        GL_CHECK(glEnd());
 #endif
-        const int ret = glGetError();
-        if (ret != GL_NO_ERROR)
-            printf("GL Error: %d\n", ret);
-
       }
 private:
     GLint program_;
@@ -165,119 +178,192 @@ void handle_window_create(const wdk::window_event_create& create)
     glViewport(0, 0, create.width, create.height);
 }
 
+struct cmdline {
+    bool   print_help;
+    bool   render_window;
+    bool   render_buffer;
+    bool   fullscreen;
+    bool   listmodes;
+    bool   wnd_border;
+    bool   wnd_resize;
+    bool   wnd_move;
+    int    surface_width;
+    int    surface_height;
+    wdk::native_vmode_t videomode;
+};
+
+bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
+{
+    for (int i=1; i<argc; ++i)
+    {
+        const char* name = argv[i];
+
+        if (!strcmp(name, "--help"))
+            cmd.print_help = true;
+        else if (!strcmp(name, "--render-window"))
+            cmd.render_window = true;
+        else if (!strcmp(name, "--render-buffer"))
+            cmd.render_buffer = true;
+        else if (!strcmp(name, "--fullscreen"))
+            cmd.fullscreen = true;
+        else if (!strcmp(name, "--list-modes"))
+            cmd.listmodes = true;
+        else if (!strcmp(name, "--wnd-no-border"))
+            cmd.wnd_border = false;
+        else if (!strcmp(name, "--wnd-no-resize"))
+            cmd.wnd_resize = false;
+        else if (!strcmp(name, "--wnd-no-move"))
+            cmd.wnd_move = false;
+        else
+        {
+            if (!(i + 1 < argc))
+                return false;
+
+            long value = atoi(argv[++i]);
+            if (!strcmp(name, "--wnd-width"))
+                cmd.surface_width = value;
+            else if (!strcmp(name, "--wnd-height"))
+                cmd.surface_height = value;
+            else if (!strcmp(name, "--video-mode"))
+                cmd.videomode = static_cast<wdk::native_vmode_t>(value);
+        }
+    }
+    return true;
+}
 
 int main(int argc, char* argv[])
 {
+    // default settings
+    cmdline cmd = {0};
+
+    cmd.print_help     = false;
+    cmd.render_window  = false;
+    cmd.render_buffer  = false;
+    cmd.fullscreen     = false;
+    cmd.listmodes      = false;
+    cmd.wnd_border     = true;
+    cmd.wnd_resize     = true;
+    cmd.wnd_move       = true;
+    cmd.surface_width  = 640;
+    cmd.surface_height = 480;
+    cmd.videomode      = wdk::DEFAULT_VIDEO_MODE;
+
+    if (!parse_cmdline(argc, argv, cmd))
+    {
+        std::cerr << "Incorrect command line\n";
+        return 1;
+    }
+    else if (cmd.print_help)
+    {
+        std::cout 
+        << "\n"
+        << "--help\t\t\tPrint this help\n"
+        << "--render-window\t\tRender into a window (default)\n"
+        << "--render-buffer\t\tRender into a pbuffer\n"
+        << "--fullscreen\t\tChange into fullscreen\n" 
+        << "--list-modes\t\tList available video modes\n"
+        << "--wnd-no-border\t\tDisable window border\n" 
+        << "--wnd-no-resize\t\tDisable window resizing\n" 
+        << "--wnd-no-move\t\tDisable window moving\n"
+        << "--wnd-width\t\tWindow width\n"
+        << "--wnd-height\t\tWindow height\n"
+        << "--video-mode\t\tVideo mode\n\n";
+        return 0;
+    }
+
     // create display server connection
     wdk::display disp;
 
-    // create GL context
-    wdk::context context(disp.handle());
-
-    // setup window creation parameters
-    wdk::window_param p = {};
-    p.title      = "GL rendering example";
-    p.width      = 640;
-    p.height     = 480;
-    p.fullscreen = false;
-    p.visualid   = context.visualid();
-
-    bool border    = true;
-    bool resize    = true;
-    wdk::native_vmode_t vmode = wdk::DEFAULT_VIDEO_MODE;
-    
-    // parse parameters
-#ifdef SAMPLE_USE_BOOST
-    namespace po = boost::program_options;
-
-    po::options_description desc("Options");
-    desc.add_options()
-        ("width",         po::value<wdk::uint_t>(&p.width)->default_value(640),           "Window width")
-        ("height",        po::value<wdk::uint_t>(&p.height)->default_value(480),          "Window height")
-        ("border",        po::value<bool>(&border)->default_value(true),                  "Border")
-        ("resize",        po::value<bool>(&resize)->default_value(true),                  "Resize")
-        ("videomode",     po::value<wdk::native_vmode_t>(&vmode)->default_value(wdk::DEFAULT_VIDEO_MODE), "Videomode")
-        ("listmodes",     "List available video modes")
-        ("fullscreen",    "Fullscreen")
-        ("help",          "Print help");
-    po::variables_map vm;
-    store(parse_command_line(argc, argv, desc), vm);
-    notify(vm);
-    if (vm.count("help"))
+    if (cmd.listmodes)
     {
-        std::cout << desc;
-        return 0;
-    } 
-    else if (vm.count("listmodes"))
-    {
-        std::vector<wdk::videomode> modes;
-        disp.list_video_modes(modes);
-        std::copy(modes.rbegin(),
-                  modes.rend(),
-                  std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
+        const auto modes = disp.list_video_modes();
+
+        std::copy(modes.rbegin(), modes.rend(), std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
         return 0;
     }
-    if (vm.count("fullscreen"))
-        p.fullscreen = true;
-#endif
 
-    if (border)
-        p.props |= wdk::WP_BORDER;
-    if (resize)
-        p.props |= wdk::WP_RESIZE;
+    if (cmd.videomode)
+        disp.set_video_mode(cmd.videomode);
 
-    // change video mode. 
-    if (vmode != wdk::DEFAULT_VIDEO_MODE)
-        disp.set_video_mode(vmode);
+    if (!cmd.render_window && !cmd.render_buffer)
+        cmd.render_window = true;
+    
+    // select GL framebuffer configuration (default)
+    wdk::config conf(disp);
 
+    // create GL context (default GL version)
+    wdk::context ctx(disp, conf);
 
-    // finally create our rendering window
-    wdk::window win(disp.handle());
+    std::cout 
+    << "\n"
+    << "OpenGL initialized:\n"
+    << glGetString(GL_VENDOR) << "\n"
+    << glGetString(GL_VERSION) << "\n"
+    << glGetString(GL_RENDERER) << "\n"
+    << "Surface: " << cmd.surface_width << "x" << cmd.surface_height << "\n";
+
+    // knock up a window on the screen
+    wdk::window win(disp);
+
+    // setup window creation params
+    wdk::window::params param;
+    param.title      = "Simple GL Window";
+    param.width      = cmd.surface_width;
+    param.height     = cmd.surface_height;
+    param.visualid   = conf.visualid();
+    param.fullscreen = cmd.fullscreen;
+    param.props      = 0;
+    if (cmd.wnd_border)
+        param.props |= wdk::window::HAS_BORDER;
+    if (cmd.wnd_resize)
+        param.props |= wdk::window::CAN_RESIZE;
+    if (cmd.wnd_move)
+        param.props |= wdk::window::CAN_MOVE;
+
     win.event_resize = handle_window_resize;
     win.event_create = handle_window_create;
-    win.create(p);
+    // finally create it
+    win.create(param);
 
-    // keyboard input
-    wdk::keyboard kb(disp.handle());
+    // set a rendering surface and make it current
+    wdk::surface surf(disp, conf, win);
+
+    ctx.make_current(&surf);
+
+    //prepare some keyboard handling
+    wdk::keyboard kb(disp);
+
     kb.event_keydown = [&](const wdk::keyboard_event_keydown& key)
     {
         if (key.symbol == wdk::keysym::escape)
         {
-            context.make_current(wdk::NULL_WINDOW);
+            ctx.make_current(nullptr);
+            surf.dispose();
             win.close();
         }
     };
 
-    // render in this window 
-    context.make_current(win.handle());
-
-    // create model
     triangle model;
-    
-    printf("\nOpenGL initialized:\n");
-    printf("%s, %s, %s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
-    printf("Direct Rendering: %s\n", (context.has_dri() ? "Yes!" : "No :("));
-    printf("Surface: %dx%d\n", p.width, p.height);
-    
-    while (true)
+
+    // enter rendering loop
+    while (win.exists())
     {
+        model.render();
+        ctx.swap_buffers();
+
         while (disp.has_event())
         {
             wdk::event e = {0};
             disp.get_event(e);
-
             if (!win.dispatch_event(e))
                 kb.dispatch_event(e);
-                    
-            dispose(e);
-        }
 
-        if (!win.exists())
-            break;
-        
-        model.render();
-        context.swap_buffers();
+            dispose(e);
+        }            
     }
+
     return 0;
 }
+
+
 

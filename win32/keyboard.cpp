@@ -130,7 +130,7 @@ namespace wdk
 
 struct keyboard::impl {};
 
-keyboard::keyboard(native_display_t disp) 
+keyboard::keyboard(const display&)
 {
     // sort the table by VK values for quicker lookup win32->wdk
     std::sort(std::begin(keymap), std::end(keymap));

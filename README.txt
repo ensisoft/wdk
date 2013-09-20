@@ -17,6 +17,26 @@ in parameters. Care should be taken not to pass invalid handles or not to let ob
 invalidate handles.
 
 
+Typical startup:
+
+1. create display connection
+2. set config attributes (if needed)
+3. create config object
+3. create rendering rendering context
+4. create window
+5. create surface for the window
+6. make the surface current in the context
+7. start drawing
+
+Typical shutdown:
+1. set null for current surface in the context
+2. dispose surface
+3. close window
+
+
+Code requires a C++11 compatible compiler. Compiles with gcc >= 4.8.1 and msvc >= 2013 Express RC
+
+
 TODO:
 
 - multihead support, probably only works with a single display setup at the moment

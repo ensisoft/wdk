@@ -25,6 +25,7 @@
 #include <functional>
 #include <cassert>
 #include "../pixmap.h"
+#include "../display.h"
 #include "error_handler.h"
 
 namespace wdk
@@ -38,29 +39,24 @@ struct pixmap::impl {
     uint_t depth;
 };
 
-pixmap::pixmap(native_display_t disp, uint_t width, uint_t height, uint_t visualid)
+pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t visualid)
 {
-    // todo: visualid??
-
-    uint_t bit_depth = 32;
-
-    assert(disp);
     assert(width && height);
 
-    pimpl_.reset(new impl);
-    pimpl_->handle = 0;
-    pimpl_->disp   = disp;
-    pimpl_->width  = 0;
-    pimpl_->height = 0;
-    pimpl_->depth  = 0;
+    Display* dpy = disp.handle();
 
-    factory<Pixmap> px_factory(disp);
+    // todo: visualid??
+    uint_t bit_depth = 32;
 
-    Pixmap px = px_factory.create(std::bind(XCreatePixmap, std::placeholders::_1, RootWindow(disp, DefaultScreen(disp)), width, height, bit_depth));
+    factory<Pixmap> px_factory(dpy);
+
+    Pixmap px = px_factory.create(std::bind(XCreatePixmap, std::placeholders::_1, RootWindow(dpy, DefaultScreen(dpy)), width, height, bit_depth));
     if (px_factory.has_error())
         throw std::runtime_error("failed to create pixmap");
 
+    pimpl_.reset(new impl);
     pimpl_->handle = px;
+    pimpl_->disp   = dpy;
     pimpl_->width  = width;
     pimpl_->height = height;
     pimpl_->depth  = bit_depth;
@@ -76,12 +72,6 @@ pixmap::pixmap(native_display_t disp, uint_t width, uint_t height, uint_t visual
     assert(h == height);
     //assert(d == bit_depth);
 #endif  
-}
-
-pixmap::pixmap(native_display_t disp, 
-    uint_t width, uint_t height, const attributes& attr)
-{
-    
 }
 
 pixmap::~pixmap()
@@ -114,5 +104,5 @@ uint_t pixmap::depth() const
     return pimpl_->depth;
 }
 
-
 } // wdk
+

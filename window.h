@@ -30,24 +30,6 @@
 
 namespace wdk
 {
-    enum window_properties {
-        WP_BORDER   = 0x1,
-        WP_RESIZE   = 0x2
-    };
-
-    // window parameters defines how the window is to be created.
-    // if fullscreen is true then window properties are ignored
-    // and window will be created without border, unresizeable and 
-    // dimensions will be current video mode dimensions.
-    struct window_param {
-        std::string title;        // optional window title to be display in title bar
-        uint_t      width;        // inside width of the window, i.e. the surface width
-        uint_t      height;       // inside height of the window, i.e. the surface height
-        uint_t      visualid;     // visualid to be used, 0 for don't care
-        bitflag_t   props;        // window properties
-        bool        fullscreen;   // fullscreen flag
-    };
- 
     struct event;   
 
     // window events
@@ -55,26 +37,47 @@ namespace wdk
     struct window_event_paint;
     struct window_event_resize;
     struct window_event_focus;
-    struct window_event_close;
+    struct window_event_query_close;
     struct window_event_destroy;
+
+    class display;
 
     // create a window for showing/rendering content 
     class window : noncopyable
     {
     public:
-        std::function<void (const window_event_create&)>  event_create;
-        std::function<void (const window_event_paint&)>   event_paint;
-        std::function<void (const window_event_resize&)>  event_resize;
-        std::function<void (const window_event_focus&)>   event_lost_focus;
-        std::function<void (const window_event_focus&)>   event_gain_focus;
-        std::function<void (const window_event_destroy&)> event_destroy;
-        std::function<void (window_event_close&)>         event_close;
+        enum properties {
+            HAS_BORDER   = 0x1,
+            CAN_RESIZE   = 0x2,
+            CAN_MOVE     = 0x4
+        };
 
-        window(native_display_t disp);
+        std::function<void (const window_event_create&)>   event_create;
+        std::function<void (const window_event_paint&)>    event_paint;
+        std::function<void (const window_event_resize&)>   event_resize;
+        std::function<void (const window_event_focus&)>    event_lost_focus;
+        std::function<void (const window_event_focus&)>    event_gain_focus;
+        std::function<void (window_event_query_close&)>    event_query_close;
+        std::function<void (const window_event_destroy&)>  event_destroy;
+
+        window(const display& disp);
        ~window();
-        
+
+        // window parameters defines how the window is to be created.
+        // if fullscreen is true then window properties are ignored
+        // and window will be created without border, unresizeable and 
+        // dimensions will be current video mode dimensions.
+        struct params {
+            std::string title;      // optional window title to be display in the titlebar (if any)
+            uint_t      width;      // renderable surface width (inside client area of the window)
+            uint_t      height;     // renderable surface height (inside client area of the window)
+            uint_t      visualid;   // GL color buffer id for GL rendering compatibility
+            bitflag_t   props;      // bitflags of window properties
+            bool        fullscreen; // fullscreen flag. if true title and props are ignored.
+        };
+
         // create the window.
-        void create(const window_param& how);
+        void create(const params& how);
 
         // close the window. 
         void close();
@@ -103,9 +106,6 @@ namespace wdk
 
         // get native window handle
         native_window_t handle() const;
-        
-        // get native drawable/surface handle
-        native_surface_t surface() const;
 
         // get the display handle where the window is created
         native_display_t display() const;
@@ -125,7 +125,7 @@ namespace wdk
         virtual void on_resize(const window_event_resize&) {}
         virtual void on_lost_focus(const window_event_focus&) {}
         virtual void on_gain_focus(const window_event_focus&) {}
-        virtual void on_close(window_event_close&) {}
+        virtual void on_query_close(window_event_query_close&) {}
         virtual void on_destroy(const window_event_destroy&) {}
 
     };
@@ -134,13 +134,13 @@ namespace wdk
     inline void connect(window& win, window_listener* listener)
     {
         namespace args = std::placeholders;
-        win.event_create = std::bind(&window_listener::on_create, listener, args::_1);
-        win.event_paint  = std::bind(&window_listener::on_paint, listener, args::_1);
-        win.event_resize = std::bind(&window_listener::on_resize, listener, args::_1);
-        win.event_lost_focus = std::bind(&window_listener::on_lost_focus, listener, args::_1);
-        win.event_gain_focus = std::bind(&window_listener::on_gain_focus, listener, args::_1);
-        win.event_close = std::bind(&window_listener::on_close, listener, args::_1);
-        win.event_destroy = std::bind(&window_listener::on_destroy, listener, args::_1);
+        win.event_create      = std::bind(&window_listener::on_create, listener, args::_1);
+        win.event_paint       = std::bind(&window_listener::on_paint, listener, args::_1);
+        win.event_resize      = std::bind(&window_listener::on_resize, listener, args::_1);
+        win.event_lost_focus  = std::bind(&window_listener::on_lost_focus, listener, args::_1);
+        win.event_gain_focus  = std::bind(&window_listener::on_gain_focus, listener, args::_1);
+        win.event_query_close = std::bind(&window_listener::on_query_close, listener, args::_1);
+        win.event_destroy     = std::bind(&window_listener::on_destroy, listener, args::_1);
     }
 
 } // wdk

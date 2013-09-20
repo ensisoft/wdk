@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <iterator>
 #include "../keyboard.h"
+#include "../display.h"
 #include "../events.h"
 #include "../event.h"
 
@@ -165,12 +166,10 @@ struct keyboard::impl {
 };
 
 
-keyboard::keyboard(native_display_t disp)
+keyboard::keyboard(const wdk::display& disp)
 {
-    assert(disp);
-
     pimpl_.reset(new impl);
-    pimpl_->dpy      = disp;
+    pimpl_->dpy      = disp.handle();
     pimpl_->alt_mask = 0;
 
     // get the modifier map for finding XK_Alt_L or XK_Alt_R

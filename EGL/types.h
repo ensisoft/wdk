@@ -22,48 +22,21 @@
 
 #pragma once
 
-#include <X11/Xlib.h>
+#include <EGL/egl.h>
 
 namespace wdk
 {
-    typedef int      native_handle_t;
-    typedef XEvent   native_event_t;
-    typedef Display* native_display_t;
-    typedef int      native_vmode_t;
-
-    // wrapper structure to make XID objects separate handle types
-    // so we can add more type safety and overload
     template<typename T, int discriminator>
-    struct xid_t {
-        T xid;
+    struct egl_t {
+        T glx;
 
         operator T () const
         {
-            return xid;
+            return glx;
         }
     };
 
-    template<typename T, int discriminator> inline
-    bool operator==(const xid_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
-    {
-        return rhs.xid == lhs.xid;
-    }
-
-    template<typename T, int discriminator> inline
-    bool operator!=(const xid_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
-    {
-        return rhs.xid != lhs.xid;
-    }
-
-    typedef xid_t<Window, 0>      native_window_t;
-    typedef xid_t<Pixmap, 1>      native_pixmap_t;
-
-    enum {
-        NULL_HANDLE        = 0,
-        DEFAULT_VIDEO_MODE = 0
-    };    
-
-    const native_window_t  NULL_WINDOW  {0};
-    const native_pixmap_t  NULL_PIXMAP  {0};
+    typedef egl_t<EGLSurface, 1> gl_surface_t;
+    typedef egl_t<EGLConfig, 0> gl_config_t;
 
 } // wdk

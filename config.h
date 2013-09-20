@@ -22,33 +22,65 @@
 
 #pragma once
 
+#include <boost/logic/tribool.hpp>
 #include <memory>
-#include "utility.h"
 #include "types.h"
+#include "utility.h"
+
+BOOST_TRIBOOL_THIRD_STATE(dont_care)
 
 namespace wdk
 {
     class display;
 
-    // window system provided bitmap
-    class pixmap : noncopyable
+    // OpenGL framebuffer configuration
+    class config : noncopyable
     {
     public:
-        pixmap(const display& disp, uint_t width, uint_t height, uint_t visualid);
+        // framebuffer attributes. when using visualid or configid
+        // other attributes are ignored. use 0 for don't care
+        struct attributes {
+            uint_t red_size;
+            uint_t green_size;
+            uint_t blue_size;
+            uint_t alpha_size;
+            uint_t depth_size;
+            uint_t visualid;
+            uint_t configid;
 
-       ~pixmap();
+            boost::tribool doublebuffer;
 
-        native_pixmap_t handle() const;
+            struct {
+                bool window;
+                bool pbuffer;
+                bool pixmap;
+            } surfaces;
+        };
 
-        native_display_t display() const;
+        // some predefined attributes.
+        static attributes DONT_CARE;
+        static attributes DEFAULT;
 
-        uint_t width() const;
-        uint_t height() const;
-        uint_t depth() const;
+        // create new config with the given attributes.
+        // throws an exception if now such configuration is available.
+        config(const display& disp, const attributes& attrs = config::DEFAULT);
+
+       ~config();
+
+        // get the visualid
+        uint_t visualid() const;
+
+        // get the config id
+        uint_t configid() const;
+
+        gl_config_t handle() const;
+
+        // todo: static query functions
     private:
         struct impl;
 
         std::unique_ptr<impl> pimpl_;
-   };
+    };
 
 } // wdk
+

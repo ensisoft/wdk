@@ -41,8 +41,7 @@ namespace wdk
         int width;                   // surface width
         int height;                  // surface height
         bool fullscreen;                // fullscreen or not
-        native_window_t handle;         
-        native_surface_t surface;
+        native_window_t  window;         
         native_display_t display;
     };
 
@@ -53,8 +52,7 @@ namespace wdk
         int x, y;                       // x, y origin of the dirty rectangle
         int width;                   // width of the dirty rect
         int height;                  // height of the dirty rect
-        native_window_t  handle;        
-        native_surface_t surface;       
+        native_window_t  window;        
         native_display_t display;       
     };
 
@@ -62,28 +60,27 @@ namespace wdk
     struct window_event_resize {
         int width;                  // surface width
         int height;                 // surface height
-        native_window_t handle;         
-        native_surface_t surface;       
+        native_window_t window;         
         native_display_t display;       
     };
 
     // on_gain_focus, on_lost_focus
     struct window_event_focus {
-        native_window_t handle;
+        native_window_t window;
         native_display_t display;
     };
 
     // on_query_close
-    struct window_event_close {
+    struct window_event_query_close {
         bool should_close;
-        native_window_t handle;
+        native_window_t window;
         native_display_t display;
     };
 
     // on_close, window was closed either by user or
     // by calling close()
     struct window_event_destroy {
-        native_window_t handle;
+        native_window_t window;
         native_display_t display;
     };
 

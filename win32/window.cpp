@@ -27,13 +27,15 @@
 #include "../window.h"
 #include "../events.h"
 #include "../event.h"
+#include "../display.h"
+#include "../utility.h"
+#include "helpers.h"
 
 namespace wdk
 {
 
 struct window::impl {
     HWND hwnd;
-    HDC  hdc;
     HDC  display;
     bool fullscreen;
     bool resizing;
@@ -136,12 +138,11 @@ struct window::impl {
 
 };
 
-window::window(native_display_t disp)
+window::window(const wdk::display& disp)
 {
     pimpl_.reset(new impl);
     pimpl_->hwnd       = NULL;
-    pimpl_->hdc        = NULL;
-    pimpl_->display    = disp;
+    pimpl_->display    = disp.handle();
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
     
@@ -163,12 +164,12 @@ window::~window()
         close();
 }
 
-void window::create(const window_param& how)
+void window::create(const window::params& how)
 {
     assert(!exists());
 
-    DWORD new_style_bits = WS_EX_APPWINDOW;
-    DWORD old_style_bits = WS_POPUP;
+    DWORD new_style_bits  = WS_EX_APPWINDOW;
+    DWORD old_style_bits  = WS_POPUP;
     DWORD surface_width   = how.width;
     DWORD surface_height  = how.height;
 
@@ -188,80 +189,88 @@ void window::create(const window_param& how)
     }
     else
     {
-        if (how.props & wdk::WP_BORDER)
+        if (how.props & window::HAS_BORDER)
         {
             old_style_bits = WS_SYSMENU | WS_BORDER;
         }
-        if (how.props & wdk::WP_RESIZE)
+        if (how.props & window::CAN_RESIZE)
         {
-            if (how.props & wdk::WP_BORDER)
+            if (how.props & window::HAS_BORDER)
                 old_style_bits |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
 
             old_style_bits |= WS_SIZEBOX;
         }
     }
 
-    HWND hwnd = CreateWindowEx(
-        new_style_bits,
-        TEXT("WDK-WINDOW"),
-        how.title.c_str(),
-        old_style_bits,
-        CW_USEDEFAULT,  // x pos 
-        CW_USEDEFAULT,  // y pos
-        surface_width,
-        surface_height,
-        NULL,   // parent HWND
-        NULL,   // menu HMENU
-        NULL,   // instance HINSTANCE
-        NULL);   // window param LPVOID
-    if (hwnd == NULL)
+    auto win = make_unique_ptr(CreateWindowEx(new_style_bits, TEXT("WDK-WINDOW"), how.title.c_str(), old_style_bits, 0, 0, surface_width, surface_height, NULL, NULL, NULL, NULL),DestroyWindow);
+    if (!win.get())
         throw std::runtime_error("create window failed");
+
+    HWND hwnd = win.get();
 
     if (how.visualid)
     {
-        HDC hdc = GetDC(hwnd);
+        auto hdc = make_unique_ptr(GetDC(hwnd), std::bind(ReleaseDC, hwnd, std::placeholders::_1));
 
         PIXELFORMATDESCRIPTOR pxd = {0};
-        if (!DescribePixelFormat(hdc, how.visualid, sizeof(pxd), &pxd))
+        if (!DescribePixelFormat(hdc.get(), how.visualid, sizeof(pxd), &pxd))
             throw std::runtime_error("incorrect visualid");
 
-        SetPixelFormat(hdc, how.visualid, &pxd);
+        if (!SetPixelFormat(hdc.get(), how.visualid, &pxd))
+            throw std::runtime_error("set pixelformat failed");
     }
 
-    // resize window to match the drawable client area with the desired size
-    // based on the difference by client and window size.
-    RECT client, window;
-    GetClientRect(hwnd, &client);
-    GetWindowRect(hwnd, &window);
-
-    // resize
-    const int dx = (window.right - window.left) - client.right;
-    const int dy = (window.bottom - window.top) - client.bottom;
-    MoveWindow(hwnd, window.left, window.top, surface_width + dx, surface_height + dy, TRUE);
-
-#ifdef _DEBUG
-    RECT rc;
-    GetClientRect(hwnd, &rc);
-    assert(rc.bottom == surface_height);
-    assert(rc.right  == surface_width);
-#endif
-
-    pimpl_->hdc  = GetDC(hwnd);
-    pimpl_->hwnd = hwnd;
-    pimpl_->fullscreen = how.fullscreen;
-    pimpl_->x = window.right - window.left;
-    pimpl_->y = window.bottom - window.top;
- 
     SetWindowLongPtr(hwnd, GWL_USERDATA, (LONG_PTR)pimpl_.get());
     SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
 
-    ShowWindow(hwnd, SW_SHOW);    
-
-    if (pimpl_->fullscreen)
+    if (how.fullscreen)
     {
         SetForegroundWindow(hwnd);
         SetFocus(hwnd);
+        ShowWindow(hwnd, SW_SHOW);
     }
+    else
+    {
+        // resize window to match the drawable client area with the desired size
+        // based on the difference by client and window size.
+        RECT client, window;
+        GetClientRect(hwnd, &client);
+        GetWindowRect(hwnd, &window);
+
+        // resize
+        const int dx = (window.right - window.left) - client.right;
+        const int dy = (window.bottom - window.top) - client.bottom;
+        MoveWindow(hwnd, window.left, window.top, surface_width + dx, surface_height + dy, TRUE);
+
+#ifndef _NDEBUG
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        // assert(rc.bottom == surface_height);
+        // assert(rc.right  == surface_width);
+#endif
+
+        // position in the middle of the screen 
+        GetWindowRect(hwnd, &window);
+        const int width  = window.right - window.left;
+        const int height = window.bottom - window.top;
+
+        const int desktop_width  = get_desktop_width();
+        const int desktop_height = get_desktop_height();
+
+        // reposition
+        const int xpos = (desktop_width - width) / 2;
+        const int ypos = (desktop_height - height) / 2;
+        MoveWindow(hwnd, xpos, ypos, width, height, TRUE);
+
+        // finally show window
+        ShowWindow(hwnd, SW_SHOW);    
+    }
+
+    pimpl_->hwnd       = win.release();
+    pimpl_->fullscreen = how.fullscreen;
+    pimpl_->resizing   = false;
+    pimpl_->x          = 0;
+    pimpl_->y          = 0;
 }
 
 
@@ -272,13 +281,10 @@ void window::close()
     if (pimpl_->fullscreen)
        ChangeDisplaySettings(NULL, 0);
 
-    ReleaseDC(pimpl_->hwnd, pimpl_->hdc);
-
     BOOL ret = DestroyWindow(pimpl_->hwnd);
     assert(ret);
     
     pimpl_->hwnd = NULL;
-    pimpl_->hdc  = NULL;
     pimpl_->fullscreen = false; 
 }
 
@@ -315,7 +321,13 @@ uint_t window::visualid() const
     if (!pimpl_->hwnd)
         return 0;
 
-    return GetPixelFormat(pimpl_->hdc);
+    HDC hdc = GetDC(pimpl_->hwnd);
+
+    const int pixelformat = GetPixelFormat(hdc);
+
+    ReleaseDC(pimpl_->hwnd, hdc);
+
+    return pixelformat;
 }
 
 bool window::exists() const
@@ -339,7 +351,7 @@ bool window::dispatch_event(const event& ev)
             if (event_gain_focus)
             {
                 window_event_focus focus = {0};
-                focus.handle = m.hwnd;
+                focus.window  = m.hwnd;
                 focus.display = display();
                 event_gain_focus(focus);
             }
@@ -351,7 +363,7 @@ bool window::dispatch_event(const event& ev)
             if (event_lost_focus)
             {
                 window_event_focus focus = {0};
-                focus.handle = m.hwnd;
+                focus.window  = m.hwnd;
                 focus.display = display();
                 event_lost_focus(focus);
             }
@@ -369,8 +381,7 @@ bool window::dispatch_event(const event& ev)
                 paint.y       = ps.rcPaint.top;
                 paint.width   = ps.rcPaint.right - ps.rcPaint.left;
                 paint.height  = ps.rcPaint.bottom - ps.rcPaint.top;
-                paint.handle  = m.hwnd;
-                paint.surface = hdc;
+                paint.window  = m.hwnd;
                 paint.display = display();
 
                 event_paint(paint);
@@ -388,10 +399,9 @@ bool window::dispatch_event(const event& ev)
                 GetClientRect(m.hwnd, &rc);
                 
                 window_event_resize size = {0};
-                size.width = rc.right;
-                size.height = rc.bottom;
-                size.handle = m.hwnd;
-                size.surface = surface();
+                size.width   = rc.right;
+                size.height  = rc.bottom;
+                size.window  = m.hwnd;
                 size.display = display();
 
                 event_resize(size);
@@ -410,8 +420,7 @@ bool window::dispatch_event(const event& ev)
                 create.width  = ptr->cx;
                 create.height = ptr->cy;
                 create.fullscreen = pimpl_->fullscreen;
-                create.handle = m.hwnd;
-                create.surface = surface();
+                create.window  = m.hwnd;
                 create.display = display();
 
                 event_create(create);
@@ -424,7 +433,7 @@ bool window::dispatch_event(const event& ev)
             if (event_destroy)
             {
                 window_event_destroy destroy = {0};
-                destroy.handle = m.hwnd;
+                destroy.window  = m.hwnd;
                 destroy.display = display();
 
                 event_destroy(destroy);
@@ -434,10 +443,10 @@ bool window::dispatch_event(const event& ev)
 
         case event_type::window_close:
         {
-            if (event_close)
+            if (event_query_close)
             {
-                window_event_close e = { true };
-                event_close(e);
+                window_event_query_close e = { false, m.hwnd, display() };
+                event_query_close(e);
                 if (e.should_close)
                     close();
             }
@@ -455,13 +464,6 @@ native_window_t window::handle() const
     if (!pimpl_->hwnd)
         return (native_window_t)wdk::NULL_WINDOW;
     return pimpl_->hwnd;
-}
-
-native_surface_t window::surface() const
-{
-    if (!pimpl_->hwnd)
-        return (native_surface_t)wdk::NULL_SURFACE;
-    return pimpl_->hdc;
 }
 
 native_display_t window::display() const

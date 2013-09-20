@@ -169,8 +169,10 @@ void display::set_video_mode(native_vmode_t id)
     pimpl_->currentmode = id;
 }
 
-void display::list_video_modes(std::vector<videomode>& modes)
+std::vector<videomode> display::list_video_modes() const
 {
+    std::vector<videomode> modes;
+
     for (int i=0; i<pimpl_->modecount; ++i)
     {
         XF86VidModeModeInfo* mode = pimpl_->modes[i];
@@ -180,6 +182,7 @@ void display::list_video_modes(std::vector<videomode>& modes)
         vm.id   = native_vmode_t(i);
         modes.push_back(vm);
     }
+    return modes;
 }
 
 

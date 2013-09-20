@@ -29,6 +29,7 @@
 #include <csetjmp>
 #include "../display.h"
 #include "../event.h"
+#include "helpers.h"
 
 namespace {
     struct dev_mode {
@@ -196,8 +197,10 @@ void display::set_video_mode(native_vmode_t id)
     pimpl_->currentmode = id;
 }
 
-void display::list_video_modes(std::vector<videomode>& modes)
+std::vector<videomode> display::list_video_modes() const
 {
+    std::vector<videomode> modes;
+
     for (size_t i=0; i<pimpl_->modes.size(); ++i)
     {
         const dev_mode& dev = pimpl_->modes[i];
@@ -208,6 +211,8 @@ void display::list_video_modes(std::vector<videomode>& modes)
         vm.id   = native_vmode_t(i);
         modes.push_back(vm);
     }
+
+    return modes;
 }
 
 bool display::has_event() const
@@ -285,19 +290,12 @@ bool display::wait_for_events(native_handle_t* handles, uint_t num_handles, nati
 
 uint_t display::width() const
 {
-    // todo: GetWindowRect will only consider the primary monitor
-    // thus this is broken on dualhead setup
-    RECT rc = {};
-    GetWindowRect(GetDesktopWindow(), &rc);
-    return rc.right;
+    return get_desktop_width();
 }
 
 uint_t display::height() const
 {
-    // see comments in width
-    RECT rc = {0};
-    GetWindowRect(GetDesktopWindow(), &rc);
-    return rc.bottom;
+    return get_desktop_height();
 }
 
 native_display_t display::handle() const

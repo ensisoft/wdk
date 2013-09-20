@@ -30,6 +30,7 @@
 #include "../events.h"
 #include "../event.h"
 #include "../window.h"
+#include "../display.h"
 #include "error_handler.h"
 
 namespace {
@@ -47,19 +48,18 @@ namespace wdk
 
 struct window::impl {
     Window   window;
-    window_param param;
-    Atom atom_delete_window;
+    params   param;
+    Atom     atom_delete_window;
     Display* disp;
 };
 
-window::window(native_display_t disp)
+window::window(const wdk::display& disp)
 {
     pimpl_.reset(new impl);
-    window_param empty = {};
-    pimpl_->param              = empty;
-    pimpl_->atom_delete_window = XInternAtom(disp, "WM_DELETE_WINDOW", False);
+    pimpl_->param              = window::params {"", 0};
+    pimpl_->atom_delete_window = XInternAtom(disp.handle(), "WM_DELETE_WINDOW", False);
     pimpl_->window             = 0L;
-    pimpl_->disp               = disp;
+    pimpl_->disp               = disp.handle();
 }
 
 window::~window()
@@ -68,7 +68,7 @@ window::~window()
         close();
 }
 
-void window::create(const window_param& how)
+void window::create(const window::params& how)
 {
     assert(!exists());
 
@@ -140,8 +140,10 @@ void window::create(const window_param& how)
         throw std::runtime_error("failed to create window");
 
     XSetWMProtocols(display_handle, win, &pimpl_->atom_delete_window, 1);
-    XMapWindow(display_handle, win);
 
+    // show window
+    XMapWindow(display_handle, win);
+    
     if (how.fullscreen)
     {
         XWarpPointer(display_handle, None, win, 0, 0, 0, 0, 0, 0);
@@ -150,7 +152,7 @@ void window::create(const window_param& how)
     }
     else
     {
-        if (!(how.props & wdk::WP_BORDER))
+        if (!(how.props & window::HAS_BORDER))
         {
             // get rid of window decorations
             hint hints = {0};
@@ -159,7 +161,7 @@ void window::create(const window_param& how)
             Atom property = XInternAtom(display_handle, "_MOTIF_WM_HINTS", True);
             XChangeProperty(display_handle, win, property, property, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&hints), 5);
         }
-        if (!(how.props & wdk::WP_RESIZE))
+        if (!(how.props & window::CAN_RESIZE))
         {
             // make window unresizeable
             XSizeHints* hints = XAllocSizeHints();
@@ -172,8 +174,24 @@ void window::create(const window_param& how)
         }
         if (!how.title.empty())
             XSetStandardProperties(display_handle, win, how.title.c_str(), how.title.c_str(), None, (char**)NULL, 0, NULL);
+
+
+        const int dph = DisplayHeight(display_handle, DefaultScreen(display_handle));
+        const int dpw = DisplayWidth(display_handle, DefaultScreen(display_handle));
+
+        const int xpos = (dpw - window_width) / 2;
+        const int ypos = (dph - window_height) / 2;
+
+        // seems that repositioning the window doesn't
+        // work unless the window is mapped...
+        XMoveWindow(display_handle, win, xpos, ypos);
+        // XWindowChanges conf = {0};
+        // conf.x = xpos;
+        // conf.y = ypos;
+        // XConfigureWindow(display_handle, win, CWX | CWY, &conf);
     }
 
+#ifndef _NDEBUG
     Window dummy = 0;
     int x, y;
     unsigned int width, height = 0;
@@ -181,26 +199,26 @@ void window::create(const window_param& how)
     unsigned int depth  = 0;
     XGetGeometry(display_handle, win, &dummy, &x, &y, &width, &height, &border, &depth);
 
-    //printf("%d, %d\n\n", x, y);
-
     assert(window_width  == width);
     assert(window_height == height);
+#endif
 
-    pimpl_->window = win;
-    pimpl_->param  = how;
-    pimpl_->param.width    = (uint_t)width;
-    pimpl_->param.height   = (uint_t)height;
+    pimpl_->window         = win;
+    pimpl_->param          = how;
+    pimpl_->param.width    = window_width;
+    pimpl_->param.height   = window_height;
     pimpl_->param.visualid = chosen_visual;
     pimpl_->param.props    = window_props;
     pimpl_->disp           = display_handle;
 
 
-    XEvent send = {0};
-    send.type = CreateNotify;
+    // synthesize create event
+    XEvent send               = {0};
+    send.type                 = CreateNotify;
     send.xcreatewindow.window = win;
-    send.xcreatewindow.y = y;
-    send.xcreatewindow.x = x;
-    send.xcreatewindow.width = width;
+    send.xcreatewindow.y      = y;
+    send.xcreatewindow.x      = x;
+    send.xcreatewindow.width  = width;
     send.xcreatewindow.height = height;
     XSendEvent(display_handle, win, False, 0, &send);
 }
@@ -226,9 +244,8 @@ void window::close()
     XUnmapWindow(disp, window);
     XDestroyWindow(disp, window);
 
-    window_param empty = {};
     pimpl_->window = 0L;
-    pimpl_->param  = empty;
+    pimpl_->param  = window::params {"", 0};
 }
 
 uint_t window::width() const
@@ -279,7 +296,6 @@ bool window::dispatch_event(const event& ev)
     const XEvent* event = &ev.ev;
 
     const native_window_t win   = {pimpl_->window};
-    const native_surface_t surf = {pimpl_->window};
     const native_display_t disp = {pimpl_->disp};
 
     switch (ev.type)
@@ -306,7 +322,7 @@ bool window::dispatch_event(const event& ev)
                     event->xexpose.y,
                     event->xexpose.width,
                     event->xexpose.height,
-                    win, surf, disp});
+                    win, disp});
             }
         }
         break;
@@ -320,7 +336,7 @@ bool window::dispatch_event(const event& ev)
                 if (event_resize) {
                     event_resize(window_event_resize{event->xconfigure.width,
                         event->xconfigure.height,
-                        win, surf, disp});
+                        win, disp});
                 }
                 // the width and height members are set to the inside size of the 
                 // window not including the border. border_width is the width of the window border (in pixels)
@@ -332,11 +348,11 @@ bool window::dispatch_event(const event& ev)
 
         case event_type::window_close:
         {
-            if ((Atom)event->xclient.data.l[0] == pimpl_->atom_delete_window && event_close)
+            if ((Atom)event->xclient.data.l[0] == pimpl_->atom_delete_window && event_query_close)
             {
-                window_event_close e = {false, win, disp};
+                window_event_query_close e = {false, win, disp};
                 e.should_close = false;
-                event_close(e);
+                event_query_close(e);
                 if (e.should_close)
                     close();
             }
@@ -356,7 +372,7 @@ bool window::dispatch_event(const event& ev)
                     event->xcreatewindow.width,
                     event->xcreatewindow.height,
                     pimpl_->param.fullscreen, 
-                    win, surf, disp});
+                    win, disp});
             }
         }
         break;
@@ -382,18 +398,8 @@ native_window_t window::handle() const
     return native_window_t {pimpl_->window};
 }
 
-native_surface_t window::surface() const
-{
-    if (!pimpl_->window)
-        return wdk::NULL_SURFACE;
-
-    return native_surface_t {pimpl_->window};
-}
-
 native_display_t window::display() const
 {
-    if (!pimpl_->window)
-        return (native_display_t)wdk::NULL_HANDLE;
     return pimpl_->disp;
 }
 

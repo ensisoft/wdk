@@ -30,23 +30,16 @@ project wdk
           <os>LINUX:<library>/wdk//Xext/<link>shared
         ;
 
+lib wdk-egl : [ glob EGL/*.cpp ] : <define>USE_EGL : <link>static ;
+
 if [ os.name ] = LINUX
 {
   lib EGL   : : <name>EGL ;
   lib GLES2 : : <name>GLESv2 ;
   lib GL    : : <name>GL ;
 
-
-   lib wdk-lib 
-   : X11/display.cpp
-     X11/keyboard.cpp
-     X11/keysym2ucs.cpp
-     X11/window.cpp
-     X11/pixmap.cpp
-   : <link>static ;
-
-   lib wdk-gl   : X11/context.cpp : : <link>static ;
-   lib wdk-gles : EGL/context.cpp : : <link>static ;
+  lib wdk-lib : [ glob X11/*.cpp ] : <link>static ;
+  lib wdk-glx : [ glob GLX/*.cpp ] : <link>static ;
 }
 
 if [ os.name ] = NT
@@ -55,15 +48,8 @@ if [ os.name ] = NT
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
-   lib wdk-lib 
-   : win32/display.cpp
-     win32/keyboard.cpp
-     win32/window.cpp
-     win32/pixmap.cpp
-   : <link>static ;
-   
-   lib wdk-gl   : win32/context.cpp : : <link>static ;                   
-   lib wdk-gles : EGL/context.cpp   : : <link>static ;
+  lib wdk-lib : [ glob win32/*.cpp ] : <link>static ;
+  lib wdk-glx : [ glob WGL/*.cpp ]   : <link>static ;
 }
 
 #build-project sample ;

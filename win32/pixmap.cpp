@@ -24,21 +24,21 @@
 #include <stdexcept>
 #include <cassert>
 #include "../pixmap.h"
+#include "../display.h"
 #include "../utility.h"
 
 namespace wdk
 {
 struct pixmap::impl {
+    native_display_t dpy;
     HBITMAP bmp;
-    HDC     dpy;
     uint_t  width;
     uint_t  height;
     uint_t  depth;
 };
 
-pixmap::pixmap(native_display_t disp, uint_t width, uint_t height, uint_t visualid)
+pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t visualid)
 {
-    assert(disp);
     assert(width && height);
     assert(visualid);
 
@@ -57,15 +57,10 @@ pixmap::pixmap(native_display_t disp, uint_t width, uint_t height, uint_t visual
 
     pimpl_.reset(new impl);
     pimpl_->bmp    = bmp.release();
-    pimpl_->dpy    = disp;
+    pimpl_->dpy    = disp.handle();
     pimpl_->width  = width;
     pimpl_->height = height;
     pimpl_->depth  = desc.cColorBits;
-}
-
-pixmap::pixmap(native_display_t disp, uint_t width, uint_t height, const attributes& attr)
-{
-
 }
 
 pixmap::~pixmap()

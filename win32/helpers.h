@@ -20,50 +20,51 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
-
-#include <X11/Xlib.h>
+#include <windows.h>
+#include <cassert>
+#include <memory>
+#include "../types.h"
+#include "../utility.h"
 
 namespace wdk
 {
-    typedef int      native_handle_t;
-    typedef XEvent   native_event_t;
-    typedef Display* native_display_t;
-    typedef int      native_vmode_t;
+    uint_t get_desktop_width();
+    uint_t get_desktop_height();
 
-    // wrapper structure to make XID objects separate handle types
-    // so we can add more type safety and overload
-    template<typename T, int discriminator>
-    struct xid_t {
-        T xid;
-
-        operator T () const
+    // dummy window for scenarios when a hwnd/hdc is needed but there's no "real" window yet
+    class dummywin : noncopyable
+    {
+    public:
+        dummywin() : hwnd_(nullptr), hdc_(nullptr)
         {
-            return xid;
+            hwnd_ = CreateWindow(TEXT("STATIC"), TEXT(""), WS_POPUP | WS_DISABLED, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
+            hdc_  = GetDC(hwnd_);
+#ifndef _NDEBUG
+            RECT rc;
+            GetClientRect(hwnd_, &rc);
+            assert(rc.bottom == 1);
+            assert(rc.right  == 1);
+#endif
         }
+       ~dummywin()
+        {
+            if (hwnd_)
+            {
+                ReleaseDC(hwnd_, hdc_);
+                DestroyWindow(hwnd_);
+            }
+        }
+        HWND handle() const
+        {
+            return hwnd_;
+        }
+        HDC surface() const
+        {
+            return hdc_;
+        }
+    private:
+        HWND hwnd_;
+        HDC  hdc_;
     };
-
-    template<typename T, int discriminator> inline
-    bool operator==(const xid_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
-    {
-        return rhs.xid == lhs.xid;
-    }
-
-    template<typename T, int discriminator> inline
-    bool operator!=(const xid_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
-    {
-        return rhs.xid != lhs.xid;
-    }
-
-    typedef xid_t<Window, 0>      native_window_t;
-    typedef xid_t<Pixmap, 1>      native_pixmap_t;
-
-    enum {
-        NULL_HANDLE        = 0,
-        DEFAULT_VIDEO_MODE = 0
-    };    
-
-    const native_window_t  NULL_WINDOW  {0};
-    const native_pixmap_t  NULL_PIXMAP  {0};
 
 } // wdk

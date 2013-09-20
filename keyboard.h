@@ -39,6 +39,7 @@ namespace wdk
     struct keyboard_event_keypress;
     struct keyboard_event_char;
 
+    class display;
 
     // keyboard class allows to translate native keycodes and events
     // to virtual key/modifier pairs defined in the library based on the current
@@ -52,7 +53,7 @@ namespace wdk
         std::function<void (const keyboard_event_keypress&)> event_keydown;
         std::function<void (const keyboard_event_char&)>     event_char;
 
-        keyboard(native_display_t disp);
+        keyboard(const display& disp);
        ~keyboard();
 
         // name a modifier key

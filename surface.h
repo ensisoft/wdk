@@ -20,50 +20,46 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
-
-#include <X11/Xlib.h>
+#include <memory>
+#include "utility.h"
+#include "types.h"
 
 namespace wdk
 {
-    typedef int      native_handle_t;
-    typedef XEvent   native_event_t;
-    typedef Display* native_display_t;
-    typedef int      native_vmode_t;
+    class display;
+    class window;
+    class pixmap;
+    class config;
 
-    // wrapper structure to make XID objects separate handle types
-    // so we can add more type safety and overload
-    template<typename T, int discriminator>
-    struct xid_t {
-        T xid;
-
-        operator T () const
-        {
-            return xid;
-        }
-    };
-
-    template<typename T, int discriminator> inline
-    bool operator==(const xid_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
+    // rendering surface.
+    class surface : noncopyable
     {
-        return rhs.xid == lhs.xid;
-    }
+    public:
+        // create a rendering surface that renders to the given window.
+        surface(const display& disp, const config& conf, const window& win);
 
-    template<typename T, int discriminator> inline
-    bool operator!=(const xid_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
-    {
-        return rhs.xid != lhs.xid;
-    }
+        // create a rendering surface that renders to the given pixmap.
+        surface(const display& disp, const config& conf, const pixmap& px);
 
-    typedef xid_t<Window, 0>      native_window_t;
-    typedef xid_t<Pixmap, 1>      native_pixmap_t;
+        // create an offscreen width x height px rendering surface.
+        surface(const display& disp, const config& conf, uint_t width, uint_t height);
 
-    enum {
-        NULL_HANDLE        = 0,
-        DEFAULT_VIDEO_MODE = 0
-    };    
+       ~surface();
 
-    const native_window_t  NULL_WINDOW  {0};
-    const native_pixmap_t  NULL_PIXMAP  {0};
+        // get surface width
+        uint_t width() const;
+
+        // get surface height
+        uint_t height() const;
+
+        // get implemntation specific handle
+        gl_surface_t handle() const;
+
+        void dispose();
+    private:
+        struct impl;
+
+        std::unique_ptr<impl> pimpl_;
+    }; 
 
 } // wdk
