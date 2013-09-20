@@ -29,35 +29,28 @@
 #include "../display.h"
 #include "../config.h"
 #include "../surface.h"
+#include "egldisplay.h"
 
 namespace wdk
 {
 
 struct context::impl {
-    EGLDisplay      display;
-    EGLSurface      surface;
-    EGLContext      context;
+    EGLDisplay display;
+    EGLSurface surface;
+    EGLContext context;
 
     impl(const wdk::display& disp, const wdk::config& conf, int major_version, int minor_version) :
     display(nullptr),
     surface(nullptr),
     context(nullptr)
     {
+        display = egl_init(disp.handle());
+
         const EGLint attrs[] = 
         {
             EGL_CONTEXT_CLIENT_VERSION, (EGLint)major_version,
             EGL_NONE
         };
-#if defined(WINDOWS) || defined(_WIN32)
-        display = eglGetdisplay(EGL_DEFAULT_DISPLAY);
-#else
-        display = eglGetDisplay(disp.handle());
-#endif
-        if (!display)
-            throw std::runtime_error("get EGL display failed");
-
-        // todo: factor the eglGetDisplay, eglInit and eglTerminate into a single place (see config.cpp)
-
         context = eglCreateContext(display, conf.handle(), EGL_NO_CONTEXT, attrs);
         if (!context)
             throw std::runtime_error("create context failed");

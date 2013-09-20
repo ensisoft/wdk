@@ -25,6 +25,7 @@
 #include <vector>
 #include "../config.h"
 #include "../display.h"
+#include "egldisplay.h"
 
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
@@ -45,28 +46,15 @@ config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, boost::indeterminat
 config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 0, 0, true, {true, false, false}};
 
 struct config::impl {
-    EGLDisplay dpy;
-    EGLConfig  config;
-    uint_t     visualid;
-    uint_t     configid;
+    EGLDisplay   display;
+    EGLConfig    config;
+    uint_t       visualid;
+    uint_t       configid;
 };
 
 config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
 {
-
-#if defined(WINDOWS) || defined(_WIN32)
-    // todo: what should the display handle be?
-    pimpl_->dpy  = eglGetDisplay(EGL_DEFAULT_DISPLAY); // eglGetDisplay(disp);
-#else
-    pimpl_->dpy  = eglGetDisplay(disp.handle());
-#endif
-    if (!pimpl_->dpy)
-        throw std::runtime_error("get EGL display failed");    
-
-    EGLint major = 0;
-    EGLint minor = 0;
-    if (!eglInitialize(pimpl_->dpy, &major, &minor))
-        throw std::runtime_error("EGL initialize failed");
+    pimpl_->display = egl_init(disp.handle());
 
     std::vector<uint_t> criteria;
 
@@ -93,19 +81,17 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
 
     EGLint num_matches = 0;
     EGLConfig config   = NULL;
-    if (!eglChooseConfig(pimpl_->dpy, (const EGLint*)&criteria[0], &config, 1, &num_matches))
+    if (!eglChooseConfig(pimpl_->display, (const EGLint*)&criteria[0], &config, 1, &num_matches))
         throw std::runtime_error("no matching framebuffer configuration available");
 
     pimpl_->config = config;
 
-    eglGetConfigAttrib(pimpl_->dpy, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
-    eglGetConfigAttrib(pimpl_->dpy, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
+    eglGetConfigAttrib(pimpl_->display, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
+    eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
 }
 
 config::~config()
 {
-    // todo: move init and terminate to somewhere else
-    eglTerminate(pimpl_->dpy);
 }
 
 uint_t config::visualid() const

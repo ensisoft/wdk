@@ -26,58 +26,40 @@
 #include "../window.h"
 #include "../pixmap.h"
 #include "../config.h"
+#include "egldisplay.h"
 
 namespace wdk 
 {
 struct surface::impl {
     EGLDisplay display;
     EGLSurface surface;
-    uint_t     width;
-    uint_t     height;
 };
 
 surface::surface(const display& disp, const config& conf, const window& win) : pimpl_(new impl)
 {
-#if defined(WINDOWS) || defined(_WIN32)
-    // todo: what should the display handle be?
-    pimpl_->display = eglGetDisplay(EGL_DEFAULT_DISPLAY); // eglGetDisplay(disp);
-#else
-    pimpl_->display = eglGetDisplay(disp.handle());
-#endif
-    if (!pimpl_->display)
-        throw std::runtime_error("get EGL display failed");        
+    pimpl_->display = egl_init(disp.handle());
 
     pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), nullptr);
     if (!pimpl_->surface)
         throw std::runtime_error("create window surface failed");
-
-    pimpl_->width  = win.surface_width();
-    pimpl_->height = win.surface_height();
 }
 
 surface::surface(const display& disp, const config& conf, const pixmap& px) : pimpl_(new impl)
 {
-    // todo:
+    pimpl_->display = egl_init(disp.handle());
+
+    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), nullptr);
+    if (!pimpl_->surface)
+        throw std::runtime_error("create pixmap surface failed");
 }
 
 surface::surface(const display& disp, const config& conf, uint_t width, uint_t height) : pimpl_(new impl)
 {
-    // todo: refactor this
-#if defined(WINDOWS) || defined(_WIN32)
-    // todo: what should the display handle be?
-    pimpl_->display = eglGetDisplay(EGL_DEFAULT_DISPLAY); // eglGetDisplay(disp);
-#else
-    pimpl_->display = eglGetDisplay(disp.handle());
-#endif
-    if (!pimpl_->display)
-        throw std::runtime_error("get EGL display failed");        
+    pimpl_->display = egl_init(disp.handle());
 
     pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), nullptr);
     if (!pimpl_->surface)
         throw std::runtime_error("create offscreen surface failed");
-
-    pimpl_->width = width;
-    pimpl_->height = height;
 }
 
 surface::~surface()
@@ -87,12 +69,20 @@ surface::~surface()
 
 uint_t surface::width() const
 {
-    return pimpl_->width;
+    EGLint width = 0;
+
+    eglQuerySurface(pimpl_->display, pimpl_->surface, EGL_WIDTH, &width);
+
+    return (uint_t)width;
 }
 
 uint_t surface::height() const
 {
-    return pimpl_->height;
+    EGLint height = 0;
+
+    eglQuerySurface(pimpl_->display, pimpl_->surface, EGL_HEIGHT, &height);
+
+    return (uint_t)height;
 }
 
 gl_surface_t surface::handle() const
