@@ -31,14 +31,13 @@
 #else
 #  include <GLES2/gl2.h>
 #endif
-#include <wdk/window.h>
+#include <wdk/glwindow.h>
 #include <wdk/events.h>
+#include <wdk/event.h>
 #include <wdk/keyboard.h>
 #include <wdk/display.h>
-#include <wdk/event.h>
-#include <wdk/context.h>
-#include <wdk/config.h>
-#include <wdk/surface.h>
+#include <wdk/dispatch.h>
+#include <wdk/window_listener.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -164,202 +163,63 @@ public:
         GL_CHECK(glEnd());
 #endif
       }
+
+
 private:
     GLint program_;
 };
 
-void handle_window_resize(const wdk::window_event_resize& resize)
+class listener : public wdk::window_listener 
 {
-    glViewport(0, 0, resize.width, resize.height);
-}
-
-void handle_window_create(const wdk::window_event_create& create)
-{
-    glViewport(0, 0, create.width, create.height);
-}
-
-struct cmdline {
-    bool   print_help;
-    bool   render_window;
-    bool   render_buffer;
-    bool   fullscreen;
-    bool   listmodes;
-    bool   wnd_border;
-    bool   wnd_resize;
-    bool   wnd_move;
-    int    surface_width;
-    int    surface_height;
-    wdk::native_vmode_t videomode;
+public:
+    void on_create(const wdk::window_event_create& create)
+    {
+        GL_CHECK(glViewport(0, 0, create.width, create.height));
+    }
+    void on_resize(const wdk::window_event_resize& resize)
+    {
+        GL_CHECK(glViewport(0, 0, resize.width, resize.height));
+    }
+private:
 };
 
-bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
-{
-    for (int i=1; i<argc; ++i)
-    {
-        const char* name = argv[i];
-
-        if (!strcmp(name, "--help"))
-            cmd.print_help = true;
-        else if (!strcmp(name, "--render-window"))
-            cmd.render_window = true;
-        else if (!strcmp(name, "--render-buffer"))
-            cmd.render_buffer = true;
-        else if (!strcmp(name, "--fullscreen"))
-            cmd.fullscreen = true;
-        else if (!strcmp(name, "--list-modes"))
-            cmd.listmodes = true;
-        else if (!strcmp(name, "--wnd-no-border"))
-            cmd.wnd_border = false;
-        else if (!strcmp(name, "--wnd-no-resize"))
-            cmd.wnd_resize = false;
-        else if (!strcmp(name, "--wnd-no-move"))
-            cmd.wnd_move = false;
-        else
-        {
-            if (!(i + 1 < argc))
-                return false;
-
-            long value = atoi(argv[++i]);
-            if (!strcmp(name, "--wnd-width"))
-                cmd.surface_width = value;
-            else if (!strcmp(name, "--wnd-height"))
-                cmd.surface_height = value;
-            else if (!strcmp(name, "--video-mode"))
-                cmd.videomode = static_cast<wdk::native_vmode_t>(value);
-        }
-    }
-    return true;
-}
 
 int main(int argc, char* argv[])
 {
-    // default settings
-    cmdline cmd = {0};
-
-    cmd.print_help     = false;
-    cmd.render_window  = false;
-    cmd.render_buffer  = false;
-    cmd.fullscreen     = false;
-    cmd.listmodes      = false;
-    cmd.wnd_border     = true;
-    cmd.wnd_resize     = true;
-    cmd.wnd_move       = true;
-    cmd.surface_width  = 640;
-    cmd.surface_height = 480;
-    cmd.videomode      = wdk::DEFAULT_VIDEO_MODE;
-
-    if (!parse_cmdline(argc, argv, cmd))
-    {
-        std::cerr << "Incorrect command line\n";
-        return 1;
-    }
-    else if (cmd.print_help)
-    {
-        std::cout 
-        << "\n"
-        << "--help\t\t\tPrint this help\n"
-        << "--render-window\t\tRender into a window (default)\n"
-        << "--render-buffer\t\tRender into a pbuffer\n"
-        << "--fullscreen\t\tChange into fullscreen\n" 
-        << "--list-modes\t\tList available video modes\n"
-        << "--wnd-no-border\t\tDisable window border\n" 
-        << "--wnd-no-resize\t\tDisable window resizing\n" 
-        << "--wnd-no-move\t\tDisable window moving\n"
-        << "--wnd-width\t\tWindow width\n"
-        << "--wnd-height\t\tWindow height\n"
-        << "--video-mode\t\tVideo mode\n\n";
-        return 0;
-    }
-
-    // create display server connection
+     // create display server connection
     wdk::display disp;
 
-    if (cmd.listmodes)
-    {
-        const auto modes = disp.list_video_modes();
-
-        std::copy(modes.rbegin(), modes.rend(), std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
-        return 0;
-    }
-
-    if (cmd.videomode)
-        disp.set_video_mode(cmd.videomode);
-
-    if (!cmd.render_window && !cmd.render_buffer)
-        cmd.render_window = true;
-    
-    // select GL framebuffer configuration (default)
-    wdk::config conf(disp);
-
-    // create GL context (default GL version)
-    wdk::context ctx(disp, conf);
-
-    std::cout 
-    << "\n"
-    << "OpenGL initialized:\n"
-    << glGetString(GL_VENDOR) << "\n"
-    << glGetString(GL_VERSION) << "\n"
-    << glGetString(GL_RENDERER) << "\n"
-    << "Surface: " << cmd.surface_width << "x" << cmd.surface_height << "\n";
-
     // knock up a window on the screen
-    wdk::window win(disp);
+    wdk::glwindow window(disp);
 
-    // setup window creation params
-    wdk::window::params param;
-    param.title      = "Simple GL Window";
-    param.width      = cmd.surface_width;
-    param.height     = cmd.surface_height;
-    param.visualid   = conf.visualid();
-    param.fullscreen = cmd.fullscreen;
-    param.props      = 0;
-    if (cmd.wnd_border)
-        param.props |= wdk::window::HAS_BORDER;
-    if (cmd.wnd_resize)
-        param.props |= wdk::window::CAN_RESIZE;
-    if (cmd.wnd_move)
-        param.props |= wdk::window::CAN_MOVE;
+    listener l;
 
-    win.event_resize = handle_window_resize;
-    win.event_create = handle_window_create;
-    // finally create it
-    win.create(param);
+    window.set_listener(l);
 
-    // set a rendering surface and make it current
-    wdk::surface surf(disp, conf, win);
+    window.create(wdk::window_params(640, 480, "Triangle"));
 
-    ctx.make_current(&surf);
+    printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
 
     //prepare some keyboard handling
-    wdk::keyboard kb(disp);
-
-    kb.event_keydown = [&](const wdk::keyboard_event_keydown& key)
+    wdk::keyboard keyboard(disp);
+    keyboard.event_keydown = [&](const wdk::keyboard_event_keydown& key)
     {
         if (key.symbol == wdk::keysym::escape)
         {
-            ctx.make_current(nullptr);
-            surf.dispose();
-            win.close();
+            window.close();
         }
     };
 
     triangle model;
 
     // enter rendering loop
-    while (win.exists())
+    while (window.exists())
     {
         model.render();
-        ctx.swap_buffers();
 
-        while (disp.has_event())
-        {
-            wdk::event e = {0};
-            disp.get_event(e);
-            if (!win.dispatch_event(e))
-                kb.dispatch_event(e);
+        window.swap_buffers();
 
-            dispose(e);
-        }            
+        dispatch_all(disp, window, keyboard);
     }
 
     return 0;

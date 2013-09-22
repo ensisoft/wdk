@@ -6,8 +6,9 @@ project wdk-sample
         <define>SAMPLE_UTF8_TRANSLATE
         ;
 
-exe simple : simple.cpp ;
+exe events : events.cpp ;
 
+exe test : test.cpp : <library>/wdk//wdk-glx/<link>static <library>/wdk//GL ;
 
 exe gl1  : [ obj triangle_GL_1 : triangle.cpp : <define>MAKE_GL1 ] : <library>/wdk//wdk-glx/<link>static <library>/wdk//GL ;
 exe gl2  : [ obj triangle_GL_2 : triangle.cpp : <define>MAKE_GL2 ] : <library>/wdk//wdk-glx/<link>static <library>/wdk//GL ;
