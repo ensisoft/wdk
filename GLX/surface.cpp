@@ -39,8 +39,6 @@ struct surface::impl {
     Display*     dpy;
     GLXDrawable  surface;
     surface_type type;
-    uint_t       width;
-    uint_t       height;
 };
 
 surface::surface(const display& disp, const config& conf, const window& win)
@@ -57,8 +55,6 @@ surface::surface(const display& disp, const config& conf, const window& win)
     pimpl_->dpy     = disp.handle();
     pimpl_->surface = surface;
     pimpl_->type    = surface_type::window;
-    pimpl_->width   = win.surface_width();
-    pimpl_->height  = win.surface_height();
 }
 
 surface::surface(const display& disp, const config& conf, const pixmap& px)
@@ -75,8 +71,6 @@ surface::surface(const display& disp, const config& conf, const pixmap& px)
     pimpl_->dpy     = disp.handle();
     pimpl_->surface = surface;
     pimpl_->type    = surface_type::pixmap;
-    pimpl_->width   = px.width();
-    pimpl_->height  = px.height();
 }
 
 surface::surface(const display& disp, const config& conf, uint_t width, uint_t height)
@@ -99,8 +93,6 @@ surface::surface(const display& disp, const config& conf, uint_t width, uint_t h
     pimpl_->dpy     = disp.handle();
     pimpl_->surface = surface;
     pimpl_->type    = surface_type::pbuffer;
-    pimpl_->width   = width;
-    pimpl_->height  = height;
 }
 
 surface::~surface()
@@ -110,12 +102,20 @@ surface::~surface()
 
 uint_t surface::width() const
 {
-    return pimpl_->width;
+    uint_t width = 0;
+
+    glXQueryDrawable(pimpl_->dpy, pimpl_->surface, GLX_WIDTH, &width);
+
+    return width;
 }
 
 uint_t surface::height() const
 {
-    return pimpl_->height;
+    uint_t height = 0;
+
+    glXQueryDrawable(pimpl_->dpy, pimpl_->surface, GLX_HEIGHT, &height);
+
+    return height;
 }
 
 gl_surface_t surface::handle() const

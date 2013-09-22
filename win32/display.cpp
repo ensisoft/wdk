@@ -60,7 +60,7 @@ namespace {
                 break;
 
             case WM_CHAR: // by TranslateMessage
-                ev.type = event_type::keyboard_char;
+                ev.type = event_type::ime_char;
                 break;
 
             case WM_PAINT:

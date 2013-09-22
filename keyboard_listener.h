@@ -20,49 +20,29 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
+#include <functional>
+#include "fwddecl.h"
 
 namespace wdk
 {
-    enum class event_type {
-    	none,
-    	window_create,
-    	window_paint,
-    	window_configure,
-    	window_gain_focus,
-    	window_lost_focus,
-    	window_close,
-    	window_destroy,
-    	keyboard_keyup,
-    	keyboard_keydown,
-    	ime_char,
-    	mouse_move
+    // interface for listening for keyboard events
+    class keyboard_listener 
+    {
+    public:
+        virtual ~keyboard_listener() {}
+        virtual void on_keyup(const keyboard_event_keypress&) {}
+        virtual void on_keydown(const keyboard_event_keypress&) {}
+    protected:
+    private:
     };
 
-    // native window system event
-    struct event {
-        native_window_t window;
-        native_event_t  ev;
-        event_type type;
-    };
-	
-    inline
-    bool is_window_event(event_type e)
+    // connect all events in the keyboard to the listener
+    template<typename T>
+    inline void connect(keyboard& kb, T& listener)
     {
-        return (e >= event_type::window_create && e <= event_type::window_close);
-    }
-
-    inline
-    bool is_keyboard_event(event_type e)
-    {
-        return (e == event_type::keyboard_keyup || 
-            e == event_type::keyboard_keydown);
-    }
-
-    inline
-    bool is_ime_event(event_type e)
-    {
-        return (e == event_type::ime_char);
-    }
+        namespace args = std::placeholders;
+        kb.event_keyup   = std::bind(&keyboard_listener::on_keyup, listener, args::_1);
+        kb.event_keydown = std::bind(&keyboard_listener::on_keydown, listener, args::_1);
+    }    
 
 } // wdk

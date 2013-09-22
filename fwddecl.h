@@ -24,45 +24,35 @@
 
 namespace wdk
 {
-    enum class event_type {
-    	none,
-    	window_create,
-    	window_paint,
-    	window_configure,
-    	window_gain_focus,
-    	window_lost_focus,
-    	window_close,
-    	window_destroy,
-    	keyboard_keyup,
-    	keyboard_keydown,
-    	ime_char,
-    	mouse_move
-    };
+    struct event;
+    struct window_event_create;
+    struct window_event_paint;
+    struct window_event_resize;
+    struct ime_event_char;
 
-    // native window system event
-    struct event {
-        native_window_t window;
-        native_event_t  ev;
-        event_type type;
-    };
-	
-    inline
-    bool is_window_event(event_type e)
-    {
-        return (e >= event_type::window_create && e <= event_type::window_close);
-    }
+#ifndef HAS_EVENT_TYPEDEFEFS
+    struct window_event_generic;
+    struct keyboard_event_keypress;
+    
+    typedef window_event_generic window_event_focus;
+    typedef window_event_generic window_event_query_close;
+    typedef window_event_generic window_event_destroy;
 
-    inline
-    bool is_keyboard_event(event_type e)
-    {
-        return (e == event_type::keyboard_keyup || 
-            e == event_type::keyboard_keydown);
-    }
+    typedef keyboard_event_keypress keyboard_event_keydown;
+    typedef keyboard_event_keypress keyboard_event_keyup;
+    #define HAS_EVENT_TYPEDEFS
+#endif
 
-    inline
-    bool is_ime_event(event_type e)
-    {
-        return (e == event_type::ime_char);
-    }
+    class display;
+    class window;
+    class context;
+    class config;
+    class keyboard;
+    class pixmap;
+    class surface;
+
+    class window_listener;
+    class keyboard_listener;
 
 } // wdk
+

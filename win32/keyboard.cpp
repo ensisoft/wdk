@@ -140,7 +140,7 @@ keyboard::~keyboard()
 {
 }
 
-std::string keyboard::name(wdk::keymod modifier)
+std::string keyboard::name(wdk::keymod modifier) const
 {
     switch (modifier)
     {
@@ -157,7 +157,7 @@ std::string keyboard::name(wdk::keymod modifier)
     return "";
 }
 
-std::string keyboard::name(wdk::keysym symbol)
+std::string keyboard::name(wdk::keysym symbol) const
 {
     auto it = std::find_if(std::begin(keymap), std::end(keymap), 
         [=] (const key_mapping& map)
@@ -171,12 +171,12 @@ std::string keyboard::name(wdk::keysym symbol)
     return get_vk_name((*it).native);
 }
 
-std::string keyboard::name(uint_t native_keycode)
+std::string keyboard::name(uint_t native_keycode) const
 {
     return get_vk_name(native_keycode);
 }
 
-std::pair<keymod, keysym> keyboard::translate(event& ev)
+std::pair<keymod, keysym> keyboard::translate(const event& ev) const
 {
     const MSG& msg = ev.ev;
     if (msg.message != WM_KEYUP && msg.message != WM_KEYDOWN)
@@ -188,7 +188,7 @@ std::pair<keymod, keysym> keyboard::translate(event& ev)
     return translate(mod, vk);
 }
 
-std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t native_keycode)
+std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t native_keycode) const
 {
     std::pair<keymod, keysym> ret(keymod::none, keysym::none);
 
@@ -238,23 +238,9 @@ std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t nat
     return ret;
 }
 
-bool keyboard::dispatch_event(event& ev)
+bool keyboard::dispatch(const event& ev) const
 {
-    // translate virtual key messages into unicode characters 
-    // which are posted in WM_CHAR (UTF-16)
-    // this works fine for BMP in the range 0x0000 - 0xD7FF, 0xE000 - 0xFFFF.
-    // for values above 0xFFFF we should decode the UTF-16 to a single code point value
-    // in order to be consistent with Linux implementation.
-    TranslateMessage(&ev.ev); 
-
-    if (ev.type == event_type::keyboard_char && event_char)
-    {
-        const MSG& msg = ev.ev;
-        keyboard_event_char ch = {msg.wParam};
-        event_char(ch);
-        return true;
-    }
-    else if (ev.type == event_type::keyboard_keyup && event_keyup)
+    if (ev.type == event_type::keyboard_keyup && event_keyup)
     {
         const auto key = translate(ev);
         if (key.second != keysym::none)

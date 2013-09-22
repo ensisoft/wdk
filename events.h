@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include "keys.h"
 #include "types.h"
 
@@ -64,26 +65,10 @@ namespace wdk
         native_display_t display;       
     };
 
-    // on_gain_focus, on_lost_focus
-    struct window_event_focus {
+    struct window_event_generic {
         native_window_t window;
         native_display_t display;
     };
-
-    // on_query_close
-    struct window_event_query_close {
-        bool should_close;
-        native_window_t window;
-        native_display_t display;
-    };
-
-    // on_close, window was closed either by user or
-    // by calling close()
-    struct window_event_destroy {
-        native_window_t window;
-        native_display_t display;
-    };
-
 
     struct keyboard_event_keypress {
         keysym symbol;
@@ -91,13 +76,37 @@ namespace wdk
         native_window_t window;
     };
 
-    // ucs2 unicode character
-    struct keyboard_event_char {
-        long value;    
+    // input character. the meaning of value depends
+    // on the ime setting used to translate input
+    struct ime_event_char {
+        union {
+            uint8_t  ascii;
+            uint16_t ucs2;
+            uint32_t ucs4;
+            uint8_t  utf8[4];
+        };
         native_window_t window;
     };
 
+
+#ifndef HAS_EVENT_TYPEDEFS
+    // on_gain_focus, on_lost_focus
+    typedef window_event_generic window_event_focus;
+
+    // user wants to close the window, if this is desired
+    // call close on the window
+    typedef window_event_generic window_event_query_close;
+
+    // window was destroyed as a result to calling close
+    typedef window_event_generic window_event_destroy;
+
+    // on keyboard key press
     typedef keyboard_event_keypress keyboard_event_keydown;
+
+    // on keyboard key up
     typedef keyboard_event_keypress keyboard_event_keyup;
+
+    #define HAS_EVENT_TYPEDEFS
+#endif
 
 } // wdk

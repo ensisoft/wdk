@@ -21,6 +21,7 @@
 //  THE SOFTWARE.
 
 #include <windows.h>
+#include <cassert>
 #include "../surface.h"
 #include "../window.h"
 #include "../config.h"
@@ -62,12 +63,11 @@ surface::surface(const display& disp, const config& conf, const window& win)
 
 surface::surface(const display& disp, const config& conf, const pixmap& px)
 {
-    // todo:
+    assert(!"not supported");
 }
 
 surface::surface(const display& disp, const config& conf, uint_t width, uint_t height)
 {
-    // todo:
 }
 
 surface::~surface()

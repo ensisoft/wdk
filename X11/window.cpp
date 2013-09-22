@@ -48,15 +48,17 @@ namespace wdk
 
 struct window::impl {
     Window   window;
-    params   param;
     Atom     atom_delete_window;
     Display* disp;
+    bool     is_fullscreen;
+    uint_t   visualid;
+    uint_t   height;
+    uint_t   width;
 };
 
 window::window(const wdk::display& disp)
 {
     pimpl_.reset(new impl);
-    pimpl_->param              = window::params {"", 0};
     pimpl_->atom_delete_window = XInternAtom(disp.handle(), "WM_DELETE_WINDOW", False);
     pimpl_->window             = 0L;
     pimpl_->disp               = disp.handle();
@@ -68,7 +70,7 @@ window::~window()
         close();
 }
 
-void window::create(const window::params& how)
+void window::create(const window_params& how)
 {
     assert(!exists());
 
@@ -89,12 +91,18 @@ void window::create(const window::params& how)
     attr.background_pixel     = 0;
     attr.border_pixel         = 0;
     attr.colormap             = XCreateColormap(display_handle, root, visinfo->visual, AllocNone);
-    attr.event_mask           = SubstructureNotifyMask | StructureNotifyMask | ExposureMask | KeyPressMask | KeyReleaseMask | ButtonPressMask | FocusChangeMask;
-
-    uint_t window_width     = how.width;
-    uint_t window_height    = how.height;
-    bitflag_t window_props  = how.props;
+    attr.event_mask           = KeyPressMask | KeyReleaseMask | // keyboard
+                                ButtonPressMask | ButtonReleaseMask | // pointer aka. mouse clicked
+                                EnterWindowMask | LeaveWindowMask   | // pointer aka. mouse leaves/enters window
+                                PointerMotionMask | ButtonMotionMask | // pointer motion 
+                                StructureNotifyMask | // window size changed, mapping change
+                                ExposureMask | // window exposure
+                                FocusChangeMask; // lost, gain focus
     unsigned long attr_mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
+
+    uint_t window_width  = how.width;
+    uint_t window_height = how.height;
+    window_style style   = how.style;
 
     if (how.fullscreen)
     {
@@ -107,7 +115,7 @@ void window::create(const window::params& how)
         // adjust window w/h to fullscreen
         window_width  = mode.hdisplay;
         window_height = mode.vdisplay;
-        window_props  = 0; // no border or resize is possible
+        style         = window_style::none; // no border or resize is possible
 
         // add a flag to grab events that would otherwise go to the window manager
         attr_mask |= CWOverrideRedirect; 
@@ -152,7 +160,7 @@ void window::create(const window::params& how)
     }
     else
     {
-        if (!(how.props & window::HAS_BORDER))
+        if ((style & window_style::border) != window_style::border)
         {
             // get rid of window decorations
             hint hints = {0};
@@ -161,7 +169,7 @@ void window::create(const window::params& how)
             Atom property = XInternAtom(display_handle, "_MOTIF_WM_HINTS", True);
             XChangeProperty(display_handle, win, property, property, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&hints), 5);
         }
-        if (!(how.props & window::CAN_RESIZE))
+        if ((style & window_style::resize) != window_style::resize)
         {
             // make window unresizeable
             XSizeHints* hints = XAllocSizeHints();
@@ -173,7 +181,9 @@ void window::create(const window::params& how)
             XFree(hints);
         }
         if (!how.title.empty())
-            XSetStandardProperties(display_handle, win, how.title.c_str(), how.title.c_str(), None, (char**)NULL, 0, NULL);
+        {
+            XStoreName(display_handle, win, how.title.c_str());
+        }
 
 
         const int dph = DisplayHeight(display_handle, DefaultScreen(display_handle));
@@ -191,7 +201,7 @@ void window::create(const window::params& how)
         // XConfigureWindow(display_handle, win, CWX | CWY, &conf);
     }
 
-#ifndef _NDEBUG
+    // get the actual size (could be different from requested)
     Window dummy = 0;
     int x, y;
     unsigned int width, height = 0;
@@ -199,18 +209,12 @@ void window::create(const window::params& how)
     unsigned int depth  = 0;
     XGetGeometry(display_handle, win, &dummy, &x, &y, &width, &height, &border, &depth);
 
-    assert(window_width  == width);
-    assert(window_height == height);
-#endif
-
     pimpl_->window         = win;
-    pimpl_->param          = how;
-    pimpl_->param.width    = window_width;
-    pimpl_->param.height   = window_height;
-    pimpl_->param.visualid = chosen_visual;
-    pimpl_->param.props    = window_props;
+    pimpl_->is_fullscreen  = how.fullscreen;
+    pimpl_->visualid       = chosen_visual;
     pimpl_->disp           = display_handle;
-
+    pimpl_->width          = width;
+    pimpl_->height         = height;
 
     // synthesize create event
     XEvent send               = {0};
@@ -220,7 +224,9 @@ void window::create(const window::params& how)
     send.xcreatewindow.x      = x;
     send.xcreatewindow.width  = width;
     send.xcreatewindow.height = height;
-    XSendEvent(display_handle, win, False, 0, &send);
+    const Status ret = XSendEvent(display_handle, win, False, 0, &send);
+
+    assert(ret);
 }
 
 
@@ -236,7 +242,7 @@ void window::close()
     send.xdestroywindow.window = pimpl_->window;
     XSendEvent(disp, pimpl_->window, False, 0, &send);
 
-    if (pimpl_->param.fullscreen)
+    if (pimpl_->is_fullscreen)
     {
         XUngrabKeyboard(disp, CurrentTime);
         XUngrabPointer(disp, CurrentTime);
@@ -244,8 +250,11 @@ void window::close()
     XUnmapWindow(disp, window);
     XDestroyWindow(disp, window);
 
-    pimpl_->window = 0L;
-    pimpl_->param  = window::params {"", 0};
+    pimpl_->window        = 0L;
+    pimpl_->is_fullscreen = false;
+    pimpl_->visualid      = 0;
+    pimpl_->width         = 0;
+    pimpl_->height        = 0;
 }
 
 uint_t window::width() const
@@ -256,6 +265,7 @@ uint_t window::width() const
     unsigned int border;
     unsigned int depth;
     XGetGeometry(pimpl_->disp, pimpl_->window, &dummy, &x, &y, &width, &height, &border, &depth);
+
     return (uint_t)width + 2 * border;
 }
 
@@ -269,17 +279,31 @@ uint_t window::height() const
 
 uint_t window::visualid() const
 {
-    return pimpl_->param.visualid;
+    return pimpl_->visualid;
 }
 
 uint_t window::surface_width() const
 {
-    return pimpl_->param.width;
+    Window dummy = 0;
+    int x, y;
+    unsigned int width, height = 0;
+    unsigned int border = 0;
+    unsigned int depth  = 0;
+    XGetGeometry(pimpl_->disp, pimpl_->window, &dummy, &x, &y, &width, &height, &border, &depth);
+
+    return width;
 }
 
 uint_t window::surface_height() const
 {
-    return pimpl_->param.height;
+    Window dummy = 0;
+    int x, y;
+    unsigned int width, height = 0;
+    unsigned int border = 0;
+    unsigned int depth  = 0;
+    XGetGeometry(pimpl_->disp, pimpl_->window, &dummy, &x, &y, &width, &height, &border, &depth);
+
+    return height;
 }
 
 bool window::exists() const
@@ -287,7 +311,7 @@ bool window::exists() const
     return (pimpl_->window != 0L);
 }
 
-bool window::dispatch_event(const event& ev) 
+bool window::dispatch(const event& ev) const
 {
     // if the event is not for this window, return quickly
     if (ev.window.xid != pimpl_->window)
@@ -330,8 +354,8 @@ bool window::dispatch_event(const event& ev)
         // resize, move, map/unmap, border size change
         case event_type::window_configure:
         {
-            if (event->xconfigure.width != (int)pimpl_->param.width || 
-                event->xconfigure.height != (int)pimpl_->param.height)
+            if (event->xconfigure.width != (int)pimpl_->width || 
+                event->xconfigure.height != (int)pimpl_->height)
             {
                 if (event_resize) {
                     event_resize(window_event_resize{event->xconfigure.width,
@@ -340,8 +364,8 @@ bool window::dispatch_event(const event& ev)
                 }
                 // the width and height members are set to the inside size of the 
                 // window not including the border. border_width is the width of the window border (in pixels)
-                pimpl_->param.width  = event->xconfigure.width;
-                pimpl_->param.height = event->xconfigure.height;
+                pimpl_->width  = event->xconfigure.width;
+                pimpl_->height = event->xconfigure.height;
             }
         }
         break;
@@ -350,11 +374,8 @@ bool window::dispatch_event(const event& ev)
         {
             if ((Atom)event->xclient.data.l[0] == pimpl_->atom_delete_window && event_query_close)
             {
-                window_event_query_close e = {false, win, disp};
-                e.should_close = false;
+                window_event_query_close e = {win, disp};
                 event_query_close(e);
-                if (e.should_close)
-                    close();
             }
         }
         break;
@@ -371,7 +392,7 @@ bool window::dispatch_event(const event& ev)
                     event->xcreatewindow.y, 
                     event->xcreatewindow.width,
                     event->xcreatewindow.height,
-                    pimpl_->param.fullscreen, 
+                    pimpl_->is_fullscreen, 
                     win, disp});
             }
         }

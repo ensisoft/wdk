@@ -76,6 +76,12 @@ namespace {
                 ev.type = event_type::window_close;
                 break;
 
+                // this is a hack, see ime.cpp
+            case MapNotify:
+                if (xev.xany.send_event)
+                    ev.type = event_type::ime_char;
+                break;
+
             // identified keyboard events
             case KeyPress:
                 ev.type = event_type::keyboard_keydown;

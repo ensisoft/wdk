@@ -22,47 +22,42 @@
 
 #pragma once
 
+#include <functional>
+#include <memory>
+#include "utility.h"
+#include "fwddecl.h"
+
 namespace wdk
 {
-    enum class event_type {
-    	none,
-    	window_create,
-    	window_paint,
-    	window_configure,
-    	window_gain_focus,
-    	window_lost_focus,
-    	window_close,
-    	window_destroy,
-    	keyboard_keyup,
-    	keyboard_keydown,
-    	ime_char,
-    	mouse_move
-    };
-
-    // native window system event
-    struct event {
-        native_window_t window;
-        native_event_t  ev;
-        event_type type;
-    };
-	
-    inline
-    bool is_window_event(event_type e)
+    // simplistic input method wrapper for 
+    // handling translated (aka cooked) character input
+    class ime : noncopyable
     {
-        return (e >= event_type::window_create && e <= event_type::window_close);
-    }
+    public:
+        std::function<void (const ime_event_char&)> event_char;
 
-    inline
-    bool is_keyboard_event(event_type e)
-    {
-        return (e == event_type::keyboard_keyup || 
-            e == event_type::keyboard_keydown);
-    }
+        // possible translated output format
+        enum class output { ascii, ucs2, utf8 };
 
-    inline
-    bool is_ime_event(event_type e)
-    {
-        return (e == event_type::ime_char);
-    }
+        ime(const display& disp, output out = output::ucs2);
 
+       ~ime();
+
+        output get_output() const;
+
+        void set_output(output out);
+
+        // add new keyboard event into the current input state.
+        // once input characters are ready they are posted 
+        // in the display's event queue for the window in question.
+        bool add_input(const event& ev);
+
+        // dispatch character event
+        bool dispatch(const event& ev) const;
+   private:
+       struct impl;
+
+       std::unique_ptr<impl> pimpl_;
+    }; 
 } // wdk
+

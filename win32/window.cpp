@@ -164,7 +164,7 @@ window::~window()
         close();
 }
 
-void window::create(const window::params& how)
+void window::create(const window_params& how)
 {
     assert(!exists());
 
@@ -189,13 +189,13 @@ void window::create(const window::params& how)
     }
     else
     {
-        if (how.props & window::HAS_BORDER)
+        if ((how.style & window_style::border) == window_style::border)
         {
             old_style_bits = WS_SYSMENU | WS_BORDER;
         }
-        if (how.props & window::CAN_RESIZE)
+        if ((how.style & window_style::resize) == window_style::resize)
         {
-            if (how.props & window::HAS_BORDER)
+            if ((how.style & window_style::border) == window_style::border)
                 old_style_bits |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
 
             old_style_bits |= WS_SIZEBOX;
@@ -335,7 +335,7 @@ bool window::exists() const
     return (pimpl_->hwnd != NULL);
 }
 
-bool window::dispatch_event(const event& ev)
+bool window::dispatch(const event& ev) const
 {
     const MSG& m = ev.ev;
 
@@ -445,10 +445,8 @@ bool window::dispatch_event(const event& ev)
         {
             if (event_query_close)
             {
-                window_event_query_close e = { false, m.hwnd, display() };
+                window_event_query_close e = { m.hwnd, display() };
                 event_query_close(e);
-                if (e.should_close)
-                    close();
             }
         }
         break;

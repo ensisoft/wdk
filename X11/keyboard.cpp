@@ -32,10 +32,6 @@
 #include "../events.h"
 #include "../event.h"
 
-namespace linux {
-    long keysym2ucs(KeySym keysym);
-}// linux
-
 namespace {
     using namespace wdk;
     
@@ -217,7 +213,7 @@ keyboard::~keyboard()
 {
 }
 
-std::string keyboard::name(keymod m)
+std::string keyboard::name(keymod m) const
 {
     switch (m)
     {
@@ -232,7 +228,7 @@ std::string keyboard::name(keymod m)
     return "";
 }
 
-std::string keyboard::name(keysym s)
+std::string keyboard::name(keysym s) const
 {
     if (s == keysym::none)
         return "";
@@ -255,7 +251,7 @@ std::string keyboard::name(keysym s)
     return std::string(name);
 }
 
-std::string keyboard::name(uint_t native_keycode)
+std::string keyboard::name(uint_t native_keycode) const
 {
     // todo: what the hell is the index?? (last argument)
     const KeySym sym = XKeycodeToKeysym(pimpl_->dpy, native_keycode, 0);
@@ -267,7 +263,7 @@ std::string keyboard::name(uint_t native_keycode)
     return std::string(name);
 }
 
-std::pair<keymod, keysym> keyboard::translate(event& ev)
+std::pair<keymod, keysym> keyboard::translate(const event& ev) const
 {
     const XEvent* xev = &ev.ev;
     if (xev->type != KeyPress && xev->type != KeyRelease)
@@ -279,7 +275,7 @@ std::pair<keymod, keysym> keyboard::translate(event& ev)
     return translate(mod, sym);
 }
 
-std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t native_keycode)
+std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t native_keycode) const
 {
     std::pair<keymod, keysym> ret {keymod::none, keysym::none};
 
@@ -310,10 +306,8 @@ std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t nat
     return ret;
 }
 
-bool keyboard::dispatch_event(event& ev)
+bool keyboard::dispatch(const event& ev) const
 {
-    XEvent* event = &ev.ev;
-
     if (ev.type == event_type::keyboard_keydown)
     {
         if (event_keydown)
@@ -322,18 +316,6 @@ bool keyboard::dispatch_event(event& ev)
             if (key.second != keysym::none)            
                 event_keydown(keyboard_event_keydown{key.second, key.first});
         }
-        if (event_char)
-        {
-            KeySym sym = NoSymbol;
-            XLookupString(&event->xkey, nullptr, 0, &sym, nullptr);
-            if (sym != NoSymbol)
-            {
-                const long ucs2 = linux::keysym2ucs(sym);
-                if (ucs2 != -1)
-                    event_char(keyboard_event_char{ucs2});
-            }
-        }
-        return true;
     }
     else if (ev.type == event_type::keyboard_keyup && event_keyup)
     {

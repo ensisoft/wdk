@@ -40,7 +40,7 @@ namespace wdk
     // derive keycode values for known keys available on the keyboard.
     // 
     // 2) virtual keysyms/modifier keys: the scan/key codes are translated and mapped to virtual
-    // keysym and keymod airs. keysym defines the key that was pressed and keymod defines the
+    // keysym and keymod pairs. keysym defines the key that was pressed and keymod defines the
     // modifier keys that were also depressed at the time when event was generated.
     // 
     // 3) completely translated character input. Series of keypresses are translated to

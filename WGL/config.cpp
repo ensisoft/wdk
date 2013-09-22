@@ -90,6 +90,10 @@
 #define WGL_TYPE_RGBA_ARB                       0x202B
 #define WGL_TYPE_COLORINDEX_ARB                 0x202C
 
+// http://www.opengl.org/registry/specs/ARB/wgl_pbuffer.txt
+// Accepted by the <attribute> parameter of wglChoosePixelFormatEXT:
+#define WGL_DRAW_TO_PBUFFER_ARB                 0x202D
+
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
     {
@@ -144,6 +148,7 @@ config::config(const wdk::display& disp, const attributes& attrs) : pimpl_(new i
 
         set_if(criteria, WGL_DRAW_TO_WINDOW_ARB, (uint_t)attrs.surfaces.window);
         set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
+        set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
 
         UINT num_matches = 0;
         if (!wglChoosePixelFormat(win.surface(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches))
