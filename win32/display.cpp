@@ -228,7 +228,9 @@ void display::get_event(event& ev)
     {
         ev.type   = event_type::none;
         ev.window = wdk::NULL_WINDOW;
-        GetMessage(&m, NULL, 0, 0);
+
+        BOOL ret = GetMessage(&m, NULL, 0, 0);
+		assert(ret);
 
         if (!identify_event(m, ev))
             DefWindowProc(m.hwnd, m.message, m.wParam, m.lParam);
@@ -246,7 +248,10 @@ bool display::peek_event(event& ev) const
         if (!PeekMessage(&m, nullptr, 0, 0, PM_NOREMOVE))
             return false;
         if (!identify_event(m, ev))
+		{
+			GetMessage(&m, NULL, 0, 0);
             DefWindowProc(m.hwnd, m.message, m.wParam, m.lParam);
+		}
     }
     while (ev.type == event_type::none);
 

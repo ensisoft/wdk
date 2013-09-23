@@ -48,11 +48,8 @@ namespace wdk
         }
        ~dummywin()
         {
-            if (hwnd_)
-            {
-                ReleaseDC(hwnd_, hdc_);
-                DestroyWindow(hwnd_);
-            }
+			ReleaseDC(hwnd_, hdc_);
+            DestroyWindow(hwnd_);
         }
         HWND handle() const
         {

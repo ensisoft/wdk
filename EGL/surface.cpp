@@ -57,7 +57,13 @@ surface::surface(const display& disp, const config& conf, uint_t width, uint_t h
 {
     pimpl_->display = egl_init(disp.handle());
 
-    pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), nullptr);
+	const EGLint attrs[] = {
+		EGL_HEIGHT, (EGLint)height,
+		EGL_WIDTH,(EGLint)width,
+		EGL_NONE
+	};
+
+    pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), attrs);
     if (!pimpl_->surface)
         throw std::runtime_error("create offscreen surface failed");
 }
@@ -87,7 +93,7 @@ uint_t surface::height() const
 
 gl_surface_t surface::handle() const
 {
-    return gl_surface_t { pimpl_->surface };
+	return gl_surface_t { pimpl_->surface };
 }
 
 void surface::dispose()

@@ -23,6 +23,7 @@
 #include <EGL/egl.h>
 #include <stdexcept>
 #include <vector>
+#include <cassert>
 #include "../config.h"
 #include "../display.h"
 #include "egldisplay.h"
@@ -64,6 +65,7 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, EGL_ALPHA_SIZE, attrs.alpha_size);
     set_if(criteria, EGL_DEPTH_SIZE, attrs.depth_size);
     set_if(criteria, EGL_CONFIG_ID, attrs.configid);
+	set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
 
     int drawable_bits = 0;
     if (attrs.surfaces.window)
@@ -75,8 +77,6 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
 
     set_if(criteria, EGL_SURFACE_TYPE, drawable_bits);
 
-    // todo: visualid
-
     criteria.push_back(EGL_NONE);
 
     EGLint num_matches = 0;
@@ -84,10 +84,17 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
     if (!eglChooseConfig(pimpl_->display, (const EGLint*)&criteria[0], &config, 1, &num_matches))
         throw std::runtime_error("no matching framebuffer configuration available");
 
-    pimpl_->config = config;
+    pimpl_->config   = config;
+	pimpl_->visualid = 0;
+	pimpl_->configid = 0;
 
     eglGetConfigAttrib(pimpl_->display, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
     eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
+
+	// should there always be visualid? one would think that this is the case even on windows 
+	// (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid!
+	//assert(pimpl_->visualid);
+	assert(pimpl_->configid);
 }
 
 config::~config()
@@ -106,7 +113,7 @@ uint_t config::configid() const
 
 gl_config_t config::handle() const
 {
-    return gl_config_t { pimpl_->config };
+	return gl_config_t { pimpl_->config };
 }
 
 

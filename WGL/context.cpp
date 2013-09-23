@@ -85,6 +85,7 @@ struct context::impl {
             WGL_CONTEXT_MINOR_VERSION_ARB, minor,
             ARNOLD
         };
+		//auto ctx = make_unique_ptr(wglCreateContext(tmp.surface()), wglDeleteContext);
         auto ctx = make_unique_ptr(wglCreateContextAttribsARB(tmp.surface(), nullptr, attrs), wglDeleteContext);
         if (!ctx)
             throw std::runtime_error("create context failed");
@@ -118,6 +119,8 @@ void context::make_current(surface* surf)
     // wgl has a problem similar to glX that you can't pass NULL for HDC.
     // so we use the temporary window surface
     wglMakeCurrent(pimpl_->tmp.surface(), pimpl_->context);
+
+	pimpl_->surface = NULL;
 
     if (surf == nullptr)
         return;

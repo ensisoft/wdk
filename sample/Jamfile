@@ -1,20 +1,14 @@
 
 
-project wdk-sample 
-        : requirements
-        <library>/wdk//wdk-lib
-        <define>SAMPLE_UTF8_TRANSLATE
-        ;
-
-exe events : events.cpp ;
-
-exe test : test.cpp : <library>/wdk//wdk-glx/<link>static <library>/wdk//GL ;
-
-exe gl1  : [ obj triangle_GL_1 : triangle.cpp : <define>MAKE_GL1 ] : <library>/wdk//wdk-glx/<link>static <library>/wdk//GL ;
-exe gl2  : [ obj triangle_GL_2 : triangle.cpp : <define>MAKE_GL2 ] : <library>/wdk//wdk-glx/<link>static <library>/wdk//GL ;
+project wdk-sample ;
 
 
-exe gles : [ obj triangle_GL_ES : triangle.cpp : <define>MAKE_GL_ES ] : <library>/wdk//wdk-egl/<link>static <library>/wdk//GLES2 <library>/wdk//EGL ;
+exe events : events.cpp : <library>/wdk//wdk-desktop ;
+
+exe desktop : [ obj triangle_GL_2 : triangle.cpp ] : <library>/wdk//wdk-desktop <library>/wdk//GL ;
+
+exe mobile : [ obj triangle_GL_ES : triangle.cpp : <define>SAMPLE_GLES ] : <library>/wdk//wdk-mobile <library>/wdk//GLES2 <library>/wdk//EGL ;
+
 
 
 

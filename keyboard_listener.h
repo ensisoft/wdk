@@ -41,8 +41,8 @@ namespace wdk
     inline void connect(keyboard& kb, T& listener)
     {
         namespace args = std::placeholders;
-        kb.event_keyup   = std::bind(&keyboard_listener::on_keyup, listener, args::_1);
-        kb.event_keydown = std::bind(&keyboard_listener::on_keydown, listener, args::_1);
+        kb.event_keyup   = std::bind(&keyboard_listener::on_keyup, &listener, args::_1);
+        kb.event_keydown = std::bind(&keyboard_listener::on_keydown, &listener, args::_1);
     }    
 
 } // wdk

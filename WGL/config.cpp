@@ -120,7 +120,7 @@ struct config::impl {
 
 config::config(const wdk::display& disp, const attributes& attrs) : pimpl_(new impl)
 {
-    auto wglChoosePixelFormat = reinterpret_cast<wglChoosePixelFormatARBProc>(context::resolve("wglChoosePixelFormatARBProc"));
+    auto wglChoosePixelFormat = reinterpret_cast<wglChoosePixelFormatARBProc>(context::resolve("wglChoosePixelFormatARB"));
     if (!wglChoosePixelFormat)
         throw std::runtime_error("unable to choose framebuffer format. no wglChoosePixelFormatARB");
 
@@ -150,8 +150,12 @@ config::config(const wdk::display& disp, const attributes& attrs) : pimpl_(new i
         set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
         set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
 
+		const int ARNOLD = 0;
+
+		criteria.push_back(ARNOLD);
+
         UINT num_matches = 0;
-        if (!wglChoosePixelFormat(win.surface(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches))
+        if (!wglChoosePixelFormat(win.surface(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
             throw std::runtime_error("no matching framebuffer configuration available");
     }
 

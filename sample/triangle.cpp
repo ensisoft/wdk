@@ -20,17 +20,12 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#if defined(MAKE_GL1) || defined(MAKE_GL2)
-#  ifndef GL_GLEXT_PROTOTYPES
-#    define GL_GLEXT_PROTOTYPES // for mesa
-#  endif
-#  ifdef _WIN32
-#  include <windows.h>
-#  endif
-#  include <GL/gl.h>
-#else
+#ifdef SAMPLE_GLES
 #  include <GLES2/gl2.h>
+#else
+#  include "glcorearb.h"
 #endif
+
 #include <wdk/glwindow.h>
 #include <wdk/events.h>
 #include <wdk/event.h>
@@ -48,7 +43,6 @@
 #define GL_ERR_CLEAR \
     while (glGetError()) \
 
-
 #define GL_CHECK(statement) \
     statement; \
     do { \
@@ -59,19 +53,74 @@
         }\
     } while(0)    
 
+#if !defined(SAMPLE_GLES) && !defined(GL_GLEXT_PROTOTYPES)
+PFNGLCREATEPROGRAMPROC glCreateProgram;
+PFNGLCREATESHADERPROC  glCreateShader;
+PFNGLSHADERSOURCEPROC  glShaderSource;
+PFNGLGETERRORPROC      glGetError;
+PFNGLCOMPILESHADERPROC glCompileShader;
+PFNGLDETACHSHADERPROC  glAttachShader;
+PFNGLDELETESHADERPROC  glDeleteShader;
+PFNGLLINKPROGRAMPROC   glLinkProgram;
+PFNGLUSEPROGRAMPROC    glUseProgram;
+PFNGLVALIDATEPROGRAMPROC glValidateProgram;
+PFNGLCLEARCOLORPROC glClearColor;
+PFNGLCLEARPROC glClear;
+PFNGLVIEWPORTPROC glViewport;
+PFNGLDRAWARRAYSPROC glDrawArrays;
+PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
+PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
+PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
+PFNGLGETSTRINGPROC glGetString;
+
+template<typename T>
+T resolve(const char* name)
+{
+	return (T)wdk::context::resolve(name);
+}
+
+#define RESOLVE(x) x = resolve<decltype(x)>(#x)
+
+void resolve()
+{
+	// RESOLVE(glCreateProgram);
+	// RESOLVE(glCreateShader);
+	// RESOLVE(glShaderSource);
+	// RESOLVE(glGetError);
+	// RESOLVE(glCompileShader);
+	// RESOLVE(glAttachShader);
+}
+#else
+void resolve() {}
+#endif
+
 class triangle 
 {
 public:
     triangle() : program_(0)
     {
-
-#if defined(MAKE_GL2) || defined(MAKE_GL_ES)
         program_ = glCreateProgram();
 
         GLuint vert = glCreateShader(GL_VERTEX_SHADER);
         GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
 
-#if defined(MAKE_GL2)
+#if defined(SAMPLE_GLES)
+        const char* v_src = 
+          "precision highp float;                                       \n"
+          "attribute vec4 a_position;                                   \n"
+          "void main()                                                  \n"
+          "{                                                            \n"
+          "   gl_Position = a_position;                                 \n"
+          "}                                                            \n"
+          "\n";
+
+        const char* f_src = 
+          "void main()                                                  \n"
+          "{                                                            \n"
+          "  gl_FragColor = vec4(0, 0.8, 0, 0);                         \n"
+          "}                                                            \n"
+          "\n";
+#else
         const char* v_src = 
           "#version 130                                                  \n"
           "in vec4 a_position;                                           \n"
@@ -89,22 +138,6 @@ public:
           "    outColor = vec4(0, 0.8, 0, 0);                            \n"
           "}                                                             \n"
           "\n";
-#elif defined(MAKE_GL_ES)
-        const char* v_src = 
-          "precision highp float;                                       \n"
-          "attribute vec4 a_position;                                   \n"
-          "void main()                                                  \n"
-          "{                                                            \n"
-          "   gl_Position = a_position;                                 \n"
-          "}                                                            \n"
-          "\n";
-
-        const char* f_src = 
-          "void main()                                                  \n"
-          "{                                                            \n"
-          "  gl_FragColor = vec4(0, 0.8, 0, 0);                         \n"
-          "}                                                            \n"
-          "\n";
 #endif
         GL_CHECK(glShaderSource(vert, 1, &v_src, NULL));
         GL_CHECK(glCompileShader(vert));
@@ -121,7 +154,6 @@ public:
 
         GL_CHECK(glDeleteShader(vert));
         GL_CHECK(glDeleteShader(frag));
-#endif
     }
 
     void render()
@@ -131,40 +163,17 @@ public:
         GL_CHECK(glClearColor(0, 0, 0, 0));
         GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 
-#if defined(MAKE_GL2) || defined(MAKE_GL_ES)
         struct vertex {
           float x, y, z;
-          vertex(float x_, float y_, float z_) : x(x_), y(y_), z(z_)
-          {
-          }
-          vertex() : x(0), y(0), z(0)
-          {
-          }
-        };
-        
-        vertex triangle[3];
-        triangle[0] = vertex(0, 1, 0);
-        triangle[1] = vertex(-1, -1, 0);
-        triangle[2] = vertex(1, -1, 0);
+        };        
+		const vertex triangle[3] = {{0, 1, 0}, {-1, -1, 0}, {1, -1, 0}};
         
         GLint pos = glGetAttribLocation(program_, "a_position");
 
         GL_CHECK(glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
         GL_CHECK(glEnableVertexAttribArray(pos));
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
-#else
-        GL_CHECK(glLoadIdentity());
-        GL_CHECK(glColor3f(0, 0.8, 0));
-
-        GL_CHECK(glBegin(GL_TRIANGLES));
-          glVertex3f(0.0f, 1.0f, 0.0f);
-          glVertex3f(-1.0f, -1.0, 0.0f);
-          glVertex3f(1.0f, -1.0f, 0.0f);
-        GL_CHECK(glEnd());
-#endif
       }
-
-
 private:
     GLint program_;
 };
@@ -197,6 +206,8 @@ int main(int argc, char* argv[])
     window.set_listener(l);
 
     window.create(wdk::window_params(640, 480, "Triangle"));
+
+    resolve();
 
     printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
 

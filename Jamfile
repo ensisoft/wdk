@@ -30,7 +30,7 @@ project wdk
           <os>LINUX:<library>/wdk//Xext/<link>shared
         ;
 
-lib wdk-egl : [ glob EGL/*.cpp ] : <define>USE_EGL : <link>static ;
+
 
 if [ os.name ] = LINUX
 {
@@ -38,8 +38,8 @@ if [ os.name ] = LINUX
   lib GLES2 : : <name>GLESv2 ;
   lib GL    : : <name>GL ;
 
-  lib wdk-lib : [ glob X11/*.cpp ] : <link>static ;
-  lib wdk-glx : [ glob GLX/*.cpp ] : <link>static ;
+  lib wdk-desktop : [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
+  lib wdk-mobile  : [ glob X11/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
 }
 
 if [ os.name ] = NT
@@ -48,8 +48,8 @@ if [ os.name ] = NT
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
-  lib wdk-lib : [ glob win32/*.cpp ] : <link>static ;
-  lib wdk-glx : [ glob WGL/*.cpp ]   : <link>static ;
+  lib wdk-desktop : [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
+  lib wdk-mobile  : [ glob win32/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
 }
 
 #build-project sample ;

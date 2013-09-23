@@ -28,7 +28,7 @@
 #  include "X11/types.h"
 #endif
 
-#ifdef USE_EGL
+#if defined(WDK_MOBILE)
 #  include "EGL/types.h"
 #else
 #  if defined(WINDOWS) || defined(_WIN32)
@@ -47,7 +47,5 @@ namespace wdk
     typedef unsigned int  errcode_t;
 
     const ms_t NO_TIMEOUT = -1;
-
-
 
 } // wdk

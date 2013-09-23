@@ -46,13 +46,13 @@ namespace wdk
     inline void connect(window& win, T& listener)
     {
         namespace args = std::placeholders;
-        win.event_create      = std::bind(&window_listener::on_create, listener, args::_1);
-        win.event_paint       = std::bind(&window_listener::on_paint, listener, args::_1);
-        win.event_resize      = std::bind(&window_listener::on_resize, listener, args::_1);
-        win.event_lost_focus  = std::bind(&window_listener::on_lost_focus, listener, args::_1);
-        win.event_gain_focus  = std::bind(&window_listener::on_gain_focus, listener, args::_1);
-        win.event_query_close = std::bind(&window_listener::on_query_close, listener, args::_1);
-        win.event_destroy     = std::bind(&window_listener::on_destroy, listener, args::_1);
+        win.event_create      = std::bind(&window_listener::on_create, &listener, args::_1);
+        win.event_paint       = std::bind(&window_listener::on_paint, &listener, args::_1);
+        win.event_resize      = std::bind(&window_listener::on_resize, &listener, args::_1);
+        win.event_lost_focus  = std::bind(&window_listener::on_lost_focus, &listener, args::_1);
+        win.event_gain_focus  = std::bind(&window_listener::on_gain_focus, &listener, args::_1);
+        win.event_query_close = std::bind(&window_listener::on_query_close, &listener, args::_1);
+        win.event_destroy     = std::bind(&window_listener::on_destroy, &listener, args::_1);
     }
 
 } // wdk
