@@ -28,7 +28,6 @@
 
 namespace wdk
 {
-    class display;
     class config;
     class surface;
 
@@ -37,12 +36,12 @@ namespace wdk
     {
     public:
         // create a rendering context compatible with the given
-        // configuration and with default GL version. (GL 3.3, GLES 2.0)
-        context(const display& disp, const config& conf);
+        // configuration and with default GL version. (GL 3.0, GLES 2.0)
+        context(const config& conf);
 
         // create a rendering context compatible with the given
         // configuration and with a specific GL version.
-        context(const display& disp, const config& conf, int major_version, int minor_version);
+        context(const config& conf, int major_version, int minor_version);
 
         // dtor
        ~context();

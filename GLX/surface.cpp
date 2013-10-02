@@ -23,11 +23,11 @@
 #include <GL/glx.h>
 #include <functional>
 #include "../surface.h"
-#include "../display.h"
+#include "../system.h"
 #include "../config.h"
 #include "../window.h"
 #include "../pixmap.h"
-#include "../X11/error_handler.h"
+#include "../X11/errorhandler.h"
 
 namespace {
     enum class surface_type { window, pixmap, pbuffer };
@@ -36,48 +36,43 @@ namespace {
 namespace wdk
 {
 struct surface::impl {
-    Display*     dpy;
     GLXDrawable  surface;
     surface_type type;
 };
 
-surface::surface(const display& disp, const config& conf, const window& win)
+surface::surface(const config& conf, const window& win)
 {
     pimpl_.reset(new impl);
 
-    factory<GLXDrawable> fac(disp.handle());
+    factory<GLXDrawable> fac(get_display_handle());
 
-    GLXDrawable surface = fac.create(std::bind(glXCreateWindow, std::placeholders::_1, 
-        conf.handle(), win.handle(), nullptr));
+    GLXDrawable surface = fac.create(std::bind(glXCreateWindow, std::placeholders::_1, conf.handle(), win.handle(), nullptr));
     if (fac.has_error())
         throw std::runtime_error("create window surface failed");
 
-    pimpl_->dpy     = disp.handle();
     pimpl_->surface = surface;
     pimpl_->type    = surface_type::window;
 }
 
-surface::surface(const display& disp, const config& conf, const pixmap& px)
+surface::surface(const config& conf, const pixmap& px)
 {
     pimpl_.reset(new impl);
 
-    factory<GLXDrawable> fac(disp.handle());
+    factory<GLXDrawable> fac(get_display_handle());
 
-    GLXDrawable surface = fac.create(std::bind(glXCreatePixmap, std::placeholders::_1, 
-        conf.handle(), px.handle(), nullptr));
+    GLXDrawable surface = fac.create(std::bind(glXCreatePixmap, std::placeholders::_1, conf.handle(), px.handle(), nullptr));
     if (fac.has_error())
         throw std::runtime_error("create pixmap surface failed");
 
-    pimpl_->dpy     = disp.handle();
     pimpl_->surface = surface;
     pimpl_->type    = surface_type::pixmap;
 }
 
-surface::surface(const display& disp, const config& conf, uint_t width, uint_t height)
+surface::surface(const config& conf, uint_t width, uint_t height)
 {
     pimpl_.reset(new impl);
 
-    factory<GLXDrawable> fac(disp.handle());
+    factory<GLXDrawable> fac(get_display_handle());
 
     const int attrs[] = {
         GLX_PBUFFER_WIDTH, (int)width,
@@ -85,12 +80,10 @@ surface::surface(const display& disp, const config& conf, uint_t width, uint_t h
         None
     };
 
-    GLXDrawable surface = fac.create(std::bind(glXCreatePbuffer, std::placeholders::_1, 
-        conf.handle(), attrs));
+    GLXDrawable surface = fac.create(std::bind(glXCreatePbuffer, std::placeholders::_1, conf.handle(), attrs));
     if (fac.has_error())
         throw std::runtime_error("create offscreen surface failed");
 
-    pimpl_->dpy     = disp.handle();
     pimpl_->surface = surface;
     pimpl_->type    = surface_type::pbuffer;
 }
@@ -102,18 +95,22 @@ surface::~surface()
 
 uint_t surface::width() const
 {
+    Display* d = get_display_handle();
+
     uint_t width = 0;
 
-    glXQueryDrawable(pimpl_->dpy, pimpl_->surface, GLX_WIDTH, &width);
+    glXQueryDrawable(d, pimpl_->surface, GLX_WIDTH, &width);
 
     return width;
 }
 
 uint_t surface::height() const
 {
+    Display* d = get_display_handle();
+
     uint_t height = 0;
 
-    glXQueryDrawable(pimpl_->dpy, pimpl_->surface, GLX_HEIGHT, &height);
+    glXQueryDrawable(d, pimpl_->surface, GLX_HEIGHT, &height);
 
     return height;
 }
@@ -128,18 +125,20 @@ void surface::dispose()
     if (!pimpl_->surface)
         return;
 
+    Display* d = get_display_handle();
+
     switch (pimpl_->type)
     {
         case surface_type::window:
-            glXDestroyWindow(pimpl_->dpy, pimpl_->surface);
+            glXDestroyWindow(d, pimpl_->surface);
             break;
 
         case surface_type::pbuffer:
-            glXDestroyPbuffer(pimpl_->dpy, pimpl_->surface);
+            glXDestroyPbuffer(d, pimpl_->surface);
             break;
 
         case surface_type::pixmap:
-           glXDestroyPixmap(pimpl_->dpy, pimpl_->surface);
+           glXDestroyPixmap(d, pimpl_->surface);
            break;
     }    
     pimpl_->surface = 0;

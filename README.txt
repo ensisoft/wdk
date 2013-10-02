@@ -39,9 +39,15 @@ Code requires a C++11 compatible compiler. Compiles with gcc >= 4.8.1 and msvc >
 
 TODO:
 
+- x11 gravity, position 0, 0 looks like it's bottom left
+- keyup is not really working properly
+- query keyboard state without having to use messages
+- mouse input
+- provide display change event 
+
+
+other todo:
 - multihead support, probably only works with a single display setup at the moment
-- uniform unicode character input, windows provides utf16, X11 ucs-4
-- X11 accent characters, combining characters?
-- X11 IM input?
-- keyboard state functions, for win there is GetKeyboardState, but how about linux?
-- mouse support
+- X11 IM context?
+
+

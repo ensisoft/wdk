@@ -28,16 +28,21 @@
 
 namespace wdk
 {
-    uint_t get_desktop_width();
-    uint_t get_desktop_height();
-
+ 
     // dummy window for scenarios when a hwnd/hdc is needed but there's no "real" window yet
     class dummywin : noncopyable
     {
     public:
         dummywin() : hwnd_(nullptr), hdc_(nullptr)
         {
-            hwnd_ = CreateWindow(TEXT("STATIC"), TEXT(""), WS_POPUP | WS_DISABLED, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
+            WNDCLASSEX cls    = {0};
+            cls.cbSize        = sizeof(cls);
+            cls.lpfnWndProc   = DefWindowProc;//dummywin::window_message_proc;
+            cls.lpszClassName = TEXT("WDK-DUMMY-WINDOW");
+            RegisterClassEx(&cls);
+
+            //hwnd_ = CreateWindow(TEXT("STATIC"), TEXT(""), WS_OVERLAPPEDWINDOW, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
+            hwnd_ = CreateWindow(TEXT("WDK-DUMMY-WINDOW"), TEXT(""), WS_POPUP, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
             hdc_  = GetDC(hwnd_);
 #ifndef _NDEBUG
             RECT rc;
@@ -59,7 +64,20 @@ namespace wdk
         {
             return hdc_;
         }
+        void bounce_display_change()
+        {
+            SetWindowLongPtr(hwnd_, GWL_WNDPROC, (LONG_PTR)window_message_proc);
+        }
     private:
+        static
+        LRESULT CALLBACK window_message_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+        {
+            if (msg != WM_DISPLAYCHANGE)
+                return DefWindowProc(hwnd, msg, wp, lp);
+
+            PostMessage(hwnd, WM_DISPLAYCHANGE, wp, lp);
+            return 0;
+        }
         HWND hwnd_;
         HDC  hdc_;
     };

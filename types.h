@@ -22,6 +22,34 @@
 
 #pragma once
 
+namespace wdk
+{
+    typedef int           int_t;
+    typedef unsigned int  uint_t;
+    typedef unsigned int  bitflag_t;
+    typedef unsigned int  ms_t;
+    typedef unsigned int  errcode_t;
+
+    const ms_t NO_TIMEOUT = -1;
+
+    // native event type
+    enum class event_type {
+       none, // not known
+       window_lost_focus,
+       window_gain_focus,
+       window_resize,
+       window_paint,
+       window_keydown,
+       window_keyup,
+       window_char,
+       window_create,
+       window_destroy,
+       window_close,
+       display_resolution_change                    
+    };
+
+} // wdk
+
 #if defined(WINDOWS) || defined(_WIN32)
 #  include "win32/types.h"
 #else
@@ -38,14 +66,3 @@
 #  endif
 #endif
 
-namespace wdk
-{
-    typedef int           int_t;
-    typedef unsigned int  uint_t;
-    typedef unsigned int  bitflag_t;
-    typedef unsigned int  ms_t;
-    typedef unsigned int  errcode_t;
-
-    const ms_t NO_TIMEOUT = -1;
-
-} // wdk

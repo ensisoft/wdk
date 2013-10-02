@@ -8,6 +8,7 @@ lib Xau     : : <name>Xau  ;
 lib Xdmcp   : : <name>Xdmcp ;
 lib Xxf86vm : : <name>Xxf86vm ;
 lib Xext    : : <name>Xext ;
+lib Xrandr  : : <name>Xrandr ;
 
 path-constant GLES2_INC : "c:/imgtec_gles_sdk/Include" ;
 path-constant GLES2_LIB : "c:/imgtec_gles_sdk/Lib" ;
@@ -28,6 +29,7 @@ project wdk
           <os>LINUX:<library>/wdk//Xau/<link>shared
           <os>LINUX:<library>/wdk//Xdmcp/<link>shared
           <os>LINUX:<library>/wdk//Xext/<link>shared
+          <os>LINUX:<library>/wdk//Xrandr/<link>shared
         ;
 
 
@@ -38,8 +40,9 @@ if [ os.name ] = LINUX
   lib GLES2 : : <name>GLESv2 ;
   lib GL    : : <name>GL ;
 
-  lib wdk-desktop : [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
-  lib wdk-mobile  : [ glob X11/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
+  lib wdk-desktop : keys.cpp [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
+  lib wdk-mobile  : keys.cpp [ glob X11/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
+
 }
 
 if [ os.name ] = NT
@@ -48,8 +51,8 @@ if [ os.name ] = NT
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
-  lib wdk-desktop : [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
-  lib wdk-mobile  : [ glob win32/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
+  lib wdk-desktop : keys.cpp [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
+  lib wdk-mobile  : keys.cpp [ glob win32/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
 }
 
 #build-project sample ;

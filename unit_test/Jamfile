@@ -1,0 +1,10 @@
+
+import testing ;
+
+project wdk-unit-test ;
+
+exe unit_test_wdk : unit_test_wdk.cpp : <library>//wdk//wdk-desktop <library>/wdk//GL ;
+
+unit-test unit_test_wdk_gl : unit_test_wdk_gl.cpp : <library>/wdk//wdk-desktop <library>/wdk//GL ;
+
+#unit-test unit_test_wdk_gles : [ obj foo : unit_test_wdk.cpp  : <define>GLES ] : <library>/wdk//wdk-mobile <library>#/wdk//GLES2 <library>/wdk//EGL ;

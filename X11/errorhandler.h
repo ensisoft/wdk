@@ -59,6 +59,10 @@ namespace wdk
         {
             return current_error_code;
         }
+        void clear()
+        {
+            current_error_code = 0;
+        }
     private:
         static std::stack<scoped_error_handler*>& handlers()
         {

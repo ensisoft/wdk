@@ -20,119 +20,90 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-// on ubuntu the package for this header is libxxf86vm-dev (double X on purpose!)
 #include <X11/Xlib.h>
-#include <X11/extensions/xf86vmode.h>
 #include <X11/Xutil.h>
-#include <cassert>
 #include <stdexcept>
-#include <cstring>
-#include "../events.h"
-#include "../event.h"
+#include <limits>
+#include <cassert>
 #include "../window.h"
-#include "../display.h"
-#include "error_handler.h"
+#include "../system.h"
+#include "../videomode.h"
+#include "../utf8.h"
+#include "errorhandler.h"
+#include "atoms.h"
 
-namespace {
-    struct hint {
-        unsigned long flags;
-        unsigned long functions;
-        unsigned long decorations;
-        long          inputMode;
-        unsigned long status;
-    };
-} // namespace
+namespace linux {
+    long keysym2ucs(KeySym keysym);
+}// linux
 
 namespace wdk
 {
 
 struct window::impl {
-    Window   window;
-    Atom     atom_delete_window;
-    Display* disp;
-    bool     is_fullscreen;
-    uint_t   visualid;
-    uint_t   height;
-    uint_t   width;
+    Window window;
+    int width;
+    int height;
+    encoding enc;
+    bool fullscreen;
+    uint_t visualid;
+    //properties props;
 };
 
-window::window(const wdk::display& disp)
+window::window() : pimpl_(new impl)
 {
-    pimpl_.reset(new impl);
-    pimpl_->atom_delete_window = XInternAtom(disp.handle(), "WM_DELETE_WINDOW", False);
-    pimpl_->window             = 0L;
-    pimpl_->disp               = disp.handle();
+    pimpl_->window = 0;
+    pimpl_->enc    = encoding::utf8;
 }
 
 window::~window()
 {
     if (exists())
-        close();
+        destroy();
 }
 
-void window::create(const window_params& how)
+void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+    bool can_resize, bool has_border)
 {
-    assert(!exists());
+    assert(width);
+    assert(height);    
+    assert(!title.empty());
+    assert(!pimpl_->window);
 
-    const native_display_t display_handle = pimpl_->disp;
-    const int screen                      = DefaultScreen(display_handle);
-    const Window root                     = RootWindow(display_handle, screen);
+    Display* d = get_display_handle();
 
-    XVisualInfo vistemplate = {};
-    vistemplate.visualid    = how.visualid ? how.visualid : 0;
-    const long visual_mask  = how.visualid ? VisualIDMask : 0;
+    int screen = DefaultScreen(d);
+    int root   = RootWindow(d, screen);
+
+    XVisualInfo vistemplate = {0};
+    vistemplate.visualid    = visualid ? visualid : 0;
+    const long visual_mask  = visualid ? VisualIDMask : 0;
 
     int num_visuals = 0;
-    XVisualInfo* visinfo = XGetVisualInfo(display_handle, visual_mask, &vistemplate, &num_visuals);
+    XVisualInfo* visinfo = XGetVisualInfo(d, visual_mask, &vistemplate, &num_visuals);
     if (!visinfo || !num_visuals)
-        throw std::runtime_error("cannot get visual info");
+        throw std::runtime_error("no such visual");    
 
-    XSetWindowAttributes attr = {};
-    attr.background_pixel     = 0;
-    attr.border_pixel         = 0;
-    attr.colormap             = XCreateColormap(display_handle, root, visinfo->visual, AllocNone);
+    XSetWindowAttributes attr = {0};
+    attr.colormap             = XCreateColormap(d, root, visinfo->visual, AllocNone);
     attr.event_mask           = KeyPressMask | KeyReleaseMask | // keyboard
                                 ButtonPressMask | ButtonReleaseMask | // pointer aka. mouse clicked
                                 EnterWindowMask | LeaveWindowMask   | // pointer aka. mouse leaves/enters window
-                                PointerMotionMask | ButtonMotionMask | // pointer motion 
-                                StructureNotifyMask | // window size changed, mapping change
-                                ExposureMask | // window exposure
+                                PointerMotionMask | ButtonMotionMask | // pointer aka.mouse motion 
+                                StructureNotifyMask | // window size changed, mapping change (ConfigureNotify)
+                                ExposureMask | // window exposure (paint)
                                 FocusChangeMask; // lost, gain focus
-    unsigned long attr_mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
 
-    uint_t window_width  = how.width;
-    uint_t window_height = how.height;
-    window_style style   = how.style;
+    const unsigned long attr_mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;   
 
-    if (how.fullscreen)
+    factory<Window> win_factory(d);
+
+    Window win = win_factory.create([&](Display* d) 
     {
-        // find the current display mode
-        XF86VidModeModeLine mode = {0};
-        int dotclock = 0;
-        if (XF86VidModeGetModeLine(display_handle, screen, &dotclock, &mode) == False)
-            throw std::runtime_error("failed to get current fullscreen mode");
-
-        // adjust window w/h to fullscreen
-        window_width  = mode.hdisplay;
-        window_height = mode.vdisplay;
-        style         = window_style::none; // no border or resize is possible
-
-        // add a flag to grab events that would otherwise go to the window manager
-        attr_mask |= CWOverrideRedirect; 
-        attr.override_redirect = True;
-    }
-
-    const uint_t chosen_visual = visinfo->visualid;
-
-    factory<Window> win_factory(display_handle);
-
-    Window win = win_factory.create([&](Display* dpy) 
-    {
-        Window ret = XCreateWindow(dpy, 
+        Window ret = XCreateWindow(d, 
             root, 
             0, 0, 
-            window_width, 
-            window_height, 
+            width, 
+            height, 
             0,
             visinfo->depth, 
             InputOutput,
@@ -142,139 +113,386 @@ void window::create(const window_params& how)
         return ret;
     });
 
+    int visual_id = visinfo->visualid;
+
     XFree(visinfo);
-    
+
     if (win_factory.has_error())
         throw std::runtime_error("failed to create window");
 
-    XSetWMProtocols(display_handle, win, &pimpl_->atom_delete_window, 1);
+    XSetWMProtocols(d, win, &WM_DELETE_WINDOW, 1);
+    XStoreName(d, win, title.c_str());
+
+    if (!has_border)
+    {
+        struct hint {
+            unsigned long flags;
+            unsigned long functions;
+            unsigned long decorations;
+            long          inputMode;
+            unsigned long status;
+        };
+
+        // get rid of window decorations
+        hint hints = {0};
+        hints.flags = 2;         // window decorations flag
+        hints.decorations = 0;   // ...say bye bye
+        XChangeProperty(d, win, _MOTIF_WM_HINTS, _MOTIF_WM_HINTS, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&hints), 5);
+    }
+
+    if (!can_resize)
+    {
+        // make window unresizeable
+        XSizeHints* hints = XAllocSizeHints();
+        hints->flags      = PMinSize | PMaxSize;
+        hints->min_width  = hints->max_width  = width;
+        hints->min_height = hints->max_height = height;
+
+        XSetWMSizeHints(d, win, hints, WM_SIZE_HINTS);
+        XSetWMNormalHints(d, win, hints);
+        XFree(hints);
+    }
 
     // show window
-    XMapWindow(display_handle, win);
-    
-    if (how.fullscreen)
-    {
-        XWarpPointer(display_handle, None, win, 0, 0, 0, 0, 0, 0);
-        XGrabKeyboard(display_handle, win, True, GrabModeAsync, GrabModeAsync, CurrentTime);
-        XGrabPointer(display_handle, win, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, win, None, CurrentTime);
-    }
-    else
-    {
-        if ((style & window_style::border) != window_style::border)
-        {
-            // get rid of window decorations
-            hint hints = {0};
-            hints.flags = 2;         // window decorations flag
-            hints.decorations = 0;   // ...say bye bye
-            Atom property = XInternAtom(display_handle, "_MOTIF_WM_HINTS", True);
-            XChangeProperty(display_handle, win, property, property, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&hints), 5);
-        }
-        if ((style & window_style::resize) != window_style::resize)
-        {
-            // make window unresizeable
-            XSizeHints* hints = XAllocSizeHints();
-            hints->flags      = PMinSize | PMaxSize;
-            hints->min_width  = hints->max_width  = how.width;
-            hints->min_height = hints->max_height = how.height;
-            XSetWMSizeHints(display_handle, win, hints, XInternAtom(display_handle, "WM_SIZE_HINTS", True));
-            XSetWMNormalHints(display_handle, win, hints);
-            XFree(hints);
-        }
-        if (!how.title.empty())
-        {
-            XStoreName(display_handle, win, how.title.c_str());
-        }
+    XMapWindow(d, win);
 
+    XFlush(d);
 
-        const int dph = DisplayHeight(display_handle, DefaultScreen(display_handle));
-        const int dpw = DisplayWidth(display_handle, DefaultScreen(display_handle));
+    // X hack, since the api is asynchronous it's possible that 
+    // the client code can call a function such as set_setfocus which
+    // fails siply because the WM hasn't mapped the window yet.
+    // so we wait here  untill we're notified that it's actually mapped.
+    XEvent ev;
+    while (XCheckTypedWindowEvent(d, win, Expose, &ev) == False);
 
-        const int xpos = (dpw - window_width) / 2;
-        const int ypos = (dph - window_height) / 2;
+    XPutBackEvent(d, &ev);
 
-        // seems that repositioning the window doesn't
-        // work unless the window is mapped...
-        XMoveWindow(display_handle, win, xpos, ypos);
-        // XWindowChanges conf = {0};
-        // conf.x = xpos;
-        // conf.y = ypos;
-        // XConfigureWindow(display_handle, win, CWX | CWY, &conf);
-    }
-
-    // get the actual size (could be different from requested)
-    Window dummy = 0;
-    int x, y;
-    unsigned int width, height = 0;
-    unsigned int border = 0;
-    unsigned int depth  = 0;
-    XGetGeometry(display_handle, win, &dummy, &x, &y, &width, &height, &border, &depth);
-
-    pimpl_->window         = win;
-    pimpl_->is_fullscreen  = how.fullscreen;
-    pimpl_->visualid       = chosen_visual;
-    pimpl_->disp           = display_handle;
-    pimpl_->width          = width;
-    pimpl_->height         = height;
-
-    // synthesize create event
-    XEvent send               = {0};
-    send.type                 = CreateNotify;
-    send.xcreatewindow.window = win;
-    send.xcreatewindow.y      = y;
-    send.xcreatewindow.x      = x;
-    send.xcreatewindow.width  = width;
-    send.xcreatewindow.height = height;
-    const Status ret = XSendEvent(display_handle, win, False, 0, &send);
-
-    assert(ret);
+    pimpl_->window   = win;
+    pimpl_->visualid = visual_id;
+    pimpl_->width    = 0;
+    pimpl_->height   = 0;
+    pimpl_->fullscreen = false;
 }
 
-
-void window::close()
+void window::destroy()
 {
     assert(exists());
 
-    Display* disp = pimpl_->disp;
-    Window window = pimpl_->window;
+    Display* d = get_display_handle();
 
-    XEvent send = {0};
-    send.type   = DestroyNotify;
-    send.xdestroywindow.window = pimpl_->window;
-    XSendEvent(disp, pimpl_->window, False, 0, &send);
-
-    if (pimpl_->is_fullscreen)
+    if (pimpl_->fullscreen)
     {
-        XUngrabKeyboard(disp, CurrentTime);
-        XUngrabPointer(disp, CurrentTime);
+        XUngrabPointer(d, CurrentTime);
+        XUngrabKeyboard(d, CurrentTime);
     }
-    XUnmapWindow(disp, window);
-    XDestroyWindow(disp, window);
 
-    pimpl_->window        = 0L;
-    pimpl_->is_fullscreen = false;
-    pimpl_->visualid      = 0;
-    pimpl_->width         = 0;
-    pimpl_->height        = 0;
+    XUnmapWindow(d, pimpl_->window);
+
+    XDestroyWindow(d, pimpl_->window);
+
+    XFlush(d);
+
+    pimpl_->window = 0;
+
 }
 
-uint_t window::width() const
+void window::move(int x, int y)
 {
-    Window dummy;
-    int x, y;
-    unsigned int width, height;
-    unsigned int border;
-    unsigned int depth;
-    XGetGeometry(pimpl_->disp, pimpl_->window, &dummy, &x, &y, &width, &height, &border, &depth);
+    assert(exists());
+    assert(!is_fullscreen());
 
-    return (uint_t)width + 2 * border;
+    Display* d = get_display_handle();
+
+    XMoveWindow(d, pimpl_->window, x, y);
+
+    XFlush(d);
 }
 
-uint_t window::height() const
+void window::set_fullscreen(bool fullscreen)
 {
-    assert(!"unimplemented function");
+    assert(exists());
 
-    // todo: how to get the title bar height, have to query the window manager?
-    return 0;
+
+    if (fullscreen == pimpl_->fullscreen)
+        return;
+
+    Display* d = get_display_handle();
+    Window   w = handle();
+
+    // todo: this is a bit slow at changing and will get confused if 
+    // multiple requests are made before the previous one is complete
+    if (fullscreen)
+    {
+        XEvent ev = {0};
+        ev.type = ClientMessage;
+        ev.xclient.message_type = _NET_WM_STATE;
+        ev.xclient.format       = 32;
+        ev.xclient.window       = w;
+        ev.xclient.data.l[0]    = _NET_WM_STATE_ADD;
+        ev.xclient.data.l[1]    = _NET_WM_STATE_FULLSCREEN;
+        ev.xclient.data.l[3]    = w;
+        XSendEvent(d, DefaultRootWindow(d), False, SubstructureRedirectMask | SubstructureNotifyMask, &ev);
+
+        // get exlcusive keyboard accessn
+        // note that this can fail if someone else has grabbed the keyboard alreadyd..
+        XGrabKeyboard(d, w, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+
+        // get exclusive pointer (mouse) access
+        XGrabPointer(d, w, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, w, None, CurrentTime);
+    }
+    else
+    {
+        XUngrabPointer(d, CurrentTime);
+
+        XUngrabKeyboard(d, CurrentTime);
+ 
+        XEvent ev = {0};
+        ev.type = ClientMessage;
+        ev.xclient.message_type = _NET_WM_STATE;
+        ev.xclient.format       = 32;
+        ev.xclient.window       = w;
+        ev.xclient.data.l[0]    = _NET_WM_STATE_REMOVE;
+        ev.xclient.data.l[1]    = _NET_WM_STATE_FULLSCREEN;
+        ev.xclient.data.l[3]    = w;
+        XSendEvent(d, DefaultRootWindow(d), False, SubstructureRedirectMask | SubstructureNotifyMask, &ev);
+        
+    }
+    XFlush(d);
+
+    pimpl_->fullscreen = fullscreen;
+}
+
+void window::set_focus()
+{
+    assert(exists());
+
+    Display* d = get_display_handle();
+
+    XSetInputFocus(d, pimpl_->window, RevertToNone, CurrentTime);
+
+    XFlush(d);
+}
+
+void window::set_size(uint_t width, uint_t height)
+{
+    assert(width);
+    assert(height);
+    assert(exists());
+    assert(!is_fullscreen());
+
+    Display* d = get_display_handle();
+
+    XResizeWindow(d, pimpl_->window, width, height);
+    
+    XFlush(d);
+}
+
+void window::set_encoding(encoding enc)
+{
+    pimpl_->enc = enc;
+}
+
+void window::poll_one_event()
+{
+    if (!have_events())
+        return;
+
+    const auto& ev = get_event();
+    if (ev.get_window_handle() != handle())
+        return;
+
+    process_event(ev);
+}
+
+void window::wait_one_event()
+{
+    const auto& ev = get_event();
+    if (ev.get_window_handle() != handle())
+        return;
+
+    process_event(ev);
+}
+
+void window::process_all_events()
+{
+    while (have_events())
+        wait_one_event();
+}
+
+void window::process_event(const native_event_t& ev)
+{
+    assert(ev.get_window_handle());
+    assert(ev.get_window_handle() == handle());
+
+    const XEvent& event = ev;
+
+    switch (event.type)
+    {
+        case FocusIn:
+            if (on_gain_focus)
+                on_gain_focus(window_event_focus{});
+            break;
+
+        case FocusOut:
+            if (on_lost_focus)
+                on_lost_focus(window_event_focus{});
+            break;
+
+        case Expose:
+            if (on_paint)
+            {
+                window_event_paint paint = {0};
+                paint.x      = event.xexpose.x;
+                paint.y      = event.xexpose.y;
+                paint.width  = event.xexpose.width;
+                paint.height = event.xexpose.height;
+                on_paint(paint);
+            }
+            break;
+
+        case ConfigureNotify:
+            if (pimpl_->width != event.xconfigure.width || pimpl_->height != event.xconfigure.height)
+            {
+                pimpl_->width  = event.xconfigure.width;
+                pimpl_->height = event.xconfigure.height;
+                if (on_resize)
+                {
+                    window_event_resize resize = {0};
+                    resize.width  = event.xconfigure.width;
+                    resize.height = event.xconfigure.height;
+                    on_resize(resize);
+                }
+            }
+            break;
+
+        case CreateNotify:
+            if (on_create)
+            {
+                window_event_create create = {0};
+                create.x      = event.xcreatewindow.x;
+                create.y      = event.xcreatewindow.y;
+                create.width  = event.xcreatewindow.width;
+                create.height = event.xcreatewindow.height;
+                on_create(create);
+            }
+            break;
+
+
+        case ClientMessage:
+            if ((Atom)event.xclient.data.l[0] == WM_DELETE_WINDOW)
+            {
+                if (on_want_close)
+                    on_want_close(window_event_want_close{});
+            }
+            break;
+
+        case KeyPress:
+            if (on_keydown)
+            {
+                const auto& keys = translate_keydown(ev);
+                if (keys.second != keysym::none)
+                    on_keydown(window_event_keydown{keys.second, keys.first});
+            }
+            if (on_char)
+            {
+                KeySym sym = NoSymbol;
+                XLookupString(const_cast<XKeyEvent*>(&event.xkey), nullptr, 0, &sym, nullptr);
+                if (sym == NoSymbol)
+                    break;
+
+                const long ucs2 = linux::keysym2ucs(sym);
+                if (ucs2 == -1)
+                    break;
+
+                // simulate WM_CHAR and synthesize a character event
+                // note that ClientMessage didn't work as expected.
+                static_assert(sizeof(Window) >= sizeof(ucs2), "");
+
+                XEvent hack = {0};
+                hack.type        = MapNotify;
+                hack.xmap.event  = ucs2; 
+                hack.xmap.window = handle(); 
+                XSendEvent(event.xany.display, handle(), False, 0, &hack);
+            }
+            break;
+
+        case KeyRelease:
+            // todo:
+            break;
+
+        case MapNotify:
+            if (!event.xany.send_event)
+                break;
+
+            if (on_char)
+            {
+                const XMapEvent& uchar = event.xmap;
+                const long ucs2 = (long)uchar.event;
+
+                window_event_char c = {0};
+
+                if (pimpl_->enc == encoding::ascii)
+                    c.ascii = ucs2 & 0x7f;
+                else if (pimpl_->enc == encoding::ucs2)
+                    c.ucs2 = ucs2;
+                else if (pimpl_->enc == encoding::utf8)
+                    enc::utf8_encode(&ucs2, &ucs2 + 1, &c.utf8[0]);
+
+                on_char(c);
+            }
+            break;
+    }
+}
+
+void window::sync_all_events()
+{
+    sync_events();
+    process_all_events();
+}
+
+uint_t window::surface_width() const
+{
+    assert(exists());
+
+    Display* d = get_display_handle();
+
+    XWindowAttributes attrs;
+    XGetWindowAttributes(d, pimpl_->window, &attrs);
+
+    return attrs.width;
+}
+
+uint_t window::surface_height() const
+{
+    assert(exists());
+
+    Display* d = get_display_handle();
+
+    XWindowAttributes attrs;
+    XGetWindowAttributes(d, pimpl_->window, &attrs);
+
+    return attrs.height;
+}
+
+bool window::exists() const
+{
+    return pimpl_->window != 0;
+}
+
+bool window::is_fullscreen() const
+{
+    return pimpl_->fullscreen;    
+}
+
+
+window::encoding window::get_encoding() const
+{
+    return pimpl_->enc;
+}
+
+native_window_t window::handle() const
+{
+    return native_window_t {pimpl_->window};
 }
 
 uint_t window::visualid() const
@@ -282,146 +500,56 @@ uint_t window::visualid() const
     return pimpl_->visualid;
 }
 
-uint_t window::surface_width() const
+std::pair<uint_t, uint_t> window::min_size() const
 {
-    Window dummy = 0;
-    int x, y;
-    unsigned int width, height = 0;
-    unsigned int border = 0;
-    unsigned int depth  = 0;
-    XGetGeometry(pimpl_->disp, pimpl_->window, &dummy, &x, &y, &width, &height, &border, &depth);
+    assert(exists());
 
-    return width;
+    Display* d = get_display_handle();
+
+    XSizeHints* hints = XAllocSizeHints();
+
+    long supplied = 0;
+    XGetWMNormalHints(d, pimpl_->window, hints, &supplied);
+
+    // there aren't any hints unless the application(?)
+    // has set them. (xprop, is a good tool to check).
+    // however if we try to XResizeWindow to 0,0 it will generate BadValue
+    // so we clamp to 1 minimum
+
+    if (hints->min_width == 0)
+        hints->min_width = 1;
+    if (hints->min_height  == 0)
+        hints->min_height = 1;
+
+    std::pair<uint_t, uint_t> ret {hints->min_width, hints->min_height};
+
+    XFree(hints);
+
+    return ret;
+
 }
 
-uint_t window::surface_height() const
+std::pair<uint_t, uint_t> window::max_size() const
 {
-    Window dummy = 0;
-    int x, y;
-    unsigned int width, height = 0;
-    unsigned int border = 0;
-    unsigned int depth  = 0;
-    XGetGeometry(pimpl_->disp, pimpl_->window, &dummy, &x, &y, &width, &height, &border, &depth);
+    assert(exists());
 
-    return height;
+    Display* d = get_display_handle();
+
+    XSizeHints* hints = XAllocSizeHints();
+
+    long supplied = 0;
+    XGetWMNormalHints(d, pimpl_->window, hints, &supplied);
+
+    if (hints->max_width == 0)
+        hints->max_width = std::numeric_limits<uint16_t>::max();
+    if (hints->max_height == 0)
+        hints->max_height = std::numeric_limits<uint16_t>::max();
+
+    std::pair<uint_t, uint_t> ret {hints->max_width, hints->max_height};
+
+    XFree(hints);
+
+    return ret;
 }
-
-bool window::exists() const
-{
-    return (pimpl_->window != 0L);
-}
-
-bool window::dispatch(const event& ev) const
-{
-    // if the event is not for this window, return quickly
-    if (ev.window.xid != pimpl_->window)
-        return false;
-
-    const XEvent* event = &ev.ev;
-
-    const native_window_t win   = {pimpl_->window};
-    const native_display_t disp = {pimpl_->disp};
-
-    switch (ev.type)
-    {
-        case event_type::window_gain_focus:
-        {
-            if (event_gain_focus)
-                event_gain_focus(window_event_focus{win, disp});
-        }
-        break;
-            
-        case event_type::window_lost_focus:
-        {
-            if (event_lost_focus)
-                event_lost_focus(window_event_focus{win, disp});
-        }
-        break;
-        
-        case event_type::window_paint:
-        {
-            if (event_paint)
-            {
-                event_paint(window_event_paint{event->xexpose.x, 
-                    event->xexpose.y,
-                    event->xexpose.width,
-                    event->xexpose.height,
-                    win, disp});
-            }
-        }
-        break;
-
-        // resize, move, map/unmap, border size change
-        case event_type::window_configure:
-        {
-            if (event->xconfigure.width != (int)pimpl_->width || 
-                event->xconfigure.height != (int)pimpl_->height)
-            {
-                if (event_resize) {
-                    event_resize(window_event_resize{event->xconfigure.width,
-                        event->xconfigure.height,
-                        win, disp});
-                }
-                // the width and height members are set to the inside size of the 
-                // window not including the border. border_width is the width of the window border (in pixels)
-                pimpl_->width  = event->xconfigure.width;
-                pimpl_->height = event->xconfigure.height;
-            }
-        }
-        break;
-
-        case event_type::window_close:
-        {
-            if ((Atom)event->xclient.data.l[0] == pimpl_->atom_delete_window && event_query_close)
-            {
-                window_event_query_close e = {win, disp};
-                event_query_close(e);
-            }
-        }
-        break;
-    
-        // // the X server can report CreateNotify and DestroyNotify events when client applications
-        // // create and destroy windows. in order to receive these events we need to specificy
-        // // SubstructureNotifyMask in the event mask.
-        // // These events notify us of any child windows being created.
-        case event_type::window_create:
-        {
-            if (event_create)
-            {
-                event_create(window_event_create{event->xcreatewindow.x, 
-                    event->xcreatewindow.y, 
-                    event->xcreatewindow.width,
-                    event->xcreatewindow.height,
-                    pimpl_->is_fullscreen, 
-                    win, disp});
-            }
-        }
-        break;
-
-        case event_type::window_destroy:
-        {
-            if (event_destroy)
-                event_destroy(window_event_destroy{win, disp});
-        }
-        break;
-
-        default:
-           return false;
-    }
-    return true;
-}
-
-native_window_t window::handle() const
-{
-    if (!pimpl_->window)
-        return wdk::NULL_WINDOW;
-
-    return native_window_t {pimpl_->window};
-}
-
-native_display_t window::display() const
-{
-    return pimpl_->disp;
-}
-
 } // wdk
+

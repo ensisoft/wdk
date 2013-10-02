@@ -39,7 +39,7 @@ struct surface::impl {
     uint_t height;
 };
 
-surface::surface(const display& disp, const config& conf, const window& win)
+surface::surface(const config& conf, const window& win)
 {
     pimpl_.reset(new impl);
     pimpl_->hdc    = GetDC(win.handle());
@@ -61,12 +61,12 @@ surface::surface(const display& disp, const config& conf, const window& win)
 
 }
 
-surface::surface(const display& disp, const config& conf, const pixmap& px)
+surface::surface(const config& conf, const pixmap& px)
 {
     assert(!"not supported");
 }
 
-surface::surface(const display& disp, const config& conf, uint_t width, uint_t height)
+surface::surface(const config& conf, uint_t width, uint_t height)
 {
 }
 

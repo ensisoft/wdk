@@ -28,19 +28,15 @@
 
 namespace wdk
 {
-    class display;
-
     // window system provided bitmap
     class pixmap : noncopyable
     {
     public:
-        pixmap(const display& disp, uint_t width, uint_t height, uint_t visualid);
+        pixmap(uint_t width, uint_t height, uint_t visualid);
 
        ~pixmap();
 
         native_pixmap_t handle() const;
-
-        native_display_t display() const;
 
         uint_t width() const;
         uint_t height() const;

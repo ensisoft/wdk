@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <string>
 #include "types.h"
 
 #ifdef _MSC_VER
@@ -78,14 +79,15 @@ namespace wdk
     // layouts have different mappings for different characters. For example with US 
     // layout double quote (") is a single key and to generate the same character with 
     // FI layout user needs to press Shift+2.
-    // therefore this list does not contain any keys that are software layout specific.
-    enum class keysym {
+    // therefore this list does not contain any keys that are layout specific but maps
+    // directly to physical keys on the keyboard
+    enum class keysym 
+    {
         none,                   // no known key
         backspace,
         tab,
         enter,
         space,
-        // alphanumerics
         key_0, 
         key_1, 
         key_2, 
@@ -122,7 +124,6 @@ namespace wdk
         key_X, 
         key_Y,
         key_Z,
-        // function keys
         f1, 
         f2, 
         f3, 
@@ -135,30 +136,27 @@ namespace wdk
         f10, 
         f11, 
         f12,
-        // modifier keys
         control_R,
         control_L,
         shift_R,
         shift_L,
-        alt_R,
         alt_L,
         capslock,
-        // cursor control & motion
         insert,
         del,
         home,
         end,
         pageup,
         pagedown,
-        // arrow keys,
         left,
         up,
         down,
         right,
-        // numpad keys todo
-        // other keys
         escape
     }; 
+
+    std::string mod_name(keymod mod);
+    std::string key_name(keysym sym);
 
 
 } // wdk

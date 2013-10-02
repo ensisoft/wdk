@@ -21,25 +21,23 @@
 //  THE SOFTWARE.
 
 #include <windows.h>
+#include <stdexcept>
 #include <cassert>
-#include <cstring>              // for memset
-#include <functional>
 #include "../window.h"
-#include "../events.h"
-#include "../event.h"
-#include "../display.h"
-#include "../utility.h"
-#include "helpers.h"
+#include "../system.h"
+#include "../utf8.h"
 
 namespace wdk
 {
 
 struct window::impl {
-    HWND hwnd;
-    HDC  display;
+    HWND window;
+    encoding enc;
     bool fullscreen;
     bool resizing;
     int x, y;
+    DWORD style;
+    DWORD exstyle;
 
     static
     LRESULT CALLBACK window_startup_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -138,14 +136,17 @@ struct window::impl {
 
 };
 
-window::window(const wdk::display& disp)
+window::window() : pimpl_(new impl)
 {
-    pimpl_.reset(new impl);
-    pimpl_->hwnd       = NULL;
-    pimpl_->display    = disp.handle();
+    pimpl_->window     = NULL;
+    pimpl_->enc        = encoding::utf8;
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
-    
+    pimpl_->x          = 0;
+    pimpl_->y          = 0;
+    pimpl_->style      = 0;
+    pimpl_->exstyle    = 0;
+
     WNDCLASSEX cls    = {0};
     cls.cbSize        = sizeof(cls);
     cls.hInstance     = GetModuleHandle(NULL);
@@ -156,320 +157,495 @@ window::window(const wdk::display& disp)
     cls.lpszClassName = TEXT("WDK-WINDOW");
     if (!RegisterClassEx(&cls))
         throw std::runtime_error("registerclassex failed");
+
 }
 
 window::~window()
 {
     if (exists())
-        close();
+        destroy();
 }
 
-void window::create(const window_params& how)
+void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+    bool can_resize, bool has_border)
 {
+    assert(width);
+    assert(height);
+    assert(!title.empty());
     assert(!exists());
 
-    DWORD new_style_bits  = WS_EX_APPWINDOW;
-    DWORD old_style_bits  = WS_POPUP;
-    DWORD surface_width   = how.width;
-    DWORD surface_height  = how.height;
+    DWORD new_style  = WS_EX_APPWINDOW;
+    DWORD old_style  = WS_POPUP;
 
-    if (how.fullscreen)
+    if (has_border)
     {
-        DEVMODE mode = {0};
-        mode.dmSize  = sizeof(mode);
-        if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode))
-            throw std::runtime_error("failed to get current display device videomode");
-
-        if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-            throw std::runtime_error("videomode change failed");
-
-        // todo: is this in device units or logical units?
-        surface_width   = mode.dmPelsWidth;
-        surface_height  = mode.dmPelsHeight;
+        old_style = WS_SYSMENU | WS_BORDER;
     }
-    else
+    if (can_resize)
     {
-        if ((how.style & window_style::border) == window_style::border)
-        {
-            old_style_bits = WS_SYSMENU | WS_BORDER;
-        }
-        if ((how.style & window_style::resize) == window_style::resize)
-        {
-            if ((how.style & window_style::border) == window_style::border)
-                old_style_bits |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+        if (has_border)
+            old_style |= WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
 
-            old_style_bits |= WS_SIZEBOX;
-        }
+        old_style |= WS_SIZEBOX;
     }
 
-    auto win = make_unique_ptr(CreateWindowEx(new_style_bits, TEXT("WDK-WINDOW"), how.title.c_str(), old_style_bits, 0, 0, surface_width, surface_height, NULL, NULL, NULL, NULL),DestroyWindow);
+    auto win = make_unique_ptr(CreateWindowEx(
+        new_style, 
+        TEXT("WDK-WINDOW"), 
+        title.c_str(), 
+        old_style, 
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        width,
+        height,
+        NULL, NULL, NULL, NULL), DestroyWindow);
     if (!win.get())
         throw std::runtime_error("create window failed");
 
     HWND hwnd = win.get();
 
-    if (how.visualid)
+    if (visualid)
     {
         auto hdc = make_unique_ptr(GetDC(hwnd), std::bind(ReleaseDC, hwnd, std::placeholders::_1));
 
         PIXELFORMATDESCRIPTOR pxd = {0};
-        if (!DescribePixelFormat(hdc.get(), how.visualid, sizeof(pxd), &pxd))
+        if (!DescribePixelFormat(hdc.get(), visualid, sizeof(pxd), &pxd))
             throw std::runtime_error("incorrect visualid");
 
-        if (!SetPixelFormat(hdc.get(), how.visualid, &pxd))
+        if (!SetPixelFormat(hdc.get(), visualid, &pxd))
             throw std::runtime_error("set pixelformat failed");
+
     }
 
     SetWindowLongPtr(hwnd, GWL_USERDATA, (LONG_PTR)pimpl_.get());
     SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
 
-    if (how.fullscreen)
-    {
-        SetForegroundWindow(hwnd);
-        SetFocus(hwnd);
-        ShowWindow(hwnd, SW_SHOW);
-    }
-    else
-    {
-        // resize window to match the drawable client area with the desired size
-        // based on the difference by client and window size.
-        RECT client, window;
-        GetClientRect(hwnd, &client);
-        GetWindowRect(hwnd, &window);
+    // resize window to match the drawable client area with the desired size
+    // based on the difference by client and window size. note that this might
+    // not always work. for example if window is given width smaller than the 
+    // minimum required width for a window with title bar it won't resize
+    RECT client, window;
+    GetClientRect(hwnd, &client);
+    GetWindowRect(hwnd, &window);
 
-        // resize
-        const int dx = (window.right - window.left) - client.right;
-        const int dy = (window.bottom - window.top) - client.bottom;
-        MoveWindow(hwnd, window.left, window.top, surface_width + dx, surface_height + dy, TRUE);
+    // resize
+    const int dx = (window.right - window.left) - client.right;
+    const int dy = (window.bottom - window.top) - client.bottom;
+    MoveWindow(hwnd, window.left, window.top, width + dx, height + dy, TRUE);
 
-#ifndef _NDEBUG
-        RECT rc;
-        GetClientRect(hwnd, &rc);
-        // assert(rc.bottom == surface_height);
-        // assert(rc.right  == surface_width);
-#endif
+    // finally show window
+    ShowWindow(hwnd, SW_SHOW);    
 
-        // position in the middle of the screen 
-        GetWindowRect(hwnd, &window);
-        const int width  = window.right - window.left;
-        const int height = window.bottom - window.top;
-
-        const int desktop_width  = get_desktop_width();
-        const int desktop_height = get_desktop_height();
-
-        // reposition
-        const int xpos = (desktop_width - width) / 2;
-        const int ypos = (desktop_height - height) / 2;
-        MoveWindow(hwnd, xpos, ypos, width, height, TRUE);
-
-        // finally show window
-        ShowWindow(hwnd, SW_SHOW);    
-    }
-
-    pimpl_->hwnd       = win.release();
-    pimpl_->fullscreen = how.fullscreen;
+    pimpl_->window     = win.release();
+    pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
     pimpl_->x          = 0;
     pimpl_->y          = 0;
 }
 
+void window::destroy()
+{
+    assert(handle());
 
-void window::close()
+    const BOOL ret = DestroyWindow(pimpl_->window);
+
+    assert(ret);
+
+    pimpl_->window = NULL;
+}
+
+void window::move(int x, int y)
+{
+    assert(handle());
+
+    RECT rc;
+    GetWindowRect(pimpl_->window, &rc);
+
+    SetWindowLongPtr(pimpl_->window, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
+
+    MoveWindow(pimpl_->window, x, y, rc.right - rc.left, rc.bottom - rc.top, FALSE);
+
+    SetWindowLongPtr(pimpl_->window, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+}
+
+void window::set_fullscreen(bool fullscreen)
 {
     assert(exists());
 
-    if (pimpl_->fullscreen)
-       ChangeDisplaySettings(NULL, 0);
+    if (fullscreen == pimpl_->fullscreen)
+        return;
 
-    BOOL ret = DestroyWindow(pimpl_->hwnd);
-    assert(ret);
+    HWND hwnd = pimpl_->window;
+
+    if (fullscreen)
+    {
+
+        pimpl_->style = GetWindowLong(hwnd, GWL_STYLE);
+        pimpl_->exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+        // DEVMODE mode = {0};
+        // mode.dmSize  = sizeof(mode);
+        // if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode))
+        //     throw std::runtime_error("failed to get current display device videomode");
+
+        // // get rid of the start bar
+        // if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+        //     throw std::runtime_error("videomode change failed");
+
+        SetWindowLong(hwnd, GWL_STYLE, WS_POPUP);
+        SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
+        //SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, mode.dmPelsWidth, mode.dmPelsHeight, SWP_SHOWWINDOW);
+
+        ShowWindow(hwnd, SW_SHOWMAXIMIZED);
+        //SetForegroundWindow(hwnd);
+    }
+    else
+    {
+        ChangeDisplaySettings(NULL, 0);
+
+        SetWindowLong(hwnd, GWL_STYLE, pimpl_->style);
+        SetWindowLong(hwnd, GWL_EXSTYLE, pimpl_->exstyle);
+
+        ShowWindow(hwnd, SW_RESTORE);
+    }
+    pimpl_->fullscreen = fullscreen;
+}
+
+void window::set_focus()
+{
+    assert(exists());
+
+    SetFocus(pimpl_->window);
+}
+
+void window::set_size(uint_t width, uint_t height)
+{
+    assert(exists());
+
+    HWND hwnd = pimpl_->window;
+
+    RECT wnd, client;
+    GetWindowRect(hwnd, &wnd);
+    GetClientRect(hwnd, &client);
+    // current x,y position remains the same
+    const int x = wnd.left;
+    const int y = wnd.right;
+
+    // make sure our wndproc doesnt mess up with things, set to Default
+    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
+
+    const int dx = (wnd.right - wnd.left) - client.right;
+    const int dy = (wnd.bottom - wnd.top) - client.bottom;
+
+    // MoveWindow seems to have very strange semantics.
+    // If window is shrunk then new width and height will be considered
+    // the new client area size (surface size). Except that if a dimension
+    // is less than the minimum size in that dimension including the border/title bar
+    // then that extra has to included in that dimension.
+    // Otherwise if window is grown the new size will be the *window* size including
+    // borders and title bar. So if we want to grow to a certain *client* size
+    // we must include the borders and title bar in the actual new size. 
     
-    pimpl_->hwnd = NULL;
-    pimpl_->fullscreen = false; 
+    if (width > client.right)
+        width += dx;
+    if (height > client.bottom)
+        height += dy;
+
+    if (width < dx)
+        width += dx;
+    if (height < dy)
+        height += dy;
+
+    MoveWindow(hwnd, x, y, width, height, FALSE);
+
+    // restore our wndproc
+    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
 }
 
-uint_t window::width() const
+void window::set_encoding(encoding enc)
 {
-    RECT rc = {0};
-    GetWindowRect(pimpl_->hwnd, &rc);
-    return rc.right - rc.left;
+    pimpl_->enc = enc;
 }
 
-uint_t window::height() const
+void window::poll_one_event()
 {
-    RECT rc = {0};
-    GetWindowRect(pimpl_->hwnd, &rc);
-    return rc.bottom - rc.top;
+    if (!have_events())
+        return;
+
+    const auto& ev = get_event();
+    if (ev.get_window_handle() != handle())
+        return;
+
+    process_event(ev);
+}
+
+void window::wait_one_event()
+{
+    const auto& ev = get_event();
+    if (ev.get_window_handle() != handle())
+        return;
+
+    process_event(ev);
+}
+
+void window::process_all_events()
+{
+    while (have_events())
+        wait_one_event();
+}
+
+void window::process_event(const native_event_t& ev)
+{
+    assert(ev.get_window_handle());    
+    assert(ev.get_window_handle() == handle());
+
+    const MSG& m = ev;
+
+    // translate virtual key messages into unicode characters 
+    // which are posted in WM_CHAR (UTF-16)
+    // this works fine for BMP in the range 0x0000 - 0xD7FF, 0xE000 - 0xFFFF.
+    // for values above 0xFFFF this is broken, but not an issue thus far.
+    TranslateMessage(&m);
+
+    switch (m.message)
+    {
+        case WM_SETFOCUS:
+            if (on_gain_focus)
+                on_gain_focus(window_event_focus{});
+            break;
+
+        case WM_KILLFOCUS:
+            if (on_lost_focus)
+                on_lost_focus(window_event_focus{});
+            break;
+
+        case WM_PAINT:
+            if (on_paint)
+            {
+                RECT rcPaint;
+                GetUpdateRect(m.hwnd, &rcPaint, FALSE);
+
+                window_event_paint paint = {0};
+                paint.x      = rcPaint.left;
+                paint.y      = rcPaint.top;
+                paint.width  = rcPaint.right - rcPaint.left;
+                paint.height = rcPaint.bottom - rcPaint.top;
+                on_paint(paint);
+
+            }
+            break;
+
+        case WM_SIZE:
+            if (on_resize)
+            {
+                RECT rc;
+                GetClientRect(m.hwnd, &rc);
+
+                window_event_resize resize = {0};
+                resize.width  = rc.right;
+                resize.height = rc.bottom;
+                on_resize(resize);
+            }        
+            break;
+        
+        case WM_CREATE:
+            {
+                const CREATESTRUCT* ptr = reinterpret_cast<const CREATESTRUCT*>(m.lParam);
+                window_event_create create = {0};
+                create.x          = ptr->x;
+                create.y          = ptr->y;
+                create.width      = ptr->cx;
+                create.height     = ptr->cy;
+                delete ptr;
+                if (on_create)
+                    on_create(create);
+            }
+            break;
+
+        case WM_CLOSE:
+            if (on_want_close)
+                on_want_close(window_event_want_close{});
+            break;
+
+
+        case WM_KEYDOWN:
+            if (on_keydown)
+            {
+                const auto& keys = translate_keydown(ev);
+                if (keys.second != keysym::none)
+                    on_keydown(window_event_keydown{keys.second, keys.first});
+            }
+            break;
+
+        case WM_KEYUP:
+            // todo:
+            break;
+
+
+        case WM_CHAR:
+            if (on_char)
+            {
+                const WPARAM utf16 = m.wParam;
+
+                window_event_char c = {0};
+                if (pimpl_->enc == encoding::ascii)
+                    c.ascii = utf16 & 0x7f;
+                else if (pimpl_->enc == encoding::ucs2)
+                    c.ucs2 = utf16;
+                else if (pimpl_->enc == encoding::utf8)
+                    enc::utf8_encode(&utf16, &utf16 + 1, &c.utf8[0]);
+
+                on_char(c);
+
+            }
+            break;
+
+        default:
+            return;
+    }
+
+    ev.done();
+}
+
+void window::sync_all_events()
+{
+
 }
 
 uint_t window::surface_width() const
 {
+    assert(exists());
+
     RECT rc = {0};
-    GetClientRect(pimpl_->hwnd, &rc);
+    GetClientRect(pimpl_->window, &rc);
     return rc.right;
 }
 
 uint_t window::surface_height() const
 {
+    assert(exists());
+
     RECT rc = {0};
-    GetClientRect(pimpl_->hwnd, &rc);
+    GetClientRect(pimpl_->window, &rc);
     return rc.bottom;
-}
-
-uint_t window::visualid() const
-{
-    if (!pimpl_->hwnd)
-        return 0;
-
-    HDC hdc = GetDC(pimpl_->hwnd);
-
-    const int pixelformat = GetPixelFormat(hdc);
-
-    ReleaseDC(pimpl_->hwnd, hdc);
-
-    return pixelformat;
 }
 
 bool window::exists() const
 {
-    return (pimpl_->hwnd != NULL);
+    return pimpl_->window != NULL;
 }
 
-bool window::dispatch(const event& ev) const
+bool window::is_fullscreen() const
 {
-    const MSG& m = ev.ev;
+    return pimpl_->fullscreen;
+}
 
-    assert(m.hwnd == ev.window);
-
-    if (m.hwnd != pimpl_->hwnd)
-        return false;
-
-    switch (ev.type)
-    {
-        case event_type::window_gain_focus:
-        {
-            if (event_gain_focus)
-            {
-                window_event_focus focus = {0};
-                focus.window  = m.hwnd;
-                focus.display = display();
-                event_gain_focus(focus);
-            }
-        }
-        break;
-
-        case event_type::window_lost_focus:
-        {
-            if (event_lost_focus)
-            {
-                window_event_focus focus = {0};
-                focus.window  = m.hwnd;
-                focus.display = display();
-                event_lost_focus(focus);
-            }
-        }
-        break;
-
-        case event_type::window_paint:
-        {
-            PAINTSTRUCT ps = {};
-            HDC hdc = BeginPaint(m.hwnd, &ps);
-            if (event_paint)
-            {
-                window_event_paint paint = {0};
-                paint.x       = ps.rcPaint.left;
-                paint.y       = ps.rcPaint.top;
-                paint.width   = ps.rcPaint.right - ps.rcPaint.left;
-                paint.height  = ps.rcPaint.bottom - ps.rcPaint.top;
-                paint.window  = m.hwnd;
-                paint.display = display();
-
-                event_paint(paint);
-            }
-            EndPaint(m.hwnd, &ps);
-        }
-        break;
-
-        case event_type::window_configure:
-        {
-            if (event_resize)
-            {
-                // get new surface dimensions
-                RECT rc;
-                GetClientRect(m.hwnd, &rc);
-                
-                window_event_resize size = {0};
-                size.width   = rc.right;
-                size.height  = rc.bottom;
-                size.window  = m.hwnd;
-                size.display = display();
-
-                event_resize(size);
-            }
-        }
-        break;
-
-        case event_type::window_create:
-        {
-            if (event_create)
-            {
-                const CREATESTRUCT* ptr = reinterpret_cast<CREATESTRUCT*>(m.lParam);
-                window_event_create create = {0};
-                create.x      = ptr->x;
-                create.y      = ptr->y;
-                create.width  = ptr->cx;
-                create.height = ptr->cy;
-                create.fullscreen = pimpl_->fullscreen;
-                create.window  = m.hwnd;
-                create.display = display();
-
-                event_create(create);
-            }
-        }
-        break;
-
-        case event_type::window_destroy:
-        {
-            if (event_destroy)
-            {
-                window_event_destroy destroy = {0};
-                destroy.window  = m.hwnd;
-                destroy.display = display();
-
-                event_destroy(destroy);
-            }
-        }
-        break;
-
-        case event_type::window_close:
-        {
-            if (event_query_close)
-            {
-                window_event_query_close e = { m.hwnd, display() };
-                event_query_close(e);
-            }
-        }
-        break;
-
-        default:
-            return false;
-    }
-    return true;
+window::encoding window::get_encoding() const
+{
+    return pimpl_->enc;
 }
 
 native_window_t window::handle() const
 {
-    if (!pimpl_->hwnd)
-        return (native_window_t)wdk::NULL_WINDOW;
-    return pimpl_->hwnd;
+    return pimpl_->window;
 }
 
-native_display_t window::display() const
+uint_t window::visualid() const
 {
-    if (!pimpl_->hwnd)
-        return (native_display_t)0;
+    assert(exists());
 
-    return pimpl_->display;
+    HDC hdc = GetDC(pimpl_->window);
+
+    int pixelformat = GetPixelFormat(hdc);
+
+    ReleaseDC(pimpl_->window,hdc);
+
+    return pixelformat;
+}
+
+std::pair<uint_t, uint_t> window::min_size() const
+{
+    assert(exists());
+
+    HWND hwnd = pimpl_->window;
+
+    const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
+    if (!(style_bits & WS_SIZEBOX))
+        return std::make_pair(surface_width(), surface_height());
+
+    // using GetSystemMetrics with SM_CXMINTRACK can't be correct
+    // because that's only a single value. however how small the window
+    // can be certainly depends on it's style. a borderless/captionless 
+    // window can resize smaller than one with a title bar.
+
+    // MINMAXINFO doesn't work either. it only has "ptMinTrackSize"
+    // which equals values in SM_CXMINTRACK
+
+    // this doesn't work doh
+    // RECT min = {0};
+    // min.right = 1;
+    // min.bottom = 1;
+    // AdjustWindowRectEx(&min, style_bits, FALSE, ex_style_bits);
+       
+    const LONG ex_style_bits = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+    // create a window with matching style and see what the actual size will be.
+    auto win = make_unique_ptr(CreateWindowEx(
+        ex_style_bits,
+        TEXT("WDK-WINDOW"),
+        TEXT(""),
+        style_bits,
+        0, 0,
+        1, 1,
+        NULL, NULL, NULL, NULL), DestroyWindow);
+    assert(win.get());
+
+    RECT rc = {0};
+    GetClientRect(win.get(), &rc);
+
+    if (rc.bottom == 0)
+        rc.bottom = 1;
+    if (rc.right == 0)
+        rc.right = 1;
+
+    return std::make_pair((uint_t)rc.right, (uint_t)rc.bottom);
+
+}
+
+std::pair<uint_t, uint_t> window::max_size() const
+{
+    assert(exists());
+
+    HWND hwnd = pimpl_->window;
+
+    const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
+    if (!(style_bits & WS_SIZEBOX))
+        return std::make_pair(surface_width(), surface_height());
+
+    // a window can maximize to the size of the largest monitor
+    // see info about WM_GETMINMAXINFO
+    // http://msdn.microsoft.com/en-us/library/windows/desktop/ms632605%28v=vs.85%29.aspx
+    // but none of that works as expected.
+    //MINMAXINFO minmax = {0};
+    ////SendMessage(hwnd, WM_GETMINMAXINFO, 0, (LPARAM)&minmax);
+    //DefWindowProc(hwnd, WM_GETMINMAXINFO, 0, (LPARAM)&minmax);
+
+    const LONG ex_style_bits = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+    auto win = make_unique_ptr(CreateWindowEx(
+        ex_style_bits,
+        TEXT("WDK-WINDOW"),
+        TEXT(""),
+        style_bits,
+        0, 0,
+        std::numeric_limits<int>::max(),
+        std::numeric_limits<int>::max(),
+        NULL, NULL, NULL, NULL), DestroyWindow);
+    assert(win.get());
+
+    RECT rc = {0};
+    GetClientRect(win.get(), &rc);
+
+    return std::make_pair((uint_t)rc.right, (uint_t)rc.bottom);
 }
 
 } // wdk

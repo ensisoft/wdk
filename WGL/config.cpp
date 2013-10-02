@@ -25,7 +25,6 @@
 #include <vector>
 #include <cassert>
 #include "../config.h"
-#include "../display.h"
 #include "../context.h"
 #include "../utility.h"
 #include "../win32/helpers.h"
@@ -118,7 +117,7 @@ struct config::impl {
     PIXELFORMATDESCRIPTOR desc;
 };
 
-config::config(const wdk::display& disp, const attributes& attrs) : pimpl_(new impl)
+config::config(const attributes& attrs) : pimpl_(new impl)
 {
     auto wglChoosePixelFormat = reinterpret_cast<wglChoosePixelFormatARBProc>(context::resolve("wglChoosePixelFormatARB"));
     if (!wglChoosePixelFormat)
@@ -174,6 +173,12 @@ uint_t config::visualid() const
 {
     return pimpl_->pixelformat;
 }
+
+uint_t config::configid() const
+{
+    return pimpl_->pixelformat;
+}
+
 
 gl_config_t config::handle() const
 {

@@ -22,37 +22,26 @@
 
 #pragma once
 
+#include <X11/Xlib.h>
+
 namespace wdk
 {
-    struct event;
-    struct window_event_create;
-    struct window_event_paint;
-    struct window_event_resize;
-    struct ime_event_char;
 
-#ifndef HAS_EVENT_TYPEDEFEFS
-    struct window_event_generic;
-    struct keyboard_event_keypress;
-    
-    typedef window_event_generic window_event_focus;
-    typedef window_event_generic window_event_query_close;
-    typedef window_event_generic window_event_destroy;
+// see the extended window manager hints here.
+// http://standards.freedesktop.org/wm-spec/wm-spec-latest.html    
 
-    typedef keyboard_event_keypress keyboard_event_keydown;
-    typedef keyboard_event_keypress keyboard_event_keyup;
-    #define HAS_EVENT_TYPEDEFS
-#endif
+extern Atom _NET_WM_STATE;
+extern Atom _NET_WM_STATE_FULLSCREEN;
+extern Atom _MOTIF_WM_HINTS;
 
-    class display;
-    class window;
-    class context;
-    class config;
-    class keyboard;
-    class pixmap;
-    class surface;
+extern Atom WM_SIZE_HINTS;
+extern Atom WM_DELETE_WINDOW;
 
-    class window_listener;
-    class keyboard_listener;
+extern const long _NET_WM_STATE_REMOVE;
+extern const long _NET_WM_STATE_ADD; 
+extern const long _NET_WM_STATE_TOGGLE;
+
+extern int AltMask;
+extern int XRandREventBase;
 
 } // wdk
-

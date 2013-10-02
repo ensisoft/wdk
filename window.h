@@ -20,104 +20,99 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
-
-#include <functional>   // for function, bind
-#include <memory>       // for unique_ptr
-#include <string>       
-#include "types.h"
+#include <functional> // for funtion
+#include <memory>  // for unique_ptr
+#include <utility> // for pair
+#include <string>
 #include "utility.h"
-#include "fwddecl.h"
+#include "events.h"
+#include "types.h"
 
 namespace wdk
 {
-    enum class window_style {
-        none   = 0,
-        border = 0x1,
-        resize = 0x2, 
-        defaults = border | resize
-    };
-
-    inline window_style operator | (window_style x, window_style y)
-    {
-        return static_cast<window_style>(bitflag_t(x) | bitflag_t(y));
-    }
-    inline window_style operator & (window_style x, window_style y)
-    {
-        return static_cast<window_style>(bitflag_t(x) & bitflag_t(y));
-    }
-    inline void operator |= (window_style& x, window_style y)
-    {
-        x = x | y;
-    }
-
-
-    // window parameters defines how the window is to be created.
-    // if fullscreen is true then window properties are ignored
-    // and window will be created without border, unresizeable and 
-    // dimensions will be same as current display video mode resolution.
-    struct window_params {
-        uint_t       width;
-        uint_t       height;
-        uint_t       visualid;
-        window_style style;
-        std::string  title;        
-        bool         fullscreen;
-
-        window_params(uint_t w, uint_t h, const std::string& str = std::string(), uint_t visual = 0, bool fs = false, window_style style_bits = window_style::defaults) : 
-           width(w), height(h), visualid(visual), style(style_bits), title(str), fullscreen(fs)
-        {
-        }
-    };
-
-    // create a window for showing/rendering content 
     class window : noncopyable
     {
     public:
-        std::function<void (const window_event_create&)>   event_create;
-        std::function<void (const window_event_paint&)>    event_paint;
-        std::function<void (const window_event_resize&)>   event_resize;
-        std::function<void (const window_event_focus&)>    event_lost_focus;
-        std::function<void (const window_event_focus&)>    event_gain_focus;
-        std::function<void (window_event_query_close&)>    event_query_close;
-        std::function<void (const window_event_destroy&)>  event_destroy;
+        // character encoding for char events. defaults to utf8
+        enum class encoding {
+            ascii, ucs2, utf8
+        };
+        
+        // event callbacks
+        std::function<void (const window_event_create&)>     on_create;
+        std::function<void (const window_event_paint&)>      on_paint;
+        std::function<void (const window_event_resize&)>     on_resize;
+        std::function<void (const window_event_focus&)>      on_lost_focus;
+        std::function<void (const window_event_focus&)>      on_gain_focus;
+        std::function<void (const window_event_want_close&)> on_want_close;
+        std::function<void (const window_event_keydown&)>    on_keydown;
+        std::function<void (const window_event_keyup&)>      on_keyup;
+        std::function<void (const window_event_char&)>       on_char;
 
-        window(const display& disp);
+        window();
+
        ~window();
 
-        // create the window.
-        void create(const window_params& how);
+        // create the window with the given dimension and flags.
+        // window must not exist before.
+        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid = 0,
+            bool can_resize = true, bool has_border = true);
 
-        // close the window. 
-        void close();
-        
-        // get current window width in screen units. 
-        uint_t width() const;
+        // destroy the window. window must have been created before.
+        void destroy();
 
-        // get current window height in screen  units
-        uint_t height() const;
-        
-        // get the current window visual id. 
-        uint_t visualid() const;
+        // move window to x,y position with respect to it's parent. (desktop)
+        void move(int x, int y);
 
-        // get drawable surface width in px
-        uint_t surface_width() const;
-        
-        // get drawable surface height in px
+        // toggle between fullscreen/windowed mode.
+        void set_fullscreen(bool fullscreen);
+
+        // set input focus to this window
+        void set_focus();
+
+        // set new drawable surface size
+        void set_size(uint_t width, uint_t height);
+
+        // set new character encoding for character events
+        void set_encoding(encoding e);
+
+        // check and process one event if available. if event is not for this window it's discarded.
+        void poll_one_event();
+
+        // wait and process one event. if event is not for this window it's discarded
+        void wait_one_event();
+
+        // get and process. events that are not for this window are simply discarded.
+        void process_all_events();
+
+        // process the given event. the event should be for this window.
+        void process_event(const native_event_t& ev);
+
+        // you don't really want to use this under normal operations. only when you must
+        // make sure that the cached state in Xlib reflects the state we're trying set.
+        void sync_all_events();
+
+        // get the current drawable window surface height
         uint_t surface_height() const;
 
-        // returns true if window exists otherwise false
+        // get the current drawable window surface width
+        uint_t surface_width() const;
+
+        // returns true if window currently exists. otherwise false.
         bool exists() const;
 
-        // dispatch the given event. returns true
-        // if message was dispatched, otherwise false
-        bool dispatch(const event& ev) const;
+        bool is_fullscreen() const;
+
+        // get the current character encoding. the default is utf8
+        encoding get_encoding() const;
 
         // get native window handle
         native_window_t handle() const;
 
-        // get the display handle where the window is created
-        native_display_t display() const;
+        uint_t visualid() const;
+
+        std::pair<uint_t, uint_t> min_size() const;
+        std::pair<uint_t, uint_t> max_size() const;
     private:
         struct impl;
 

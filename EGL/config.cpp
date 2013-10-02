@@ -24,8 +24,8 @@
 #include <stdexcept>
 #include <vector>
 #include <cassert>
+#include "../system.h"
 #include "../config.h"
-#include "../display.h"
 #include "egldisplay.h"
 
 namespace {
@@ -53,9 +53,9 @@ struct config::impl {
     uint_t       configid;
 };
 
-config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
+config::config(const attributes& attrs) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(disp.handle());
+    pimpl_->display = egl_init(get_display_handle());
 
     std::vector<uint_t> criteria;
 
@@ -65,7 +65,7 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, EGL_ALPHA_SIZE, attrs.alpha_size);
     set_if(criteria, EGL_DEPTH_SIZE, attrs.depth_size);
     set_if(criteria, EGL_CONFIG_ID, attrs.configid);
-	set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
+    set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
 
     int drawable_bits = 0;
     if (attrs.surfaces.window)
@@ -85,16 +85,16 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
         throw std::runtime_error("no matching framebuffer configuration available");
 
     pimpl_->config   = config;
-	pimpl_->visualid = 0;
-	pimpl_->configid = 0;
+    pimpl_->visualid = 0;
+    pimpl_->configid = 0;
 
     eglGetConfigAttrib(pimpl_->display, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
     eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
 
-	// should there always be visualid? one would think that this is the case even on windows 
-	// (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid!
-	//assert(pimpl_->visualid);
-	assert(pimpl_->configid);
+    // should there always be visualid? one would think that this is the case even on windows 
+    // (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid! 
+    // assert(pimpl_->visualid);
+    assert(pimpl_->configid);
 }
 
 config::~config()
@@ -113,7 +113,7 @@ uint_t config::configid() const
 
 gl_config_t config::handle() const
 {
-	return gl_config_t { pimpl_->config };
+    return gl_config_t { pimpl_->config };
 }
 
 

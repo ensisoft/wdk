@@ -31,8 +31,6 @@ BOOST_TRIBOOL_THIRD_STATE(dont_care)
 
 namespace wdk
 {
-    class display;
-
     // OpenGL framebuffer configuration
     class config : noncopyable
     {
@@ -63,7 +61,7 @@ namespace wdk
 
         // create new config with the given attributes.
         // throws an exception if now such configuration is available.
-        config(const display& disp, const attributes& attrs = config::DEFAULT);
+        config(const attributes& attrs = config::DEFAULT);
 
        ~config();
 

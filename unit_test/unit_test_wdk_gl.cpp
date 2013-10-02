@@ -1,4 +1,4 @@
-    // Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft 
 //
 // http://www.ensisoft.com
 //
@@ -20,84 +20,99 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifdef SAMPLE_GLES
-#  include <GLES2/gl2.h>
-#else
-#  include "glcorearb.h"
-#endif
-#include <wdk/window.h>
-#include <wdk/events.h>
-#include <wdk/context.h>
-#include <wdk/surface.h>
+#include <boost/test/minimal.hpp>
+#include <wdk/system.h>
 #include <wdk/config.h>
-#include <wdk/event_listener.h>
-#include <wdk/opengl.h>
-#include <vector>
-#include <algorithm>
-#include <iostream>
-#include <iterator>
-#include <chrono>
-#include <cassert>
-#include <cstring>
+#include <wdk/context.h>
+#include <wdk/window.h>
+#include <wdk/surface.h>
+#include <wdk/pixmap.h>
 
-#define GL_ERR_CLEAR \
-    while (glGetError()) \
+using namespace wdk;
+
+void unit_test_config()
+{
+    {
+        config c(config::DONT_CARE);
+
+        BOOST_REQUIRE(c.configid());
+        BOOST_REQUIRE(c.handle());
+
+        context ctx(c);
+
+    }
+
+    {
+        config c(config::DEFAULT);
+        BOOST_REQUIRE(c.configid());
+        BOOST_REQUIRE(c.handle());
+
+        context ctx(c);
+    }
+
+    try
+    {
+        config::attributes attrs = {0};
+        attrs.red_size = 9;
+        attrs.green_size = 7;
+        attrs.blue_size = 3;
+
+        config c(attrs);
+        BOOST_REQUIRE(!"incorrect configuration didn't fail as expected");
+    }
+    catch ( const std::exception& e)
+    { }
+
+    {
+        config::attributes attrs = {0};
+        attrs.red_size = 8;
+        attrs.green_size = 8;
+        attrs.blue_size = 8;
+        attrs.doublebuffer = true;
+
+        config c(attrs);
+
+        context ctx(c);
+    }
+
+}
+
+void unit_test_context()
+{
+
+    config conf(config::DONT_CARE);
+
+    {
+
+#ifdef TEST_GLES
+        context ctx_1(conf, 1, 0);
+        context ctx_2(conf, 2, 0);
+#else
+        context ctx_1_1(conf, 1, 1);
+        context ctx_2_0(conf, 2, 0);
+        context ctx_2_1(conf, 2, 1);
+        context ctx_3_0(conf, 3, 0);
+
+        BOOST_REQUIRE(context::resolve("glBegin"));
+        BOOST_REQUIRE(context::resolve("glCreateProgram"));
+        BOOST_REQUIRE(!context::resolve("ssofuaf"));
+#endif
+ 
+    }
+}
 
 #define GL_CHECK(statement) \
     statement; \
     do { \
-        const int err = glGetError(); \
-        if (err != GL_NO_ERROR) { \
-            printf("GL error 0x%04x @ %s,%d\n", err, __FILE__, __LINE__); \
-            abort(); \
-        }\
-    } while(0)    
+        const int err = glGetError();\
+        BOOST_REQUIRE(err == GL_NO_ERROR && #statement);\
+    } while (0)
 
-#if !defined(SAMPLE_GLES) && !defined(GL_GLEXT_PROTOTYPES)
-PFNGLCREATEPROGRAMPROC glCreateProgram;
-PFNGLCREATESHADERPROC  glCreateShader;
-PFNGLSHADERSOURCEPROC  glShaderSource;
-PFNGLGETERRORPROC      glGetError;
-PFNGLCOMPILESHADERPROC glCompileShader;
-PFNGLDETACHSHADERPROC  glAttachShader;
-PFNGLDELETESHADERPROC  glDeleteShader;
-PFNGLLINKPROGRAMPROC   glLinkProgram;
-PFNGLUSEPROGRAMPROC    glUseProgram;
-PFNGLVALIDATEPROGRAMPROC glValidateProgram;
-PFNGLCLEARCOLORPROC glClearColor;
-PFNGLCLEARPROC glClear;
-PFNGLVIEWPORTPROC glViewport;
-PFNGLDRAWARRAYSPROC glDrawArrays;
-PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
-PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
-PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
-PFNGLGETSTRINGPROC glGetString;
 
-template<typename T>
-T resolve(const char* name)
-{
-	return (T)wdk::context::resolve(name);
-}
-
-#define RESOLVE(x) x = resolve<decltype(x)>(#x)
-
-void resolve()
-{
-	// RESOLVE(glCreateProgram);
-	// RESOLVE(glCreateShader);
-	// RESOLVE(glShaderSource);
-	// RESOLVE(glGetError);
-	// RESOLVE(glCompileShader);
-	// RESOLVE(glAttachShader);
-}
-#else
-void resolve() {}
-#endif
-
-class triangle : public wdk::event_listener
+class triangle
 {
 public:
-    triangle(wdk::window& win) : program_(0), run_(true), win_(win)
+    triangle()
     {
         program_ = glCreateProgram();
 
@@ -165,25 +180,16 @@ public:
 
         GL_CHECK(glDeleteShader(vert));
         GL_CHECK(glDeleteShader(frag));
+
+        a_position = glGetAttribLocation(program_, "a_position");
+        u_rotation = glGetUniformLocation(program_, "u_rot"); 
     }
 
     void render()
     {
-        typedef std::chrono::steady_clock clock;
-        typedef std::chrono::time_point<clock> time;
-        typedef std::chrono::duration<float> duration;
-
-        static time stamp = clock::now();
-        time now = clock::now();
-
-        duration seconds = now - stamp;
-
         static float rotation;
-        const float velocity = 1; // 1radian/s
 
-        rotation += seconds.count() * velocity;
-
-        GL_ERR_CLEAR;
+        rotation += 0.001;
 
         GL_CHECK(glClearColor(0, 0, 0, 0));
         GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
@@ -192,86 +198,98 @@ public:
             float x, y;
         };        
         const vertex triangle[3] = {{0, 1}, {-1, -1}, {1, -1}};
-        
-        GLint pos = glGetAttribLocation(program_, "a_position");
-        GLint rot = glGetUniformLocation(program_, "u_rot"); 
 
-        GL_CHECK(glVertexAttribPointer(pos, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
-        GL_CHECK(glEnableVertexAttribArray(pos));
-        GL_CHECK(glUniform1f(rot, rotation));
-
+        GL_CHECK(glUseProgram(program_));        
+        GL_CHECK(glVertexAttribPointer(a_position, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
+        GL_CHECK(glEnableVertexAttribArray(a_position));
+        GL_CHECK(glUniform1f(u_rotation, rotation));
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
-
-        stamp = now;
-
     }
 
-    void on_create(const wdk::window_event_create& create)
-    {
-        GL_CHECK(glViewport(0, 0, create.width, create.height));
-    }
-    void on_resize(const wdk::window_event_resize& resize)
-    {
-        GL_CHECK(glViewport(0, 0, resize.width, resize.height));
-    }
-    void on_keydown(const wdk::window_event_keydown& key)
-    {
-        if (key.symbol == wdk::keysym::escape)
-            run_ = false;
-        else if (key.symbol == wdk::keysym::space)
-            win_.set_fullscreen(!win_.is_fullscreen());
-    }
-
-    bool running() const
-    {
-        return run_;
-    }
 private:
     GLint program_;
-    bool run_;
-    wdk::window& win_;
-
+    GLint a_position;
+    GLint u_rotation;
 };
 
 
-int main(int argc, char* argv[])
+
+void unit_test_surfaces()
 {
+    config::attributes attrs = {0};
+    attrs.red_size = 8;
+    attrs.green_size = 8;
+    attrs.blue_size = 8;
+    attrs.doublebuffer = true;
 
-    // start with opengl with default config
-    wdk::opengl gl;
+    config conf_window(attrs);
 
-    printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
+    attrs.doublebuffer = false;
 
-    // resolve function pointers if needed
-    resolve();
+    config conf_buffer(attrs);
 
-    // rendering window
-    wdk::window win;
+    context ctx_window(conf_window);
+    context ctx_buffer(conf_buffer);
 
-    // model and event listener
-    triangle model(win);
+    window win;
+    win.create("test", 400, 500, conf_window.visualid());
 
-    // listen to the events
-    connect(win, model);
+    pixmap pix(400, 500, conf_buffer.visualid());
 
-    win.create("Triangle", 600, 600, gl.visualid());
+    surface win_surface(conf_window, win);
+    surface pix_surface(conf_buffer, pix);
+    surface pbuf_surface(conf_buffer, 400, 50);
 
-    gl.attach(win);
+    BOOST_REQUIRE(win_surface.width() == win.surface_width());
+    BOOST_REQUIRE(win_surface.height() == win.surface_height());
 
-    while (model.running())
+    BOOST_REQUIRE(pix_surface.width() == 400);
+    BOOST_REQUIRE(pix_surface.height() == 500);
+    BOOST_REQUIRE(pbuf_surface.width() == 400);
+    BOOST_REQUIRE(pbuf_surface.height() == 50);
+
+    win.set_size(200, 200);
+    win.sync_all_events();
+
+    BOOST_REQUIRE(win.surface_width() == 200);
+    BOOST_REQUIRE(win.surface_height() == 200);
+    BOOST_REQUIRE(win_surface.width() == 200);
+    BOOST_REQUIRE(win_surface.height() ==200);
+
+    ctx_window.make_current(&win_surface);
+    triangle win_model;
+
+    ctx_buffer.make_current(&pix_surface);
+    triangle buf_model;
+
+    for (int i=0; i<1000; ++i)
     {
-        model.render();
+        ctx_buffer.make_current(&pix_surface);
+        GL_CHECK(glClearColor(1, 0, 0, 0));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+        buf_model.render();
 
-        gl.swap();
+        ctx_buffer.make_current(&pbuf_surface);
+        GL_CHECK(glClearColor(0, 1, 0, 0));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+        buf_model.render();
 
-        win.poll_one_event();
+        ctx_window.make_current(&win_surface);
+        GL_CHECK(glClearColor(0.0001 * i, 0.0001 * i, 0.0001 * i, 0));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+        GL_CHECK(glViewport(0, 0, 200, 200));
+        win_model.render();
+        ctx_window.swap_buffers();
     }
 
-    gl.detach();
-
-    return 0;
 }
 
 
+int test_main(int, char*[])
+{
+    unit_test_config();
+    unit_test_context();
+    unit_test_surfaces();
 
-
+    return 0;
+}

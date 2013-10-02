@@ -22,22 +22,22 @@
 
 #include <windows.h>
 #include <algorithm>
-#include <iterator>
 #include <cassert>
-#include "../keyboard.h"
-#include "../events.h"
-#include "../event.h"
+#include "../system.h"
+#include "../videomode.h"
+#include "../keys.h"
+#include "helpers.h"
 
 namespace {
     using namespace wdk;
 
     struct key_mapping {
-        keysym sym;
-        UINT native;
+        keysym wdk;
+        UINT   win;
     };
     bool operator<(const key_mapping& i, const key_mapping& j)
     {
-        return i.native < j.native;
+        return i.wdk < j.wdk;
     }
 
     static key_mapping keymap[] = {
@@ -97,7 +97,7 @@ namespace {
         {keysym::control_R,     VK_RCONTROL},
         {keysym::control_L,     VK_LCONTROL},
         {keysym::alt_L,         VK_LMENU},
-        {keysym::alt_R,         VK_RMENU},
+        //{keysym::alt_R,         VK_RMENU},
         {keysym::shift_L,       VK_LSHIFT},
         {keysym::shift_R,       VK_RSHIFT},
         {keysym::capslock,      VK_CAPITAL},
@@ -113,93 +113,153 @@ namespace {
         {keysym::right,         VK_RIGHT},
         {keysym::escape,        VK_ESCAPE}
     };
+    struct table_sorter {
+        table_sorter() 
+        {
+            std::sort(std::begin(keymap), std::end(keymap));
+        }
+    } sort_my_data_bitch;
 
-    std::string get_vk_name(UINT vk)
+    UINT find_keysym(keysym sym)
     {
-        const UINT scancode = MapVirtualKey(vk, MAPVK_VK_TO_VSC);
-        std::string str;
-        str.resize(50);
-        const int ret = GetKeyNameText(scancode << 16, &str[0], str.size());
-        str.resize(ret);
-        return str;
+        assert(sym != keysym::none);
+
+        const auto it = std::lower_bound(std::begin(keymap), std::end(keymap), key_mapping{sym, 0});
+
+        // should be there
+        assert(it != std::end(keymap));
+
+        return (*it).win;
     }
+
+    enum { KEY_DOWN = 0x8000 };
+
 } // namespace
 
 namespace wdk
 {
-
-struct keyboard::impl {};
-
-keyboard::keyboard(const display&)
+native_display_t get_display_handle()
 {
-    // sort the table by VK values for quicker lookup win32->wdk
-    std::sort(std::begin(keymap), std::end(keymap));
-}
+    struct desktop {
+        HDC hdc;
+        dummywin win;
 
-keyboard::~keyboard()
-{
-}
-
-std::string keyboard::name(wdk::keymod modifier) const
-{
-    switch (modifier)
-    {
-        case keymod::none:    return "None";
-        case keymod::shift:   return "Shift";
-        case keymod::control: return "Ctrl";
-        case keymod::alt:     return "Alt";
-        case keymod::super:   return "Super";
-        case keymod::hyper:   return "Hyper";
-        default:
-        assert(0);
-        break;
-    }
-    return "";
-}
-
-std::string keyboard::name(wdk::keysym symbol) const
-{
-    auto it = std::find_if(std::begin(keymap), std::end(keymap), 
-        [=] (const key_mapping& map)
+        desktop() 
         {
-            return map.sym == symbol;
+            hdc = GetDC(NULL);
+            win.bounce_display_change();
+        }
+        ~desktop() 
+        {
+            ReleaseDC(GetDesktopWindow(), hdc);
+        }
+    };
+
+    static desktop d;
+
+    return d.hdc;
+}
+
+videomode get_current_video_mode()
+{
+    DEVMODE cur_mode = {0};
+
+    if (!EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &cur_mode))
+        throw std::runtime_error("failed to current display settings");
+
+    videomode mode;
+    mode.xres = cur_mode.dmPelsWidth;
+    mode.yres = cur_mode.dmPelsHeight;
+    return mode;
+
+}
+
+void set_video_mode(const videomode& m)
+{
+    DEVMODE mode = {0};
+    mode.dmSize       = sizeof(mode);
+    mode.dmPelsWidth  = m.xres;
+    mode.dmPelsHeight = m.yres;
+    mode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
+
+    get_display_handle();
+
+    if (ChangeDisplaySettings(&mode, 0) != DISP_CHANGE_SUCCESSFUL)
+       throw std::runtime_error("display mode change failed");
+
+}
+
+std::vector<videomode> list_video_modes()
+{
+    std::vector<videomode> modes;
+
+    DEVMODE dev;
+    DWORD modeid = 0;
+
+    while (EnumDisplaySettings(NULL, modeid++, &dev))
+    {
+        videomode mode(dev.dmPelsWidth, dev.dmPelsHeight);
+
+        if (std::find(modes.begin(), modes.end(), mode) == modes.end())
+            modes.push_back(mode);
+    }
+
+    return modes;
+}
+
+bool have_events()
+{
+    MSG m;
+
+    return (PeekMessage(&m, NULL, 0, 0, PM_NOREMOVE) == TRUE);
+}
+
+bool sync_events()
+{
+    return false;
+}
+
+bool peek_event(native_event_t& ev)
+{
+    MSG m;
+
+    if (!PeekMessage(&m, NULL, 0, 0, PM_NOREMOVE))
+        return false;
+
+    ev = native_event_t(m);
+
+    return true;
+}
+
+native_event_t get_event()
+{
+    MSG m;
+
+    GetMessage(&m, NULL, 0, 0);
+
+    return native_event_t(m);
+
+}
+
+std::pair<keymod, keysym> translate_keydown(const native_event_t& key)
+{
+    std::pair<keymod, keysym> ret = {keymod::none, keysym::none};
+
+    const MSG& m = key;
+
+    const uint_t native_keycode = m.wParam;
+
+    keymod mods = keymod::none;
+    keysym sym  = keysym::none;
+
+    const auto it = std::find_if(std::begin(keymap), std::end(keymap), 
+        [=](const key_mapping& map)
+        {
+            return map.win == native_keycode;
         });
 
-    if (it == std::end(keymap))
-        return "";
-
-    return get_vk_name((*it).native);
-}
-
-std::string keyboard::name(uint_t native_keycode) const
-{
-    return get_vk_name(native_keycode);
-}
-
-std::pair<keymod, keysym> keyboard::translate(const event& ev) const
-{
-    const MSG& msg = ev.ev;
-    if (msg.message != WM_KEYUP && msg.message != WM_KEYDOWN)
-        return std::make_pair(keymod::none, keysym::none);
-
-    const UINT vk  = ev.ev.wParam;
-    const UINT mod = 0; 
-
-    return translate(mod, vk);
-}
-
-std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t native_keycode) const
-{
-    std::pair<keymod, keysym> ret(keymod::none, keysym::none);
-
-    const key_mapping needle = {keysym::none, native_keycode};
-
-    enum { KEY_DOWN = 0x8000 };
-
-    const auto it = std::lower_bound(std::begin(keymap), std::end(keymap), needle);
-    if (it != std::end(keymap) && (*it).native == native_keycode)
+    if (it != std::end(keymap))
     {
-        keymod mods = keymod::none;
         const short alt_key   = GetKeyState(VK_MENU);
         const short shift_key = GetKeyState(VK_SHIFT);
         const short ctrl_key  = GetKeyState(VK_CONTROL);
@@ -210,58 +270,56 @@ std::pair<keymod, keysym> keyboard::translate(uint_t native_modifier, uint_t nat
             mods |= keymod::shift;
         if (native_keycode != VK_CONTROL && (ctrl_key & KEY_DOWN))
             mods |= keymod::control;
-
-        ret.first = mods;
-        ret.second = (*it).sym;
+        sym = (*it).wdk;
     }
     else if (native_keycode == VK_CONTROL)
     {
-        if (GetAsyncKeyState(VK_LCONTROL) & KEY_DOWN)
-            ret.second = keysym::control_L;
-        else if (GetAsyncKeyState(VK_RCONTROL) & KEY_DOWN)
-            ret.second = keysym::control_R;
+        if (GetKeyState(VK_LCONTROL) & KEY_DOWN)
+            sym = keysym::control_L;
+        else if (GetKeyState(VK_RCONTROL) & KEY_DOWN)
+            sym = keysym::control_R;
     }
     else if (native_keycode == VK_MENU)
     {
-        if (GetAsyncKeyState(VK_LMENU) & KEY_DOWN)
-            ret.second = keysym::alt_L;
-        else if (GetAsyncKeyState(VK_RMENU) & KEY_DOWN)
-            ret.second = keysym::alt_R;
+        if (GetKeyState(VK_LMENU) & KEY_DOWN)
+            sym = keysym::alt_L;
+      /*  else if (GetAsyncKeyState(VK_RMENU) & KEY_DOWN)
+            sym = keysym::alt_R;*/
     }
     else if (native_keycode == VK_SHIFT)
     {
-        if (GetAsyncKeyState(VK_LSHIFT) & KEY_DOWN)
-            ret.second = keysym::shift_L;
-        else if (GetAsyncKeyState(VK_RSHIFT) & KEY_DOWN)
-            ret.second = keysym::shift_R;
+       if (GetKeyState(VK_LSHIFT) & KEY_DOWN)
+            sym = keysym::shift_L;
+       else if (GetKeyState(VK_RSHIFT) & KEY_DOWN)
+            sym = keysym::shift_R;
     }
-    return ret;
+
+    return std::pair<keymod, keysym> {mods, sym};
 }
 
-bool keyboard::dispatch(const event& ev) const
+bool test_key_down(keysym symbol)
 {
-    if (ev.type == event_type::keyboard_keyup && event_keyup)
-    {
-        const auto key = translate(ev);
-        if (key.second != keysym::none)
-        {
-            keyboard_event_keyup up = {key.second, key.first};
-            event_keyup(up);
-        }
-        return true;
-    }
-    else if (ev.type == event_type::keyboard_keydown && event_keydown)
-    {
-        const auto key = translate(ev);
-        if (key.second != keysym::none)
-        {
-            keyboard_event_keydown down = {key.second, key.first};
-            event_keydown(down);
-        }
-        return true;
-    } 
+    const UINT win    = find_keysym(symbol);
+    const SHORT state = GetAsyncKeyState(win);
 
-    return false;
+    return bool(state & KEY_DOWN);
+
+}
+
+bool test_key_down(uint_t keycode)
+{
+    assert(keycode);
+
+    const SHORT state = GetAsyncKeyState(keycode);
+
+    return bool(state & KEY_DOWN);
+}
+
+uint_t keysym_to_keycode(keysym symbol)
+{
+    const UINT win = find_keysym(symbol);
+
+    return win;
 }
 
 } // wdk

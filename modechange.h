@@ -20,44 +20,43 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
-
-#include <functional>
-#include <memory>
+#include <cassert>
+#include "videomode.h"
 #include "utility.h"
-#include "fwddecl.h"
 
 namespace wdk
 {
-    // simplistic input method wrapper for 
-    // handling translated (aka cooked) character input
-    class ime : noncopyable
+    class modechange : noncopyable
     {
     public:
-        std::function<void (const ime_event_char&)> event_char;
+        modechange(const videomode& mode = videomode())
+        {
+            original_mode_ = get_current_video_mode();
+            if (!mode.is_empty())
+                set(mode);
+        }
+       ~modechange()
+        {
+            restore();
+        }
+        void set(const videomode& mode)
+        {
+            assert(!mode.is_empty());
 
-        // possible translated output format
-        enum class output { ascii, ucs2, utf8 };
+            const videomode& cur_mode = get_current_video_mode();
+            if (cur_mode != mode)
+                set_video_mode(mode);
+        }
+        void restore()
+        {
+            assert(!original_mode_.is_empty());
 
-        ime(const display& disp, output out = output::ucs2);
+            const videomode& cur_mode = get_current_video_mode();
+            if (cur_mode != original_mode_)
+                set_video_mode(original_mode_);
+        }
+    private:
+        videomode original_mode_;
+    };
 
-       ~ime();
-
-        output get_output() const;
-
-        void set_output(output out);
-
-        // add new keyboard event into the current input state.
-        // once input characters are ready they are posted 
-        // in the display's event queue for the window in question.
-        bool add_input(const event& ev);
-
-        // dispatch character event
-        bool dispatch(const event& ev) const;
-   private:
-       struct impl;
-
-       std::unique_ptr<impl> pimpl_;
-    }; 
 } // wdk
-

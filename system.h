@@ -23,11 +23,15 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include "types.h"
 
 namespace wdk
 {
     struct videomode;
+
+    enum class keymod;
+    enum class keysym;
 
     // get native display handle
     native_display_t get_display_handle();
@@ -46,6 +50,8 @@ namespace wdk
     // check if there are any pending events
     bool have_events();
 
+    bool sync_events();
+
     // get the next event from the queue if any. this call will
     // return immediately and returns true if event was retrieved
     // otherwise it returns false.
@@ -55,20 +61,14 @@ namespace wdk
     // the caller untill there's an event to retrieve from the queue.
     native_event_t get_event();
 
-    // block the caller untill an event is available.
-    // returns true if new event arrived, otherwise false on timeout
-    bool wait_for_events(ms_t timeout = wdk::NO_TIMEOUT);
+    // translate keydown event
+    std::pair<keymod, keysym> translate_keydown(const native_event_t& key);
+    
+    bool test_key_down(keysym symbol);
 
-    // block the caller untill a window event is available
-    // or any of the specified handles is signaled.
-    // returns -1 on timeout, 0 if there is a window message and 
-    // an 1 based index for the handle that was signaled
-    int wait_for_events(const native_handle_t* handles, uint_t num_handles, ms_t timeout = wdk::NO_TIMEOUT);
+    bool test_key_down(uint_t keycode);
 
-    // get current desktop width
-    uint_t get_desktop_width();
-
-    // get current desktop height
-    uint_t get_desktop_height();
+    // get native platform depedant keycode for a key
+    uint_t keysym_to_keycode(keysym symbol);
 
 } // wdk

@@ -24,25 +24,26 @@
 #include <stdexcept>
 #include <cassert>
 #include "../pixmap.h"
-#include "../display.h"
+#include "../system.h"
 #include "../utility.h"
 
 namespace wdk
 {
 struct pixmap::impl {
-    native_display_t dpy;
     HBITMAP bmp;
     uint_t  width;
     uint_t  height;
     uint_t  depth;
 };
 
-pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t visualid)
+pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
 {
     assert(width && height);
     assert(visualid);
 
-    auto hdc = make_unique_ptr(CreateCompatibleDC(NULL), DeleteDC);
+    HDC dpy = get_display_handle();
+
+    auto hdc = make_unique_ptr(CreateCompatibleDC(dpy), DeleteDC);
     if (!hdc.get())
         throw std::runtime_error("create compatible dc failed");
 
@@ -57,7 +58,6 @@ pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t vis
 
     pimpl_.reset(new impl);
     pimpl_->bmp    = bmp.release();
-    pimpl_->dpy    = disp.handle();
     pimpl_->width  = width;
     pimpl_->height = height;
     pimpl_->depth  = desc.cColorBits;
@@ -71,11 +71,6 @@ pixmap::~pixmap()
 native_pixmap_t pixmap::handle() const
 {
     return pimpl_->bmp;
-}
-
-native_display_t pixmap::display() const
-{
-    return pimpl_->dpy;
 }
 
 uint_t pixmap::width() const

@@ -26,7 +26,7 @@
 #include <vector>
 #include "../context.h"
 #include "../types.h"
-#include "../display.h"
+#include "../system.h"
 #include "../config.h"
 #include "../surface.h"
 #include "egldisplay.h"
@@ -39,12 +39,10 @@ struct context::impl {
     EGLSurface surface;
     EGLContext context;
 
-    impl(const wdk::display& disp, const wdk::config& conf, int major_version, int minor_version) :
-    display(nullptr),
-    surface(nullptr),
-    context(nullptr)
+    impl(const wdk::config& conf, int major_version, int minor_version) :
+        display(nullptr), surface(nullptr), context(nullptr)
     {
-        display = egl_init(disp.handle());
+        display = egl_init(get_display_handle());
 
         const EGLint attrs[] = 
         {
@@ -54,17 +52,19 @@ struct context::impl {
         context = eglCreateContext(display, conf.handle(), EGL_NO_CONTEXT, attrs);
         if (!context)
             throw std::runtime_error("create context failed");
+            
+        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);        
     }
 };
 
-context::context(const display& disp, const config& conf)
+context::context(const config& conf)
 {
-    pimpl_.reset(new impl(disp, conf, 2, 0));
+    pimpl_.reset(new impl(conf, 2, 0));
 }
 
-context::context(const display& disp, const config& conf, int major_version, int minor_version)
+context::context(const config& conf, int major_version, int minor_version)
 {
-    pimpl_.reset(new impl(disp, conf, major_version, minor_version));
+    pimpl_.reset(new impl(conf, major_version, minor_version));
 }
 
 

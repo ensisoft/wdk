@@ -25,28 +25,38 @@
 #include <functional>
 #include <cassert>
 #include "../pixmap.h"
-#include "../display.h"
-#include "error_handler.h"
+#include "../system.h"
+#include "errorhandler.h"
 
 namespace wdk
 {
 
 struct pixmap::impl {
     Pixmap handle;
-    Display* disp;
     uint_t width;
     uint_t height;
     uint_t depth;
 };
 
-pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t visualid)
+pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
 {
     assert(width && height);
 
-    Display* dpy = disp.handle();
+    Display* dpy = get_display_handle();
 
-    // todo: visualid??
-    uint_t bit_depth = 32;
+    XVisualInfo vistemplate = {0};
+    vistemplate.visualid    = visualid ? visualid : 0;
+    const long visual_mask  = visualid ? VisualIDMask : 0;
+
+    int num_visuals = 0;
+    XVisualInfo* visinfo = XGetVisualInfo(dpy, visual_mask, &vistemplate, &num_visuals);
+    if (!visinfo || !num_visuals)
+        throw std::runtime_error("no such visual");
+
+
+    uint_t bit_depth = visinfo->depth;
+
+    XFree(visinfo);
 
     factory<Pixmap> px_factory(dpy);
 
@@ -56,7 +66,6 @@ pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t vis
 
     pimpl_.reset(new impl);
     pimpl_->handle = px;
-    pimpl_->disp   = dpy;
     pimpl_->width  = width;
     pimpl_->height = height;
     pimpl_->depth  = bit_depth;
@@ -66,7 +75,7 @@ pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t vis
     int x, y;
     uint_t border;
     Window dummy;
-    XGetGeometry(pimpl_->disp, px, &dummy, &x, &y, &w, &h, &border, &d);
+    XGetGeometry(dpy, px, &dummy, &x, &y, &w, &h, &border, &d);
 
     assert(w == width);
     assert(h == height);
@@ -76,17 +85,14 @@ pixmap::pixmap(const wdk::display& disp, uint_t width, uint_t height, uint_t vis
 
 pixmap::~pixmap()
 {
-    XFreePixmap(pimpl_->disp, pimpl_->handle);
+    Display* d = get_display_handle();
+
+    XFreePixmap(d, pimpl_->handle);
 }
 
 native_pixmap_t pixmap::handle() const
 {
     return native_pixmap_t {pimpl_->handle};
-}
-
-native_display_t pixmap::display() const
-{
-    return pimpl_->disp;
 }
 
 uint_t pixmap::width() const

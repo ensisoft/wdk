@@ -20,13 +20,14 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#pragma once
+
 #include <memory>
 #include "utility.h"
 #include "types.h"
 
 namespace wdk
 {
-    class display;
     class window;
     class pixmap;
     class config;
@@ -36,13 +37,13 @@ namespace wdk
     {
     public:
         // create a rendering surface that renders to the given window.
-        surface(const display& disp, const config& conf, const window& win);
+        surface(const config& conf, const window& win);
 
         // create a rendering surface that renders to the given pixmap.
-        surface(const display& disp, const config& conf, const pixmap& px);
+        surface(const config& conf, const pixmap& px);
 
         // create an offscreen width x height px rendering surface.
-        surface(const display& disp, const config& conf, uint_t width, uint_t height);
+        surface(const config& conf, uint_t width, uint_t height);
 
        ~surface();
 

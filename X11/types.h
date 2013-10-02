@@ -23,14 +23,11 @@
 #pragma once
 
 #include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+#include "atoms.h"
 
 namespace wdk
 {
-    typedef int      native_handle_t;
-    typedef XEvent   native_event_t;
-    typedef Display* native_display_t;
-    typedef int      native_vmode_t;
-
     // wrapper structure to make XID objects separate handle types
     // so we can add more type safety and overload
     template<typename T, int discriminator>
@@ -55,15 +52,67 @@ namespace wdk
         return rhs.xid != lhs.xid;
     }
 
-    typedef xid_t<Window, 0>      native_window_t;
-    typedef xid_t<Pixmap, 1>      native_pixmap_t;
+    typedef xid_t<Window, 0> native_window_t;
+    typedef xid_t<Pixmap, 1> native_pixmap_t;
+    typedef int              native_handle_t;
+    typedef Display*         native_display_t;
 
-    enum {
-        NULL_HANDLE        = 0,
-        DEFAULT_VIDEO_MODE = 0
-    };    
+    class native_event_t 
+    {
+    public:
+        native_event_t() 
+        {
+            event_ = XEvent{0};
+        }
+        native_event_t(const XEvent& e) : event_(e)
+        {}
+        operator const XEvent& () const
+        {
+            return event_;
+        }
+        native_window_t get_window_handle() const
+        {
+            if  (event_.type == KeymapNotify)
+                return native_window_t { 0 };
+            else if (event_.type == CreateNotify)
+                return native_window_t { event_.xcreatewindow.window };
+            else if (event_.type == MapNotify)
+                return native_window_t { event_.xmap.window };
+
+            return native_window_t  {event_.xany.window};
+        }
+        const XEvent& get() const
+        {
+            return event_;
+        }
+        
+        event_type get_type() const
+        {
+            if ((event_.type - XRandREventBase) == RRScreenChangeNotify)
+                return event_type::display_resolution_change;
+
+            switch (event_.type)
+            {
+                case FocusIn:         return event_type::window_gain_focus;
+                case FocusOut:        return event_type::window_lost_focus;
+                case ConfigureNotify: return event_type::window_resize;
+                case CreateNotify:    return event_type::window_create;
+                case DestroyNotify:   return event_type::window_destroy;
+                case KeyPress:        return event_type::window_keydown;
+                case KeyRelease:      return event_type::window_keyup;
+                case MapNotify:
+                    if (event_.xany.send_event)
+                        return event_type::window_char;
+
+                default:
+                    break;
+            }
+            return event_type::none;
+        }
+    private:
+        XEvent event_;        
+    };
 
     const native_window_t  NULL_WINDOW  {0};
-    const native_pixmap_t  NULL_PIXMAP  {0};
 
 } // wdk

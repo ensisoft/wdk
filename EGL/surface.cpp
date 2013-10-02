@@ -22,7 +22,7 @@
 
 #include <EGL/egl.h>
 #include "../surface.h"
-#include "../display.h"
+#include "../system.h"
 #include "../window.h"
 #include "../pixmap.h"
 #include "../config.h"
@@ -35,33 +35,33 @@ struct surface::impl {
     EGLSurface surface;
 };
 
-surface::surface(const display& disp, const config& conf, const window& win) : pimpl_(new impl)
+surface::surface(const config& conf, const window& win) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(disp.handle());
+    pimpl_->display = egl_init(get_display_handle());
 
     pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), nullptr);
     if (!pimpl_->surface)
         throw std::runtime_error("create window surface failed");
 }
 
-surface::surface(const display& disp, const config& conf, const pixmap& px) : pimpl_(new impl)
+surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(disp.handle());
+    pimpl_->display = egl_init(get_display_handle());
 
     pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), nullptr);
     if (!pimpl_->surface)
         throw std::runtime_error("create pixmap surface failed");
 }
 
-surface::surface(const display& disp, const config& conf, uint_t width, uint_t height) : pimpl_(new impl)
+surface::surface(const config& conf, uint_t width, uint_t height) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(disp.handle());
+    pimpl_->display = egl_init(get_display_handle());
 
-	const EGLint attrs[] = {
-		EGL_HEIGHT, (EGLint)height,
-		EGL_WIDTH,(EGLint)width,
-		EGL_NONE
-	};
+    const EGLint attrs[] = {
+        EGL_HEIGHT, (EGLint)height,
+	    EGL_WIDTH,(EGLint)width,
+	    EGL_NONE
+    };
 
     pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), attrs);
     if (!pimpl_->surface)
@@ -93,7 +93,7 @@ uint_t surface::height() const
 
 gl_surface_t surface::handle() const
 {
-	return gl_surface_t { pimpl_->surface };
+    return gl_surface_t { pimpl_->surface };
 }
 
 void surface::dispose()

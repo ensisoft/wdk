@@ -20,19 +20,18 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <wdk/display.h>
+#include <wdk/system.h>
+#include <wdk/videomode.h>
+#include <wdk/modechange.h>
 #include <wdk/window.h>
 #include <wdk/events.h>
-#include <wdk/keyboard.h>
-#include <wdk/event.h>
-#include <wdk/ime.h>
-#include <wdk/dispatch.h>
+#include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <cassert>
 #include <cstring>
 
-void handle_keydown(const wdk::keyboard_event_keydown& key, wdk::keyboard& kb, wdk::window& win)
+void handle_window_keydown(const wdk::window_event_keydown& key, wdk::window& win)
 {
     printf("Keydown event: ");
 
@@ -43,17 +42,14 @@ void handle_keydown(const wdk::keyboard_event_keydown& key, wdk::keyboard& kb, w
     if ((key.modifiers & wdk::keymod::alt) == wdk::keymod::alt)
         printf("Alt+");
 
-    const std::string& sym = kb.name(key.symbol);
-    printf("%s\n", sym.c_str());
+    const std::string& name = get_key_name(key.symbol);
+    printf("%s\n", name.c_str());
 
     if (key.symbol == wdk::keysym::escape)
-        win.close();
+        win.destroy();
+    else if (key.symbol == wdk::keysym::space)
+        win.set_fullscreen(!win.is_fullscreen());
 
-}
-
-void handle_keyup(const wdk::keyboard_event_keyup& key)
-{
-    printf("Keyup event: (%d) (%d)\n", (int)key.symbol, (int)key.modifiers);
 }
 
 void handle_window_create(const wdk::window_event_create& create)
@@ -61,9 +57,9 @@ void handle_window_create(const wdk::window_event_create& create)
     printf("Window create: @%d,%d, %d x %d\n", create.x, create.y, create.width, create.height);
 }
 
-void handle_window_query_close(wdk::window_event_query_close& query_close)
+void handle_window_want_close(const wdk::window_event_want_close& want_close)
 {
-    printf("Window query close:\n");
+    printf("Window want close:\n");
 }
 
 void handle_window_paint(const wdk::window_event_paint& paint)
@@ -76,10 +72,6 @@ void handle_window_resize(const wdk::window_event_resize& resize)
     printf("Window resize: %d x %d\n", resize.width, resize.height);
 }
 
-void handle_window_destroy(const wdk::window_event_destroy& destroy)
-{
-   printf("Window destroyed\n");
-}
 
 void handle_window_gain_focus(const wdk::window_event_focus& focus)
 {
@@ -91,15 +83,15 @@ void handle_window_lost_focus(const wdk::window_event_focus& focus)
     printf("Window lost focus\n");
 }
 
-void handle_character(const wdk::ime_event_char& ime_char, const wdk::ime& im)
+void handle_window_char(const wdk::window_event_char& uchar, wdk::window& win)
 {
-    using namespace wdk;
-    ime::output out = im.get_output();
+    const auto e = win.get_encoding();
 
-    if (out == ime::output::utf8)
-        printf("UTF8 char event: \"%s\"\n", ime_char.utf8);
-    else if (out == ime::output::ascii)
-        printf("ASCII char event: %c\n", ime_char.ascii);
+    if (e == wdk::window::encoding::ascii)
+        printf("ASCII char event: %c\n", uchar.ascii);
+    else if (e == wdk::window::encoding::utf8)
+       printf("UTF8 char event: \"%s\"\n", uchar.utf8);
+
 }
 
 struct cmdline {
@@ -110,8 +102,8 @@ struct cmdline {
     bool   wnd_resize;
     int    surface_width;
     int    surface_height;
-    wdk::ime::output ime_output;
-    wdk::native_vmode_t videomode;
+    wdk::window::encoding encoding;
+    wdk::videomode mode;
 };
 
 bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
@@ -135,25 +127,37 @@ bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
             if (!(i + 1 < argc))
                 return false;
 
-            if (!strcmp(name, "--ime-output"))
+            if (!strcmp(name, "--encoding"))
             {
                 const char* value = argv[++i];
                 if (!strcmp(value, "ascii"))
-                    cmd.ime_output = wdk::ime::output::ascii;
+                    cmd.encoding = wdk::window::encoding::ascii;
                 else if (!strcmp(value, "utf8"))
-                    cmd.ime_output = wdk::ime::output::utf8;
+                    cmd.encoding = wdk::window::encoding::utf8;
                 else if (!strcmp(value, "ucs2"))
-                    cmd.ime_output = wdk::ime::output::ucs2;
+                    cmd.encoding = wdk::window::encoding::ucs2;
+            }
+            else if (!strcmp(name, "--videomode"))
+            {
+                const char* value = argv[++i];
+                int xres, yres;
+                sscanf(value, "%dx%d", &xres, &yres);
+                cmd.mode.xres = xres;
+                cmd.mode.yres = yres;
+            }
+            else if (!strcmp(name, "--wnd-width"))
+            {
+                long value = atoi(argv[++i]);
+                cmd.surface_width = value;
+            }
+            else if (!strcmp(name, "--wnd-height"))
+            {
+                long value = atoi(argv[++i]);
+                cmd.surface_height = value;
             }
             else
             {
-                long value = atoi(argv[++i]);
-                if (!strcmp(name, "--wnd-width"))
-                    cmd.surface_width = value;
-                else if (!strcmp(name, "--wnd-height"))
-                    cmd.surface_height = value;
-                else if (!strcmp(name, "--video-mode"))
-                    cmd.videomode = static_cast<wdk::native_vmode_t>(value);
+                return false;
             }
         }
     }
@@ -170,8 +174,7 @@ int main(int argc, char* argv[])
     cmd.wnd_resize     = true;
     cmd.surface_width  = 640;
     cmd.surface_height = 480;
-    cmd.videomode      = wdk::DEFAULT_VIDEO_MODE;
-    cmd.ime_output     = wdk::ime::output::ascii;
+    cmd.encoding       = wdk::window::encoding::ascii;
 
     if (!parse_cmdline(argc, argv, cmd))
     {
@@ -194,51 +197,46 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    // connect to display server
-    wdk::display disp;
-
     if (cmd.listmodes)
     {
-        const auto modes = disp.list_video_modes();
+        auto modes = wdk::list_video_modes();
 
-        std::copy(modes.rbegin(), modes.rend(), std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
+        std::sort(modes.begin(), modes.end(), std::greater<wdk::videomode>());
+        std::copy(modes.begin(), modes.end(), std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
         return 0;        
     }
 
-    if (cmd.videomode != wdk::DEFAULT_VIDEO_MODE)
-        disp.set_video_mode(cmd.videomode);
+    wdk::modechange vidmode;
 
-    wdk::window_style style = wdk::window_style::none;
-    if (cmd.wnd_border)
-        style |= wdk::window_style::border;
-    if (cmd.wnd_resize)
-        style |= wdk::window_style::resize;
+    if (!cmd.mode.is_empty())
+        vidmode.set(cmd.mode);
+ 
+    wdk::window win;
+    win.on_create     = handle_window_create;
+    win.on_lost_focus = handle_window_lost_focus;
+    win.on_gain_focus = handle_window_gain_focus;
+    win.on_resize     = handle_window_resize;
+    win.on_want_close = handle_window_want_close;
+    win.on_paint      = handle_window_paint;
+    win.on_char       = std::bind(handle_window_char, std::placeholders::_1, std::ref(win));
+    win.on_keydown    = std::bind(handle_window_keydown, std::placeholders::_1, std::ref(win));
 
-    // window
-    wdk::window win(disp);
-    win.event_create      = handle_window_create;
-    win.event_query_close = handle_window_query_close;
-    win.event_paint       = handle_window_paint;
-    win.event_resize      = handle_window_resize;
-    win.event_gain_focus  = handle_window_gain_focus;
-    win.event_lost_focus  = handle_window_lost_focus;
+    win.create("Wdk", 
+        cmd.surface_width, 
+        cmd.surface_height,
+        0, 
+        cmd.wnd_resize,
+        cmd.wnd_border);
 
-    win.create(wdk::window_params(cmd.surface_width, cmd.surface_height, "Events", 0, cmd.fullscreen, style));
+    win.set_encoding(cmd.encoding);
+    win.set_fullscreen(cmd.fullscreen);
 
-    // keyboard access
-    wdk::keyboard kb(disp);
-    kb.event_keydown = std::bind(handle_keydown, std::placeholders::_1, std::ref(kb), std::ref(win));
-    kb.event_keyup   = handle_keyup;
 
-    // character input
-    wdk::ime im(disp, cmd.ime_output);
-    im.event_char = std::bind(handle_character, std::placeholders::_1, std::ref(im));
-
-    // event loop
-    while  (win.exists())
+    while (win.exists())
     {
-        dispatch_one(disp, win, kb, im);
+        win.wait_one_event();
     }
+
     return 0;
 }
 

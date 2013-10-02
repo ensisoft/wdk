@@ -65,7 +65,7 @@ struct context::impl {
     HDC      surface;    
     dummywin tmp;
 
-    impl(const display& disp, const config& conf, int major, int minor)
+    impl(const config& conf, int major, int minor)
     {
         auto wglCreateContextAttribsARB = reinterpret_cast<wglCreateContextAttribsARBProc>(context::resolve("wglCreateContextAttribsARB"));
         if (!wglCreateContextAttribsARB)
@@ -98,14 +98,14 @@ struct context::impl {
     }
 };
 
-context::context(const display& disp, const config& conf)
+context::context(const config& conf)
 {
-    pimpl_.reset(new impl(disp, conf, 3, 0));
+    pimpl_.reset(new impl(conf, 3, 0));
 }
 
-context::context(const display& disp, const config& conf, int major_version, int minor_version)
+context::context(const config& conf, int major_version, int minor_version)
 {
-    pimpl_.reset(new impl(disp, conf, major_version, minor_version));
+    pimpl_.reset(new impl(conf, major_version, minor_version));
 }
 
 context::~context()

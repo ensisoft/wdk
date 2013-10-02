@@ -20,29 +20,53 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <functional>
-#include "fwddecl.h"
+#pragma once
+
+#include <iostream>
 
 namespace wdk
 {
-    // interface for listening for keyboard events
-    class keyboard_listener 
-    {
-    public:
-        virtual ~keyboard_listener() {}
-        virtual void on_keyup(const keyboard_event_keypress&) {}
-        virtual void on_keydown(const keyboard_event_keypress&) {}
-    protected:
-    private:
+    struct videomode {
+        uint_t xres;
+        uint_t yres;
+        videomode() : xres(0), yres(0)
+        {}
+        videomode(uint_t width, uint_t height) : xres(width), yres(height)
+        {}        
+        bool is_empty() const
+        {
+            return xres == 0 && yres == 0;
+        }
     };
 
-    // connect all events in the keyboard to the listener
-    template<typename T>
-    inline void connect(keyboard& kb, T& listener)
+    inline bool operator < (const videomode& lhs, const videomode& rhs)
     {
-        namespace args = std::placeholders;
-        kb.event_keyup   = std::bind(&keyboard_listener::on_keyup, &listener, args::_1);
-        kb.event_keydown = std::bind(&keyboard_listener::on_keydown, &listener, args::_1);
-    }    
+        return (lhs.xres * lhs.yres) < (rhs.xres * rhs.yres);
+    }
+
+    inline
+    bool operator > (const videomode& lhs, const videomode& rhs)
+    {
+        return (rhs < lhs);
+    }
+
+    inline
+    bool operator == (const videomode& lhs, const videomode& rhs)
+    {
+        return !(lhs < rhs) && !(rhs < lhs);
+    }
+
+    inline
+    bool operator != (const videomode& lhs, const videomode& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    inline
+    std::ostream& operator << (std::ostream& o, const videomode& vm)
+    {
+        o << "VideoMode: " << vm.xres << "x" << vm.yres;
+        return o;
+    }
 
 } // wdk

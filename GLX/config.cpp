@@ -24,7 +24,7 @@
 #include <stdexcept>
 #include <vector>
 #include "../config.h"
-#include "../display.h"
+#include "../system.h"
 #include "../utility.h"
 
 namespace {
@@ -45,14 +45,13 @@ config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, boost::indeterminat
 config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 0, 0, true, {true, false, false}};
 
 struct config::impl {
-    Display*     dpy;
     GLXFBConfig* configs;
     GLXFBConfig  config;
     uint_t       visualid;
     uint_t       configid;
 };
 
-config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
+config::config(const attributes& attrs) : pimpl_(new impl)
 {
     std::vector<uint_t> criteria = 
     {
@@ -83,7 +82,7 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
 
     criteria.push_back(None);
 
-    Display* dpy = disp.handle();
+    Display* dpy = get_display_handle();
 
     int num_matches = 0;
     auto matches = make_unique_ptr(glXChooseFBConfig(dpy, DefaultScreen(dpy), (const int*)&criteria[0], &num_matches), XFree);
@@ -97,7 +96,6 @@ config::config(const display& disp, const attributes& attrs) : pimpl_(new impl)
 
     auto visual = make_unique_ptr(glXGetVisualFromFBConfig(dpy, best), XFree);
 
-    pimpl_->dpy      = dpy;
     pimpl_->configs  = matches.release();
     pimpl_->config   = best;
     pimpl_->visualid = visual->visualid;

@@ -26,26 +26,21 @@
 #include <stdexcept>
 #include "../context.h"
 #include "../config.h"
-#include "../display.h"
+#include "../system.h"
 #include "../surface.h"
-#include "../X11/error_handler.h"
+#include "../X11/errorhandler.h"
 
 namespace wdk
 {
 
 struct context::impl {
-    Display*         disp;
     Window           temp_window;
     GLXWindow        temp_surface;
     GLXDrawable      surface; // current surface
     GLXContext       context;
 
-    impl(const display& disp, const config& conf, int major_version, int minor_version) :
-    disp(nullptr), 
-    temp_window(0), 
-    temp_surface(0), 
-    surface(0), 
-    context(0)
+    impl(const config& conf, int major_version, int minor_version) :
+        temp_window(0), temp_surface(0), surface(0), context(0)
     {
         typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
@@ -53,7 +48,8 @@ struct context::impl {
         if (!glXCreateContextAttribs)
            throw std::runtime_error("cannot create context");
 
-        Display* dpy    = disp.handle();
+        
+        Display* dpy    = get_display_handle();
         GLXFBConfig fbc = conf.handle();
 
         factory<GLXContext> context_factory(dpy);
@@ -109,45 +105,48 @@ struct context::impl {
         if (!glXMakeCurrent(dpy, tmp_surface, context))
             throw std::runtime_error("make current failed");
 
-        this->disp         = dpy;
         this->temp_window  = tmp_window;
         this->temp_surface = tmp_surface;
         this->context      = context;
     }
 };
 
-context::context(const display& disp, const config& conf)
+context::context(const config& conf)
 {
-    pimpl_.reset(new impl(disp, conf, 3, 0));
+    pimpl_.reset(new impl(conf, 3, 0));
 }
 
-context::context(const display& disp, const config& conf, int major_version, int minor_version)
+context::context(const config& conf, int major_version, int minor_version)
 {
-    pimpl_.reset(new impl(disp, conf, major_version, minor_version));
+    pimpl_.reset(new impl(conf, major_version, minor_version));
 }
 
 context::~context()
 {
-    glXMakeCurrent(pimpl_->disp, None, NULL);
+    Display* d = get_display_handle();
 
-    glXDestroyContext(pimpl_->disp, pimpl_->context);
+    glXMakeCurrent(d, None, NULL);
 
-    glXDestroyWindow(pimpl_->disp, pimpl_->temp_surface);
-    XDestroyWindow(pimpl_->disp, pimpl_->temp_window);
+    glXDestroyContext(d, pimpl_->context);
+
+    glXDestroyWindow(d, pimpl_->temp_surface);
+    XDestroyWindow(d, pimpl_->temp_window);
 }
 
 void context::make_current(surface* surf)
 {
+    Display* d = get_display_handle();
+
     // glXMakeContextCurrent doesn't like None for surface. (mesa 9.2)
     // so instead of None we use the temporary window surface
-    glXMakeCurrent(pimpl_->disp, pimpl_->temp_surface, pimpl_->context);
+    glXMakeCurrent(d, pimpl_->temp_surface, pimpl_->context);
 
     pimpl_->surface = 0;
 
     if (surf == nullptr)
         return;
 
-    if (!glXMakeCurrent(pimpl_->disp, surf->handle(), pimpl_->context))
+    if (!glXMakeCurrent(d, surf->handle(), pimpl_->context))
         throw std::runtime_error("make current failed");
 
     pimpl_->surface = surf->handle();
@@ -157,12 +156,16 @@ void context::swap_buffers()
 {
     assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
 
-    glXSwapBuffers(pimpl_->disp, pimpl_->surface);
+    Display* d = get_display_handle();
+
+    glXSwapBuffers(d, pimpl_->surface);
 }
 
 bool context::has_dri() const
 {
-    return (glXIsDirect(pimpl_->disp, pimpl_->context) == True);
+    Display* d = get_display_handle();
+
+    return (glXIsDirect(d, pimpl_->context) == True);
 }
 
 void* context::resolve(const char* function)
