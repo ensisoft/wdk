@@ -20,9 +20,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#define NOMINMAX
 #include <windows.h>
 #include <stdexcept>
 #include <cassert>
+#include <limits>
 #include "../window.h"
 #include "../system.h"
 #include "../utf8.h"
@@ -36,6 +38,7 @@ struct window::impl {
     bool fullscreen;
     bool resizing;
     int x, y;
+    int w, h;
     DWORD style;
     DWORD exstyle;
 
@@ -276,37 +279,54 @@ void window::set_fullscreen(bool fullscreen)
 
     HWND hwnd = pimpl_->window;
 
+    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
+
     if (fullscreen)
     {
 
+        RECT rc;
+        GetWindowRect(hwnd, &rc);
+
         pimpl_->style = GetWindowLong(hwnd, GWL_STYLE);
         pimpl_->exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        pimpl_->x = rc.left;
+        pimpl_->y = rc.top;
+        pimpl_->w = surface_width();
+        pimpl_->h = surface_height();
 
-        // DEVMODE mode = {0};
-        // mode.dmSize  = sizeof(mode);
-        // if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode))
-        //     throw std::runtime_error("failed to get current display device videomode");
-
-        // // get rid of the start bar
-        // if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-        //     throw std::runtime_error("videomode change failed");
-
-        SetWindowLong(hwnd, GWL_STYLE, WS_POPUP);
+        ShowWindow(hwnd, SW_HIDE);
+        SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
         SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
-        //SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, mode.dmPelsWidth, mode.dmPelsHeight, SWP_SHOWWINDOW);
 
-        ShowWindow(hwnd, SW_SHOWMAXIMIZED);
-        //SetForegroundWindow(hwnd);
+        DEVMODE mode = {0};
+        mode.dmSize  = sizeof(mode);
+        if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode))
+            throw std::runtime_error("failed to get current display device videomode");
+
+        mode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+        if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+            throw std::runtime_error("videomode change failed");
+
+        MoveWindow(hwnd, 0, 0, mode.dmPelsWidth, mode.dmPelsHeight, TRUE);
+
+        ShowWindow(hwnd, SW_SHOW);
     }
     else
     {
+        ShowWindow(hwnd, SW_HIDE);
+
         ChangeDisplaySettings(NULL, 0);
 
         SetWindowLong(hwnd, GWL_STYLE, pimpl_->style);
         SetWindowLong(hwnd, GWL_EXSTYLE, pimpl_->exstyle);
 
-        ShowWindow(hwnd, SW_RESTORE);
+        MoveWindow(hwnd, pimpl_->x, pimpl_->y, pimpl_->w, pimpl_->h, TRUE);
+
+        ShowWindow(hwnd, SW_SHOW);
     }
+
+    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+
     pimpl_->fullscreen = fullscreen;
 }
 
@@ -355,7 +375,7 @@ void window::set_size(uint_t width, uint_t height)
     if (height < dy)
         height += dy;
 
-    MoveWindow(hwnd, x, y, width, height, FALSE);
+    MoveWindow(hwnd, x, y, width, height, TRUE);
 
     // restore our wndproc
     SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);

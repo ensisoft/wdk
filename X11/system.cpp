@@ -446,17 +446,6 @@ bool peek_event(native_event_t& ev)
     return true;
 }
 
-std::string get_key_name(keysym symbol)
-{
-    const KeySym sym = find_keysym(symbol);
-    const char* name = XKeysymToString(sym);
-    if (!name)
-        return "";
-
-    return std::string(name);
-
-}
-
 std::pair<keymod, keysym> translate_keydown(const native_event_t& key)
 {
     std::pair<keymod, keysym> ret = {keymod::none, keysym::none};
