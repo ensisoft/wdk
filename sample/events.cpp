@@ -42,7 +42,7 @@ void handle_window_keydown(const wdk::window_event_keydown& key, wdk::window& wi
     if ((key.modifiers & wdk::keymod::alt) == wdk::keymod::alt)
         printf("Alt+");
 
-    const std::string& name = get_key_name(key.symbol);
+    const std::string& name = key_name(key.symbol);
     printf("%s\n", name.c_str());
 
     if (key.symbol == wdk::keysym::escape)
