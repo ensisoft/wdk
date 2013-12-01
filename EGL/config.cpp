@@ -94,7 +94,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     // should there always be visualid? one would think that this is the case even on windows 
     // (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid! 
     // assert(pimpl_->visualid);
-    assert(pimpl_->configid);
+    // assert(pimpl_->configid);
 }
 
 config::~config()

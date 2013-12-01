@@ -12,27 +12,28 @@ lib Xrandr  : : <name>Xrandr ;
 
 path-constant GLES2_INC : "c:/imgtec_gles_sdk/Include" ;
 path-constant GLES2_LIB : "c:/imgtec_gles_sdk/Lib" ;
+path-constant BOOST_INC : "../boost_1_51_0" ;
 
 project wdk 
-        : requirements
-          <toolset>gcc:<cflags>-std=c++11
-          <toolset>gcc:<cflags>-Wno-deprecated-declarations
-          <toolset>clang:<cflags>-std=c++11
-          <os>NT:<include>$(GLES2_INC)
+: requirements
+  <toolset>gcc:<cflags>-std=c++11
+  <toolset>gcc:<cflags>-Wno-deprecated-declarations
+  <toolset>clang:<cflags>-std=c++11
+  <os>NT:<include>$(GLES2_INC)
+  <include>$(BOOST_INC)
+: usage-requirements
+  <toolset>gcc:<cflags>-std=c++11
+  <toolset>clang:<cflags>-std=c++11
+  <os>LINUX:<library>/wdk//Xxf86vm/<link>shared
+  <os>LINUX:<library>/wdk//X11/<link>shared
+  <os>LINUX:<library>/wdk//Xcb/<link>shared
+  <os>LINUX:<library>/wdk//Xau/<link>shared
+  <os>LINUX:<library>/wdk//Xdmcp/<link>shared
+  <os>LINUX:<library>/wdk//Xext/<link>shared
+  <os>LINUX:<library>/wdk//Xrandr/<link>shared
+  ;
 
-        : usage-requirements
-          <toolset>gcc:<cflags>-std=c++11
-          <toolset>clang:<cflags>-std=c++11
-          <os>LINUX:<library>/wdk//Xxf86vm/<link>shared
-          <os>LINUX:<library>/wdk//X11/<link>shared
-          <os>LINUX:<library>/wdk//Xcb/<link>shared
-          <os>LINUX:<library>/wdk//Xau/<link>shared
-          <os>LINUX:<library>/wdk//Xdmcp/<link>shared
-          <os>LINUX:<library>/wdk//Xext/<link>shared
-          <os>LINUX:<library>/wdk//Xrandr/<link>shared
-        ;
-
-
+use-project /boost/ : $(BOOST_INC) ;
 
 if [ os.name ] = LINUX
 {

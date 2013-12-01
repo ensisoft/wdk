@@ -1,8 +1,14 @@
+import path ;
 
+path-constant WDK : "../../" ;
 
-project wdk-sample ;
+use-project /wdk/ : $(WDK) ;
 
-
+project wdk-sample 
+  : requirements
+    <include>$(WDK)
+  ;
+	
 exe events : events.cpp : <library>/wdk//wdk-desktop ;
 
 exe desktop : [ obj triangle_GL_2 : triangle.cpp ] : <library>/wdk//wdk-desktop <library>/wdk//GL ;

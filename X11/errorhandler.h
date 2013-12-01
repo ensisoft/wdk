@@ -28,28 +28,24 @@
 
 namespace wdk
 {
-    // X11 has a stupid callback based error handler where every thread 
-    // calls the same global error handling routine which by default exits
-    // the process. we use a scoped handler to install an automatically restore
-    // the previous handler when we want to change the semantics to something
-    // more sensible.
-
-    // todo: maybe make this thread safe?
-    class scoped_error_handler 
+    // replace the current global error handler in this scope
+    // with an error handler that grabs the error code and 
+    // stores it into a variable for later inspection.    
+    class scoped_error_grabber
     {
         typedef int (*error_routine)(Display*, XErrorEvent*);
     public:
-        scoped_error_handler() : current_error_code(0), previous_error_handler(nullptr)
+        scoped_error_grabber() : current_error_code(0), previous_error_callback(nullptr)
         {
-            previous_error_handler = (error_routine)XSetErrorHandler(error_callback);
+            previous_error_callback = (error_routine)XSetErrorHandler(error_callback);
 
-            handlers().push(this);
+            grabbers().push(this);
         }
-       ~scoped_error_handler()
+       ~scoped_error_grabber()
         {
-            XSetErrorHandler(previous_error_handler);
+            XSetErrorHandler(previous_error_callback);
 
-            handlers().pop();
+            grabbers().pop();
         }
         bool has_error() const
         {
@@ -64,14 +60,14 @@ namespace wdk
             current_error_code = 0;
         }
     private:
-        static std::stack<scoped_error_handler*>& handlers()
+        static std::stack<scoped_error_grabber*>& grabbers()
         {
-            static std::stack<scoped_error_handler*> handlers;
-            return handlers;
+            static std::stack<scoped_error_grabber*> grabbers;
+            return grabbers;
         }
         static int error_callback(Display* dpy, XErrorEvent* err)
         {
-            scoped_error_handler* topmost = handlers().top();
+            scoped_error_grabber* topmost = grabbers().top();
 
             topmost->current_error_code = err->error_code;
 
@@ -79,7 +75,7 @@ namespace wdk
         }        
 
         int current_error_code;
-        error_routine previous_error_handler;
+        error_routine previous_error_callback;
     };
 
     template<typename T>
@@ -91,23 +87,23 @@ namespace wdk
         {
         }
         template<typename FactoryFunc>
-        T create(FactoryFunc&& construct_new_t)
+        T create(FactoryFunc construct_new_t)
         {
             has_error_  = false;
             error_code_ = 0;
 
             XSync(dpy_, False);
 
-            scoped_error_handler err;
+            scoped_error_grabber grabber;
 
             T ret = construct_new_t(dpy_);
 
             XSync(dpy_, False);
 
-            if (err.has_error())
+            if (grabber.has_error())
             {
                 has_error_ = true;
-                error_code_ = err.code();                
+                error_code_ = grabber.code();                
             }
             return ret;
         }

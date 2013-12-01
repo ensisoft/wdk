@@ -23,6 +23,9 @@
 #ifdef SAMPLE_GLES
 #  include <GLES2/gl2.h>
 #else
+#  ifndef _WIN32
+#    define GL_GLEXT_PROTOTYPES
+#  endif
 #  include "glcorearb.h"
 #endif
 #include <wdk/window.h>

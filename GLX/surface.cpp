@@ -22,6 +22,7 @@
 
 #include <GL/glx.h>
 #include <functional>
+#include <stdexcept>
 #include "../surface.h"
 #include "../system.h"
 #include "../config.h"

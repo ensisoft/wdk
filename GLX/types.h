@@ -22,7 +22,22 @@
 
 #pragma once
 
-#include <GL/glx.h>
+// do not include GL/glx.h in this header because glx.h includes gl.h
+// which defines the GL types such as GLint and on some systems
+// when client code includes GLES2/gl[2].h the type definitions
+// are conflicting (GLintptr, GLsizeiptr). So instead of polluting
+// the client namespace (wdk doesn't need or care about GL types directly)
+// the inclusion is removed.
+//#include <GL/glx.h>
+#include <X11/Xlib.h>
+
+struct __GLXFBConfigRec;
+struct __GLXcontextRec;
+
+typedef struct __GLXFBConfigRec *GLXFBConfig;
+typedef struct __GLXcontextRec *GLXContext;
+
+typedef XID GLXDrawable;
 
 namespace wdk
 {

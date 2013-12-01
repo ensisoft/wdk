@@ -137,7 +137,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
         hint hints = {0};
         hints.flags = 2;         // window decorations flag
         hints.decorations = 0;   // ...say bye bye
-        XChangeProperty(d, win, _MOTIF_WM_HINTS, _MOTIF_WM_HINTS, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&hints), 5);
+        XChangeProperty(d, win, _MOTIF_WM_HINTS, _MOTIF_WM_HINTS, 32, PropModeReplace, static_cast<unsigned char*>((void*)&hints), 5);
     }
 
     if (!can_resize)

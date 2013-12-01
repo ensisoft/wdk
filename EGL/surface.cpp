@@ -21,6 +21,7 @@
 //  THE SOFTWARE.
 
 #include <EGL/egl.h>
+#include <stdexcept>
 #include "../surface.h"
 #include "../system.h"
 #include "../window.h"
