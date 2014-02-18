@@ -40,38 +40,38 @@ Typical simple startup and shutdown:
 
 More complicated/detailed startup:
 
-   // 1. setup attributes to select a compatible GL color buffer
-   wdk::config::attributes attrs;
-   attrs.red_size = 8;
-   attrs.green_size = 8;
-   // ....
+    // 1. setup attributes to select a compatible GL color buffer
+    wdk::config::attributes attrs;
+    attrs.red_size = 8;
+    attrs.green_size = 8;
+    // ....
    
-   // 2. find/create a matching configuration
-   wdk::config config;
+    // 2. find/create a matching configuration
+    wdk::config config;
    
-   // 3. create opengl context
-   wdk::context ctx(config);
+    // 3. create opengl context
+    wdk::context ctx(config);
    
-   // 4. create rendering window
-   wdk::window win;
-   win.create("Window", WIDTH, HEIGHT, config.visualid());
+    // 4. create rendering window
+    wdk::window win;
+    win.create("Window", WIDTH, HEIGHT, config.visualid());
    
-   // 5. create new rendering surface
-   wdk::surface surf(win);
+    // 5. create new rendering surface
+    wdk::surface surf(win);
    
-   // 6. attach the window to the context as the current rendering surface
-   ctx.make_current(&surf);
+    // 6. attach the window to the context as the current rendering surface
+    ctx.make_current(&surf);
    
-   // run the rendering loop
-   while (do_render)
-   {
-      render_frame();
-      ctx.swap_buffers();
-   }
+    // run the rendering loop
+    while (do_render)
+    {
+       render_frame();
+       ctx.swap_buffers();
+    }
 
-   // 7. tear down
-   ctx.make_current(nullptr);
-   surf.dispose();
+    // 7. tear down
+    ctx.make_current(nullptr);
+    surf.dispose();
    
    
 
