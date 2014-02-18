@@ -21,6 +21,7 @@ project wdk
   <toolset>clang:<cflags>-std=c++11
   <os>NT:<include>$(GLES2_INC)
   <include>$(BOOST_INC)
+  <include>../
 : usage-requirements
   <toolset>gcc:<cflags>-std=c++11
   <toolset>clang:<cflags>-std=c++11

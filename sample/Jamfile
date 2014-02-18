@@ -1,19 +1,9 @@
-import path ;
-
-path-constant WDK : "../../" ;
-
-use-project /wdk/ : $(WDK) ;
-
-project wdk-sample 
-  : requirements
-    <include>$(WDK)
-  ;
 	
-exe events : events.cpp : <library>/wdk//wdk-desktop ;
+exe events : events.cpp /wdk//wdk-desktop ;
 
-exe desktop : [ obj triangle_GL_2 : triangle.cpp ] : <library>/wdk//wdk-desktop <library>/wdk//GL ;
+exe desktop : [ obj triangle_GL_2 : triangle.cpp ]  /wdk//wdk-desktop /wdk//GL ;
 
-exe mobile : [ obj triangle_GL_ES : triangle.cpp : <define>SAMPLE_GLES ] : <library>/wdk//wdk-mobile <library>/wdk//GLES2 <library>/wdk//EGL ;
+exe mobile : [ obj triangle_GL_ES : triangle.cpp : <define>SAMPLE_GLES ] /wdk//wdk-mobile /wdk//GLES2 /wdk//EGL ;
 
 
 
