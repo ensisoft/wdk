@@ -43,10 +43,23 @@ namespace wdk
     class opengl : noncopyable
     {
     public:
+        // create default context with specific attributes
         opengl(const config::attributes& attrs) : config_(attrs), context_(config_)
         {}
+
+        // create specific context with specific attributes
+        opengl(const config::attributes& attrs, int major_version, int minor_version) 
+            : config_(attrs), context_(config_, major_version, minor_version)
+        {}
+
+        // create context with specific version and with default attributes
+        opengl(int major_version, int minor_version) : context_(config_, major_version, minor_version)
+        {}
+
+        // create default context with default attributes
         opengl() : context_(config_)
         {}
+
        ~opengl() 
         {
             if (surface_)
