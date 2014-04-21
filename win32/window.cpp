@@ -170,7 +170,7 @@ window::~window()
 }
 
 void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
-    bool can_resize, bool has_border)
+    bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
     assert(height);
@@ -235,14 +235,27 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     const int dy = (window.bottom - window.top) - client.bottom;
     MoveWindow(hwnd, window.left, window.top, width + dx, height + dy, TRUE);
 
-    // finally show window
-    ShowWindow(hwnd, SW_SHOW);    
+    if (initially_visible)
+    {
+        // finally show window
+        ShowWindow(hwnd, SW_SHOW);    
+    }
 
     pimpl_->window     = win.release();
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
     pimpl_->x          = 0;
     pimpl_->y          = 0;
+}
+
+void window::hide()
+{
+    ShowWindow(pimpl_->window, SW_HIDE);
+}
+
+void window::show()
+{
+    ShowWindow(pimpl_->window, SW_SHOW);
 }
 
 void window::destroy()

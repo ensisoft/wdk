@@ -56,12 +56,20 @@ namespace wdk
         // create the window with the given dimension and flags.
         // window must not exist before.
         void create(const std::string& title, uint_t width, uint_t height, uint_t visualid = 0,
-            bool can_resize = true, bool has_border = true);
+            bool can_resize = true, bool has_border = true, bool initially_visible = true);
+
+        // hide the window if currently visible. (shown)
+        void hide();
+
+        // show the window if currently hidden. 
+        void show();
 
         // destroy the window. window must have been created before.
         void destroy();
 
         // move window to x,y position with respect to it's parent. (desktop)
+        // precondition: not fullscreen
+        // precondition: window has been created
         void move(int x, int y);
 
         // toggle between fullscreen/windowed mode.

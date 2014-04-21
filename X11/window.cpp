@@ -46,7 +46,6 @@ struct window::impl {
     encoding enc;
     bool fullscreen;
     uint_t visualid;
-    //properties props;
 };
 
 window::window() : pimpl_(new impl)
@@ -62,7 +61,7 @@ window::~window()
 }
 
 void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
-    bool can_resize, bool has_border)
+    bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
     assert(height);    
@@ -153,25 +152,43 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
         XFree(hints);
     }
 
-    // show window
-    XMapWindow(d, win);
+    if (initially_visible)
+    {
+        // show window
+        XMapWindow(d, win);
 
-    XFlush(d);
+        // X hack, since the api is asynchronous it's possible that 
+        // the client code can call a function such as set_setfocus which
+        // fails siply because the WM hasn't mapped the window yet.
+        // so we wait here  untill we're notified that it's actually mapped.
+        XEvent ev;
+        while (XCheckTypedWindowEvent(d, win, Expose, &ev) == False)
+            (void)0;
 
-    // X hack, since the api is asynchronous it's possible that 
-    // the client code can call a function such as set_setfocus which
-    // fails siply because the WM hasn't mapped the window yet.
-    // so we wait here  untill we're notified that it's actually mapped.
-    XEvent ev;
-    while (XCheckTypedWindowEvent(d, win, Expose, &ev) == False);
+        XPutBackEvent(d, &ev);
+    }
 
-    XPutBackEvent(d, &ev);
+    XFlush(d);    
 
     pimpl_->window   = win;
     pimpl_->visualid = visual_id;
     pimpl_->width    = 0;
     pimpl_->height   = 0;
     pimpl_->fullscreen = false;
+}
+
+void window::hide()
+{
+    Display* display = get_display_handle();
+
+    XUnmapWindow(display, pimpl_->window);
+}
+
+void window::show()
+{
+    Display* display = get_display_handle();
+
+    XMapWindow(display, pimpl_->window);
 }
 
 void window::destroy()
@@ -212,7 +229,6 @@ void window::set_fullscreen(bool fullscreen)
 {
     assert(exists());
 
-
     if (fullscreen == pimpl_->fullscreen)
         return;
 
@@ -233,8 +249,8 @@ void window::set_fullscreen(bool fullscreen)
         ev.xclient.data.l[3]    = w;
         XSendEvent(d, DefaultRootWindow(d), False, SubstructureRedirectMask | SubstructureNotifyMask, &ev);
 
-        // get exlcusive keyboard accessn
-        // note that this can fail if someone else has grabbed the keyboard alreadyd..
+        // get exclusive keyboard access
+        // note that this can fail if someone else has grabbed the keyboard already..
         XGrabKeyboard(d, w, True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
         // get exclusive pointer (mouse) access
@@ -521,7 +537,7 @@ std::pair<uint_t, uint_t> window::min_size() const
     if (hints->min_height  == 0)
         hints->min_height = 1;
 
-    std::pair<uint_t, uint_t> ret {hints->min_width, hints->min_height};
+    const std::pair<uint_t, uint_t> ret {hints->min_width, hints->min_height};
 
     XFree(hints);
 
@@ -545,7 +561,7 @@ std::pair<uint_t, uint_t> window::max_size() const
     if (hints->max_height == 0)
         hints->max_height = std::numeric_limits<uint16_t>::max();
 
-    std::pair<uint_t, uint_t> ret {hints->max_width, hints->max_height};
+    const std::pair<uint_t, uint_t> ret {hints->max_width, hints->max_height};
 
     XFree(hints);
 
