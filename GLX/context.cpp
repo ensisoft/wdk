@@ -39,10 +39,12 @@ struct context::impl {
     GLXDrawable      surface; // current surface
     GLXContext       context;
 
-    impl(const config& conf, int major_version, int minor_version) :
+    impl(const config& conf, int major_version, int minor_version, bool debug) :
         temp_window(0), temp_surface(0), surface(0), context(0)
     {
-        typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+        // Context creation requires GLX_ARB_create_context extension.
+        // if this is not available at runtime then context creation simply fails.
+        typedef GLXContext (APIENTRY *glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
         auto glXCreateContextAttribs = reinterpret_cast<glXCreateContextAttribsARBProc>(context::resolve("glXCreateContextAttribsARB"));
         if (!glXCreateContextAttribs)
@@ -56,12 +58,16 @@ struct context::impl {
 
         GLXContext context = context_factory.create([&](Display* dpy)
         {
-            const int attrs[] = 
-            {
+            const int FLAGS = debug ? 
+               GLX_CONTEXT_DEBUG_BIT_ARB : 0;
+
+            const int attrs[] = {
                 GLX_CONTEXT_MAJOR_VERSION_ARB, major_version,
                 GLX_CONTEXT_MINOR_VERSION_ARB, minor_version,
+                GLX_CONTEXT_FLAGS_ARB, FLAGS,
                 None
             };
+
             GLXContext c = glXCreateContextAttribs(dpy, fbc, NULL, GL_TRUE, attrs);
             return c;
         });
@@ -113,12 +119,12 @@ struct context::impl {
 
 context::context(const config& conf)
 {
-    pimpl_.reset(new impl(conf, 3, 0));
+    pimpl_.reset(new impl(conf, 3, 0, false));
 }
 
-context::context(const config& conf, int major_version, int minor_version)
+context::context(const config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
 context::~context()

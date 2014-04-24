@@ -31,6 +31,31 @@
 #include "../surface.h"
 #include "egldisplay.h"
 
+// http://www.khronos.org/registry/egl/extensions/KHR/EGL_KHR_create_context.txt
+
+// Accepted as an attribute name in the <*attrib_list> argument of
+// eglCreateContext:
+#define EGL_CONTEXT_MAJOR_VERSION_KHR           0x3098 // (this token is an alias for EGL_CONTEXT_CLIENT_VERSION)
+#define EGL_CONTEXT_MINOR_VERSION_KHR           0x30FB
+#define EGL_CONTEXT_FLAGS_KHR                   0x30FC
+#define EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR     0x30FD
+#define EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR  0x31BD
+
+// Accepted as a bitfield value in the EGL_RENDERABLE_TYPE config
+// attribute to eglChooseConfig:
+#define EGL_OPENGL_ES3_BIT_KHR                  0x0040
+
+// Accepted as attribute values for
+// EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR:
+#define EGL_NO_RESET_NOTIFICATION_KHR           0x31BE
+#define EGL_LOSE_CONTEXT_ON_RESET_KHR           0x31BF
+
+// Accepted as bits in the attribute value for EGL_CONTEXT_FLAGS_KHR in
+// <*attrib_list>:
+#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR               0x00000001
+#define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR  0x00000002
+#define EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR       0x00000004
+
 namespace wdk
 {
 
@@ -39,16 +64,23 @@ struct context::impl {
     EGLSurface surface;
     EGLContext context;
 
-    impl(const wdk::config& conf, int major_version, int minor_version) :
+    impl(const wdk::config& conf, int major_version, int minor_version, bool debug) :
         display(nullptr), surface(nullptr), context(nullptr)
     {
         display = egl_init(get_display_handle());
 
-        const EGLint attrs[] = 
-        {
+        const EGLint FLAGS = debug ? 
+            EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR : 0;
+
+        // we require EGL_KHR_create_context extension for the debug context 
+        // if this extension is not available at runtime context creation 
+        // will simply fail.
+        const EGLint attrs[] = {
             EGL_CONTEXT_CLIENT_VERSION, (EGLint)major_version,
+            EGL_CONTEXT_FLAGS_KHR, FLAGS,
             EGL_NONE
         };
+
         context = eglCreateContext(display, conf.handle(), EGL_NO_CONTEXT, attrs);
         if (!context)
             throw std::runtime_error("create context failed");
@@ -59,12 +91,12 @@ struct context::impl {
 
 context::context(const config& conf)
 {
-    pimpl_.reset(new impl(conf, 2, 0));
+    pimpl_.reset(new impl(conf, 2, 0, false));
 }
 
-context::context(const config& conf, int major_version, int minor_version)
+context::context(const config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
 

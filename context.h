@@ -41,7 +41,8 @@ namespace wdk
 
         // create a rendering context compatible with the given
         // configuration and with a specific GL version.
-        context(const config& conf, int major_version, int minor_version);
+        // if debug is true the context is created as a debug context if possible.
+        context(const config& conf, int major_version, int minor_version, bool debug);
 
         // dtor
        ~context();
@@ -53,9 +54,10 @@ namespace wdk
 
         // has direct rendering or not
         bool has_dri() const;
-        
+
         // resolve (an extension) function
         static void* resolve(const char* function);
+        
     private:
         struct impl;
         

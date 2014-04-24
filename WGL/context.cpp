@@ -65,7 +65,7 @@ struct context::impl {
     HDC      surface;    
     dummywin tmp;
 
-    impl(const config& conf, int major, int minor)
+    impl(const config& conf, int major, int minor, bool debug)
     {
         auto wglCreateContextAttribsARB = reinterpret_cast<wglCreateContextAttribsARBProc>(context::resolve("wglCreateContextAttribsARB"));
         if (!wglCreateContextAttribsARB)
@@ -79,10 +79,14 @@ struct context::impl {
 
         const int ARNOLD = 0; // attr list terminator
 
+        const int FLAGS = debug ? 
+            WGL_CONTEXT_DEBUG_BIT_ARB : 0;
+
         const int attrs[] = 
         {
             WGL_CONTEXT_MAJOR_VERSION_ARB, major,
             WGL_CONTEXT_MINOR_VERSION_ARB, minor,
+            WGL_CONTEXT_FLAGS_ARB, FLAGS,
             ARNOLD
         };
 		//auto ctx = make_unique_ptr(wglCreateContext(tmp.surface()), wglDeleteContext);
@@ -100,12 +104,12 @@ struct context::impl {
 
 context::context(const config& conf)
 {
-    pimpl_.reset(new impl(conf, 3, 0));
+    pimpl_.reset(new impl(conf, 3, 0, false));
 }
 
-context::context(const config& conf, int major_version, int minor_version)
+context::context(const config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
 context::~context()

@@ -48,12 +48,12 @@ namespace wdk
         {}
 
         // create specific context with specific attributes
-        opengl(const config::attributes& attrs, int major_version, int minor_version) 
-            : config_(attrs), context_(config_, major_version, minor_version)
+        opengl(const config::attributes& attrs, int major_version, int minor_version, bool debug) 
+            : config_(attrs), context_(config_, major_version, minor_version, debug)
         {}
 
         // create context with specific version and with default attributes
-        opengl(int major_version, int minor_version) : context_(config_, major_version, minor_version)
+        opengl(int major_version, int minor_version, bool debug) : context_(config_, major_version, minor_version, debug)
         {}
 
         // create default context with default attributes
@@ -89,6 +89,14 @@ namespace wdk
         uint_t visualid() const
         {
             return config_.visualid();
+        }
+
+        // resolve (an extension) function pointer.
+        // returns the address of the function if succesfully resolved,
+        // otherwise nullptr.
+        static void* resolve(const char* function)
+        {
+            return context::resolve(function);
         }
     private:
         config  config_;
