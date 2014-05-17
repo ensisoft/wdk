@@ -57,10 +57,22 @@ namespace wdk
     };
 
     // do not use directly, see the typedefs below
-    struct window_event_generic {};
+    // note: removed the typedef based solution because
+    // it makes forward declarations difficult.
+    //struct window_event_generic {};
+
+    struct window_event_focus {};
+    struct window_event_want_close {};
+    struct window_event_destroy {};
+    
 
     // do not use directly, see the typedefs below
-    struct window_event_keypress {
+    struct window_event_keyup {
+        keysym symbol;
+        keymod modifiers;
+    };
+    
+    struct window_event_keydown {
         keysym symbol;
         keymod modifiers;
     };
@@ -75,21 +87,5 @@ namespace wdk
             uint8_t  utf8[4];
         };
     };
-
-    // window lost/gained focus
-    typedef window_event_generic window_event_focus;
-
-    // user wants to close the window, if this is desired call close on the window to respond.
-    typedef window_event_generic window_event_want_close;
-
-    // window was destroyed and has been removed from the scren.
-    // note that the handle is no longer a valid window handle!
-    typedef window_event_generic window_event_destroy;
-
-    // on keyboard key press
-    typedef window_event_keypress window_event_keydown;
-
-    // on keyboard key up
-    typedef window_event_keypress window_event_keyup;
 
 } // wdk

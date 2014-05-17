@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <limits>
 #include <cassert>
+#include "../window_events.h"
 #include "../window.h"
 #include "../system.h"
 #include "../videomode.h"

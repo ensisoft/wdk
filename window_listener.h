@@ -20,15 +20,23 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <functional>
-
 namespace wdk
 {
+    struct window_event_create;
+    struct window_event_paint;
+    struct window_event_resize;
+    struct window_event_focus;
+    struct window_event_want_close;
+    struct window_event_keyup;
+    struct window_event_keydown;    
+    struct window_event_char;
+    class  window;
+
     // interface for listening for window events
-    class event_listener
+    class window_listener
     {
     public:
-        virtual ~event_listener() {}
+        virtual ~window_listener() {}
         virtual void on_create(const window_event_create&) {}
         virtual void on_paint(const window_event_paint&) {}
         virtual void on_resize(const window_event_resize&) {}
@@ -42,22 +50,8 @@ namespace wdk
     private:
     };
 
-
     // connect all events in the window to the listener
-    template<typename T>
-    inline void connect(window& win, T& list)
-    {
-        namespace args = std::placeholders;
-
-        win.on_create     = std::bind(&event_listener::on_create, &list, args::_1);
-        win.on_paint      = std::bind(&event_listener::on_paint, &list, args::_1);
-        win.on_resize     = std::bind(&event_listener::on_resize, &list, args::_1);
-        win.on_lost_focus = std::bind(&event_listener::on_lost_focus, &list, args::_1);
-        win.on_gain_focus = std::bind(&event_listener::on_gain_focus, &list, args::_1);
-        win.on_want_close = std::bind(&event_listener::on_want_close, &list, args::_1);
-        win.on_keydown    = std::bind(&event_listener::on_keydown, &list, args::_1);
-        win.on_keyup      = std::bind(&event_listener::on_keyup, &list, args::_1);
-        win.on_char       = std::bind(&event_listener::on_char, &list, args::_1);
-    }
+    void connect(wdk::window& window, wdk::window_listener& listener);
 
 } // wdk
+

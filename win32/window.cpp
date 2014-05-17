@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <cassert>
 #include <limits>
+#include "../window_events.h"
 #include "../window.h"
 #include "../system.h"
 #include "../utf8.h"

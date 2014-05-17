@@ -42,8 +42,8 @@ if [ os.name ] = LINUX
   lib GLES2 : : <name>GLESv2 ;
   lib GL    : : <name>GL ;
 
-  lib wdk-desktop : keys.cpp [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
-  lib wdk-mobile  : keys.cpp [ glob X11/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
+  lib wdk-desktop : [ glob *.cpp ] [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
+  lib wdk-mobile  : [ glob *.cpp ] [ glob X11/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
 
 }
 
@@ -53,8 +53,8 @@ if [ os.name ] = NT
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
-  lib wdk-desktop : keys.cpp [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
-  lib wdk-mobile  : keys.cpp [ glob win32/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
+  lib wdk-desktop : [ glob *.cpp ] [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
+  lib wdk-mobile  : [ glob *.cpp ] [ glob win32/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
 }
 
 #build-project sample ;

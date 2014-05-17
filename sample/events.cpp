@@ -24,7 +24,7 @@
 #include <wdk/videomode.h>
 #include <wdk/modechange.h>
 #include <wdk/window.h>
-#include <wdk/events.h>
+#include <wdk/window_events.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>

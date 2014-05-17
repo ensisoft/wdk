@@ -25,11 +25,19 @@
 #include <utility> // for pair
 #include <string>
 #include "utility.h"
-#include "events.h"
 #include "types.h"
 
 namespace wdk
 {
+    struct window_event_create;
+    struct window_event_paint;
+    struct window_event_resize;
+    struct window_event_focus;
+    struct window_event_want_close;
+    struct window_event_keyup;
+    struct window_event_keydown;    
+    struct window_event_char;
+
     class window : noncopyable
     {
     public:

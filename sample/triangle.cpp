@@ -28,12 +28,12 @@
 #  endif
 #  include "glcorearb.h"
 #endif
+#include <wdk/window_listener.h>
+#include <wdk/window_events.h>
 #include <wdk/window.h>
-#include <wdk/events.h>
 #include <wdk/context.h>
 #include <wdk/surface.h>
 #include <wdk/config.h>
-#include <wdk/event_listener.h>
 #include <wdk/opengl.h>
 #include <vector>
 #include <algorithm>
@@ -97,7 +97,7 @@ void resolve()
 void resolve() {}
 #endif
 
-class triangle : public wdk::event_listener
+class triangle : public wdk::window_listener
 {
 public:
     triangle(wdk::window& win) : program_(0), run_(true), win_(win)
