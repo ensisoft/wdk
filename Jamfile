@@ -1,6 +1,7 @@
 
 import os ;
 import path ;
+import common ;
 
 lib X11     : : <name>X11  ;
 lib Xcb     : : <name>xcb  ;
@@ -12,7 +13,7 @@ lib Xrandr  : : <name>Xrandr ;
 
 path-constant GLES2_INC : "c:/imgtec_gles_sdk/Include" ;
 path-constant GLES2_LIB : "c:/imgtec_gles_sdk/Lib" ;
-path-constant BOOST_INC : "../boost_1_51_0" ;
+path-constant BOOST_INC : "boost_1_51_0" ;
 
 project wdk 
 : requirements
@@ -42,8 +43,19 @@ if [ os.name ] = LINUX
   lib GLES2 : : <name>GLESv2 ;
   lib GL    : : <name>GL ;
 
+  # boost.build wont let same source file be built with same default
+  # virtual target name by multiple build targets (read libraries)
+  # so we must use the obj rule to define an alternate target name for the source
+
+  local mobile_sources = [ glob *.cpp ] [ glob X11/*.cpp ] [ glob EGL/*.cpp ] ;
+  local mobile_objects ;  
+  for local source in $(mobile_sources)
+  {
+     mobile_objects += [ obj $(source:B)_egl : $(source) : <define>WDK_MOBILE ] ;
+  }
+
+  lib wdk-mobile : $(mobile_objects) : <link>static ;
   lib wdk-desktop : [ glob *.cpp ] [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
-  lib wdk-mobile  : [ glob *.cpp ] [ glob X11/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
 
 }
 
@@ -53,8 +65,20 @@ if [ os.name ] = NT
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
+  local mobile_sources = [ glob *.cpp ] [ glob win32/*.cpp ] [ glob EGL/*.cpp ] ;
+  local mobile_objects ;
+  for local source in $(mobile_sources)
+  {
+     mobile_objects += [ obj $(source:B)_egl : $(source) : <define>WDK_MOBILE ] ;  
+  }
+
+  lib wdk-mobile  : $(mobile_objects) : <link>static ;
   lib wdk-desktop : [ glob *.cpp ] [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
-  lib wdk-mobile  : [ glob *.cpp ] [ glob win32/*.cpp ] [ glob EGL/*.cpp ] : <define>WDK_MOBILE : <link>static ;
+
 }
+
+local headers = [ glob *.h : utf8.h utility.h ] ;
+
+install include/wdk : $(headers) ;
 
 #build-project sample ;
