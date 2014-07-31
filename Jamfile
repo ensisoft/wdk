@@ -22,7 +22,6 @@ project wdk
   <toolset>clang:<cflags>-std=c++11
   <os>NT:<include>$(GLES2_INC)
   <include>$(BOOST_INC)
-  <include>../
 : usage-requirements
   <toolset>gcc:<cflags>-std=c++11
   <toolset>clang:<cflags>-std=c++11
@@ -77,8 +76,11 @@ if [ os.name ] = NT
 
 }
 
-local headers = [ glob *.h : utf8.h utility.h ] ;
+local headers = [ glob-tree *.h : utf8.h boost* ] ;
 
-install include/wdk : $(headers) ;
+install include/wdk 
+ : $(headers) 
+ : <install-source-root>.
+ ;
 
 #build-project sample ;

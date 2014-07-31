@@ -1,3 +1,13 @@
+
+import path ;
+
+path-constant WDK : "../" ;
+
+project sample 
+:
+  requirements
+  <include>$(WDK)/include 
+;
 	
 exe events : events.cpp /wdk//wdk-desktop ;
 
