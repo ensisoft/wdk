@@ -46,7 +46,7 @@ namespace wdk
         }
         bitflag& unset(Enum value)
         {
-            bits_ &= (1 << value);
+            bits_ &= ~(1 << value);
             return *this;
         }
 
