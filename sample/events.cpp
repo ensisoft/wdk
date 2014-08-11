@@ -25,6 +25,7 @@
 #include <wdk/modechange.h>
 #include <wdk/window.h>
 #include <wdk/window_events.h>
+#include <wdk/bitflag.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -35,21 +36,20 @@ void handle_window_keydown(const wdk::window_event_keydown& key, wdk::window& wi
 {
     printf("Keydown event: ");
 
-    if ((key.modifiers & wdk::keymod::shift) == wdk::keymod::shift)
+    if (key.modifiers.test(wdk::keymod::shift))
         printf("Shift+");
-    if ((key.modifiers & wdk::keymod::control) == wdk::keymod::control)
+    if (key.modifiers.test(wdk::keymod::control))
         printf("Ctrl+");
-    if ((key.modifiers & wdk::keymod::alt) == wdk::keymod::alt)
+    if (key.modifiers.test(wdk::keymod::alt))
         printf("Alt+");
 
-    const std::string& name = key_name(key.symbol);
-    printf("%s\n", name.c_str());
+    const auto& str = wdk::name(key.symbol);
+    printf("%s\n", str.c_str());
 
     if (key.symbol == wdk::keysym::escape)
         win.destroy();
     else if (key.symbol == wdk::keysym::space)
         win.set_fullscreen(!win.is_fullscreen());
-
 }
 
 void handle_window_create(const wdk::window_event_create& create)
@@ -92,6 +92,32 @@ void handle_window_char(const wdk::window_event_char& uchar, wdk::window& win)
     else if (e == wdk::window::encoding::utf8)
        printf("UTF8 char event: \"%s\"\n", uchar.utf8);
 
+}
+
+void handle_window_mouse_move(const wdk::window_event_mouse_move& mickey)
+{
+    printf("Mouse move (win) %d,%d (root) %d,%d\n",
+        mickey.window_x, mickey.window_y, 
+        mickey.global_x, mickey.global_x);
+}
+
+void handle_window_mouse_press(const wdk::window_event_mouse_press& mickey)
+{
+    printf("Mouse press: ");
+
+    if (mickey.modifiers.test(wdk::keymod::shift))
+        printf("Shift+");
+    if (mickey.modifiers.test(wdk::keymod::control))
+        printf("Ctrl+");
+    if (mickey.modifiers.test(wdk::keymod::alt))
+        printf("Alt+");
+
+    const auto& str = wdk::name(mickey.btn);
+    printf(" '%s'", str.c_str());
+
+    printf(" (win) %d,%d (root) %d,%d\n", 
+        mickey.window_x, mickey.window_y,
+        mickey.global_x, mickey.global_y);
 }
 
 struct cmdline {
@@ -218,6 +244,8 @@ int main(int argc, char* argv[])
     win.on_resize     = handle_window_resize;
     win.on_want_close = handle_window_want_close;
     win.on_paint      = handle_window_paint;
+    win.on_mouse_move = handle_window_mouse_move;
+    win.on_mouse_press = handle_window_mouse_press;
     win.on_char       = std::bind(handle_window_char, std::placeholders::_1, std::ref(win));
     win.on_keydown    = std::bind(handle_window_keydown, std::placeholders::_1, std::ref(win));
 

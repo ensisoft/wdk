@@ -30,6 +30,9 @@ namespace wdk
     struct window_event_keyup;
     struct window_event_keydown;    
     struct window_event_char;
+    struct window_event_mouse_move;
+    struct window_event_mouse_press;
+    struct window_event_mouse_release;
     class  window;
 
     // interface for listening for window events
@@ -46,6 +49,9 @@ namespace wdk
         virtual void on_keydown(const window_event_keydown&) {}
         virtual void on_keyup(const window_event_keyup&) {}
         virtual void on_char(const window_event_char&) {}
+        virtual void on_mouse_move(const window_event_mouse_move&) {}
+        virtual void on_mouse_press(const window_event_mouse_press&) {}
+        virtual void on_mouse_release(const window_event_mouse_release&) {}
     protected:
     private:
     };

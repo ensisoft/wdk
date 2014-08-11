@@ -23,7 +23,6 @@
 #pragma once
 
 #include <string>
-#include "types.h"
 
 #ifdef _MSC_VER
 #  undef hyper
@@ -32,6 +31,16 @@
 
 namespace wdk
 {
+
+    // available mouse buttons. a "standard" mouse is expected to have 
+    // left and right buttons and a mouse wheel. 
+    // some mice also have more buttons in "non-standard" locations
+    // these are named thumbN buttons here.
+    enum class button {
+        none, left, right, wheel, wheel_up, wheel_down, 
+        thumb1, thumb2, thumb3, thumb4
+    };
+
     // keyboard event processing has 3 potential levels of operation available to applications.
     // going from lowest to higher the operations are as follows:
     // 
@@ -49,29 +58,8 @@ namespace wdk
 
     // possible modifiers, used as a bitwise OR flag
     enum class keymod {
-        none    = 0x0,
-        shift   = 0x1,
-        control = 0x2,
-        alt     = 0x4,
-        super   = 0x8,
-        hyper   = 0x10
+        none, shift, control, alt
     };
-
-    inline
-    keymod operator | (keymod x, keymod y)
-    {
-        return static_cast<keymod>(bitflag_t(x) | bitflag_t(y));
-    }
-    inline
-    keymod operator & (keymod x, keymod y)
-    {
-        return static_cast<keymod>((bitflag_t(x) & bitflag_t(y)));
-    }
-    inline
-    void operator |= (keymod& x, keymod y)
-    {
-        x = x | y;
-    }
 
     // primitive key symbols. this list represents a physical keys available
     // on most keyboards. the meaning of each raw key depends on the application.
@@ -155,9 +143,12 @@ namespace wdk
         escape
     }; 
 
-    std::string mod_name(keymod mod);
-    std::string key_name(keysym sym);
+    std::string name(keymod mod);
 
+    std::string name(keysym sym);
+
+
+    std::string name(button btn);
 
 } // wdk
 

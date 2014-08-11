@@ -76,7 +76,7 @@ if [ os.name ] = NT
 
 }
 
-local headers = [ glob-tree *.h : utf8.h boost* ] ;
+local headers = [ glob-tree *.h : utf8.h boost* include ] ;
 
 install include/wdk 
  : $(headers) 

@@ -41,6 +41,9 @@ void connect(wdk::window& window, wdk::window_listener& listener)
     window.on_keydown    = std::bind(&window_listener::on_keydown, &listener, args::_1);
     window.on_keyup      = std::bind(&window_listener::on_keyup, &listener, args::_1);
     window.on_char       = std::bind(&window_listener::on_char, &listener, args::_1);
+    window.on_mouse_move = std::bind(&window_listener::on_mouse_move, &listener, args::_1);
+    window.on_mouse_press = std::bind(&window_listener::on_mouse_press, &listener, args::_1);
+    window.on_mouse_release = std::bind(&window_listener::on_mouse_release, &listener, args::_1);
 }
 
 } // wdk

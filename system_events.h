@@ -22,46 +22,13 @@
 
 #pragma once
 
+#include "types.h"
+
 namespace wdk
 {
-    typedef int           int_t;
-    typedef unsigned int  uint_t;
-    typedef unsigned int  ms_t;
-    typedef unsigned int  errcode_t;
-
-    const ms_t NO_TIMEOUT = -1;
-
-    // native event type
-    enum class event_type {
-       none, // not known
-       window_lost_focus,
-       window_gain_focus,
-       window_resize,
-       window_paint,
-       window_keydown,
-       window_keyup,
-       window_char,
-       window_create,
-       window_destroy,
-       window_close,
-       display_resolution_change                    
+    struct system_event_resolution_change {
+        uint_t xres;
+        uint_t yres;
     };
 
 } // wdk
-
-#if defined(WINDOWS) || defined(_WIN32)
-#  include "win32/types.h"
-#else
-#  include "X11/types.h"
-#endif
-
-#if defined(WDK_MOBILE)
-#  include "EGL/types.h"
-#else
-#  if defined(WINDOWS) || defined(_WIN32)
-#    include "WGL/types.h"
-#  else
-#    include "GLX/types.h"
-#  endif
-#endif
-

@@ -34,15 +34,34 @@ namespace wdk
     class native_event_t 
     {
     public:
-        native_event_t(const MSG& m) : msg_(m), processed_(false)
+        enum class type {
+            window_gain_focus,
+            window_lost_focus,
+            window_resize,
+            window_create,
+            window_destroy,
+            window_keyup,
+            window_keydown,
+            window_char,
+            window_mouse_move,
+            window_mouse_press,
+            window_mouse_release,
+            system_resolution_change,
+            other
+        };
+
+        native_event_t(const MSG& m) : msg_(m), done_(false)
         {}
-        native_event_t(native_event_t&& other) : msg_(other.msg_), processed_(other.processed_)
+        native_event_t(native_event_t&& other) : msg_(other.msg_), done_(other.done_)
         {
             other.msg_ = MSG {0};
-            other.processed_ = true;
+            other.done_ = false;
         }
         ~native_event_t()
         {
+            if (msg_.message == 0)
+                return;
+
             if (msg_.message == WM_PAINT)
             {
                 // not sure if this is the right thing to do, but on X11
@@ -57,7 +76,7 @@ namespace wdk
                 ValidateRect(msg_.hwnd, &rcPaint);
             }
 
-            if (processed_)
+            if (done_)
                 return;
             
             if (msg_.message == WM_CLOSE)
@@ -69,9 +88,9 @@ namespace wdk
         {
             return msg_;
         }
-        void done() const
+        void set_done() const
         {
-            processed_ = true;
+            done_ = true;
         }
         native_window_t get_window_handle() const
         { 
@@ -80,9 +99,11 @@ namespace wdk
         native_event_t& operator=(native_event_t&& other)
         {
             native_event_t tmp(std::move(*this));
+            msg_  = other.msg_;
+            done_ = other.done_;
 
-            std::swap(msg_, other.msg_);
-            std::swap(processed_, other.processed_);
+            other.msg_  = MSG {0};
+            other.done_ = false;
 
             return *this;
         }
@@ -91,27 +112,41 @@ namespace wdk
 	        return msg_;
         }	
 
-        event_type get_type() const
+        type identity() const
         {
             switch (msg_.message)
             {
-                case WM_SETFOCUS:      return event_type::window_gain_focus;
-                case WM_KILLFOCUS:     return event_type::window_lost_focus;
-                case WM_PAINT:         return event_type::window_paint;
-                case WM_SIZE:          return event_type::window_resize;
-                case WM_CREATE:        return event_type::window_create;
-                case WM_DESTROY:       return event_type::window_destroy;
-                case WM_CLOSE:         return event_type::window_close;
-                case WM_KEYDOWN:       return event_type::window_keydown;
-                case WM_KEYUP:         return event_type::window_keyup;
-                case WM_CHAR:          return event_type::window_char;
-                case WM_DISPLAYCHANGE: return event_type::display_resolution_change;
+                case WM_SETFOCUS:      return type::window_gain_focus;
+                case WM_KILLFOCUS:     return type::window_lost_focus;
+                case WM_PAINT:         return type::window_paint;
+                case WM_SIZE:          return type::window_resize;
+                case WM_CREATE:        return type::window_create;
+                case WM_DESTROY:       return type::window_destroy;
+                case WM_CLOSE:         return type::window_close;
+                case WM_KEYDOWN:       return type::window_keydown;
+                case WM_KEYUP:         return type::window_keyup;
+                case WM_CHAR:          return type::window_char;
+                case WM_DISPLAYCHANGE: return type::system_resolution_change;
+                case WM_MOUSEMOVE:     return type::window_mouse_move;
+
+                case WM_LBUTTONDOWN:   
+                case WM_RBUTTONDOWN:
+                case WM_MBUTTONDOWN:
+                    return type::window_mouse_press;
+
+                case WM_LBUTTONUP:
+                case WM_RBUTTONUP:
+                case WM_MBUTTONUP:
+                    return type::window_mouse_release;
+
+                default:
+                    break;
             }
-            return event_type::none;
+            return type::other;
         }
     private:
         MSG msg_;
-        mutable bool processed_;
+        mutable bool done_;
     };
 
 } // wdk

@@ -24,7 +24,7 @@
 
 #include <cstdint>
 #include "keys.h"
-#include "types.h"
+#include "bitflag.h"
 
 namespace wdk
 {
@@ -69,12 +69,12 @@ namespace wdk
     // do not use directly, see the typedefs below
     struct window_event_keyup {
         keysym symbol;
-        keymod modifiers;
+        bitflag<keymod> modifiers;
     };
     
     struct window_event_keydown {
         keysym symbol;
-        keymod modifiers;
+        bitflag<keymod> modifiers;
     };
 
     // input character. the meaning of value depends
@@ -87,5 +87,25 @@ namespace wdk
             uint8_t  utf8[4];
         };
     };
+
+    struct window_event_mouse_move {
+        int window_x, window_y;
+        int global_x, global_y;
+        bitflag<keymod> modifiers;
+    };
+
+    struct window_event_mouse_press {
+        int window_x, window_y;
+        int global_x, global_y;
+        button btn;
+        bitflag<keymod> modifiers;
+    };
+
+    struct window_event_mouse_release {
+        int window_x, window_y;
+        int global_x, global_y;
+        button btn;
+        bitflag<keymod> modifiers;
+    };    
 
 } // wdk

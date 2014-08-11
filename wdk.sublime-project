@@ -1,0 +1,13 @@
+{
+    "settings":
+    {
+        "sublimeclang_options":
+        [
+            "-std=c++11",
+            "-I${home}/coding",            
+            "-I${home}/coding/wdk/",
+            "-I${home}/coding/wdk/boost_1_51_0",
+            "-DSUBLIME_CLANG_WORKAROUNDS"
+        ]
+    }
+}

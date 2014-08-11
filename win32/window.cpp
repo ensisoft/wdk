@@ -515,6 +515,17 @@ void window::process_event(const native_event_t& ev)
             break;
 
 
+            // todo:
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+            break;
+
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP;
+            break;
+
         case WM_CHAR:
             if (on_char)
             {
@@ -537,7 +548,7 @@ void window::process_event(const native_event_t& ev)
             return;
     }
 
-    ev.done();
+    ev.set_done();
 }
 
 void window::sync_all_events()

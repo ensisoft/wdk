@@ -37,6 +37,9 @@ namespace wdk
     struct window_event_keyup;
     struct window_event_keydown;    
     struct window_event_char;
+    struct window_event_mouse_move;
+    struct window_event_mouse_press;
+    struct window_event_mouse_release;
 
     class window : noncopyable
     {
@@ -56,6 +59,9 @@ namespace wdk
         std::function<void (const window_event_keydown&)>    on_keydown;
         std::function<void (const window_event_keyup&)>      on_keyup;
         std::function<void (const window_event_char&)>       on_char;
+        std::function<void (const window_event_mouse_move&)> on_mouse_move;
+        std::function<void (const window_event_mouse_press&)> on_mouse_press;
+        std::function<void (const window_event_mouse_release&)> on_mouse_release;
 
         window();
 

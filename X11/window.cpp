@@ -345,6 +345,50 @@ void window::process_event(const native_event_t& ev)
 
     switch (event.type)
     {
+        case MotionNotify:
+            if (on_mouse_move)
+            {
+                window_event_mouse_move mickey = {};
+                mickey.window_x = event.xmotion.x;
+                mickey.window_y = event.xmotion.y;
+                mickey.global_x = event.xmotion.x_root;
+                mickey.global_y = event.xmotion.y_root;
+                on_mouse_move(mickey);
+            }
+            break;
+
+        case ButtonPress:
+            if (on_mouse_press)
+            {
+                const auto& button = translate_mouse_button_event(ev);
+
+                window_event_mouse_press mickey = {};
+                mickey.window_x = event.xbutton.x;
+                mickey.window_y = event.xbutton.y;
+                mickey.global_x = event.xbutton.x_root;
+                mickey.global_y = event.xbutton.y_root;
+                mickey.modifiers = button.first;
+                mickey.btn       = button.second;
+                on_mouse_press(mickey);
+            }
+            break;
+
+        case ButtonRelease:
+            if (on_mouse_release)
+            {
+                const auto& button = translate_mouse_button_event(ev);
+
+                window_event_mouse_release mickey = {};
+                mickey.window_x = event.xbutton.x;
+                mickey.window_y = event.xbutton.y;
+                mickey.global_x = event.xbutton.x_root;
+                mickey.global_y = event.xbutton.y_root;
+                mickey.modifiers = button.first;
+                mickey.btn       = button.second;
+                on_mouse_release(mickey);
+            }
+            break;
+
         case FocusIn:
             if (on_gain_focus)
                 on_gain_focus(window_event_focus{});
@@ -406,7 +450,7 @@ void window::process_event(const native_event_t& ev)
         case KeyPress:
             if (on_keydown)
             {
-                const auto& keys = translate_keydown(ev);
+                const auto& keys = translate_keydown_event(ev);
                 if (keys.second != keysym::none)
                     on_keydown(window_event_keydown{keys.second, keys.first});
             }

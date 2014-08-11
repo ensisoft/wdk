@@ -3,6 +3,8 @@ import path ;
 
 path-constant WDK : "../" ;
 
+build-project $(WDK) ;
+
 project sample 
 :
   requirements

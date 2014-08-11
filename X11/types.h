@@ -60,6 +60,23 @@ namespace wdk
     class native_event_t 
     {
     public:
+        enum class type {
+            window_gain_focus,
+            window_lost_focus,
+            window_resize,
+            window_create,
+            window_destroy,
+            window_keydown,
+            window_keyup,
+            window_char,
+            window_mouse_move,
+            window_mouse_press,
+            window_mouse_release,
+
+            system_resolution_change,
+            other
+        };
+
         native_event_t() 
         {
             event_ = XEvent{0};
@@ -86,28 +103,31 @@ namespace wdk
             return event_;
         }
         
-        event_type get_type() const
+        type identity() const
         {
             if ((event_.type - XRandREventBase) == RRScreenChangeNotify)
-                return event_type::display_resolution_change;
+                return type::system_resolution_change;
 
             switch (event_.type)
             {
-                case FocusIn:         return event_type::window_gain_focus;
-                case FocusOut:        return event_type::window_lost_focus;
-                case ConfigureNotify: return event_type::window_resize;
-                case CreateNotify:    return event_type::window_create;
-                case DestroyNotify:   return event_type::window_destroy;
-                case KeyPress:        return event_type::window_keydown;
-                case KeyRelease:      return event_type::window_keyup;
+                case FocusIn:         return type::window_gain_focus;
+                case FocusOut:        return type::window_lost_focus;
+                case ConfigureNotify: return type::window_resize;
+                case CreateNotify:    return type::window_create;
+                case DestroyNotify:   return type::window_destroy;
+                case KeyPress:        return type::window_keydown;
+                case KeyRelease:      return type::window_keyup;
+                case MotionNotify:    return type::window_mouse_move;
+                case ButtonPress:     return type::window_mouse_press;
+                case ButtonRelease:   return type::window_mouse_release;
                 case MapNotify:
                     if (event_.xany.send_event)
-                        return event_type::window_char;
+                        return type::window_char;
 
                 default:
                     break;
             }
-            return event_type::none;
+            return type::other;
         }
     private:
         XEvent event_;        

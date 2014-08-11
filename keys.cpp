@@ -26,31 +26,31 @@
 namespace wdk
 {
 
-std::string mod_name(keymod mod)
+std::string name(keymod mod)
 {
     assert(mod != keymod::none);
 
     switch (mod)
     {
+        case keymod::none:    return "none";
         case keymod::shift:   return "Shift";
         case keymod::control: return "Ctrl";
         case keymod::alt:     return "Alt";
-        case keymod::super:   return "Super";
-        case keymod::hyper:   return "Hyper";
-        case keymod::none:
-            break;
+        // case keymod::super:   return "Super";
+        // case keymod::hyper:   return "Hyper";
     }
     assert(0);
     return "";
 }
 
-std::string key_name(keysym sym)
+std::string name(keysym sym)
 {
     assert(sym != keysym::none);
 
     // this is not localized, but we don't care about it atm.
     switch (sym)
     {
+        case keysym::none:      return "none";
         case keysym::backspace: return "Backspace";
         case keysym::tab:       return "Tab";
         case keysym::enter:     return "Enter";
@@ -120,8 +120,25 @@ std::string key_name(keysym sym)
         case keysym::up:        return "Up";
         case keysym::down:      return "Down";
         case keysym::escape:    return "Esc";
-        case keysym::none:
-            break;
+    }
+    assert(0);
+    return "";
+}
+
+std::string name(button btn)
+{
+    switch (btn)
+    {
+        case button::none:       return "none";
+        case button::left:       return "Left";
+        case button::right:      return "Right";
+        case button::wheel:      return "Wheel";
+        case button::wheel_up:   return "Wheel Up";
+        case button::wheel_down: return "Wheel Down";
+        case button::thumb1:     return "Thumb 1";
+        case button::thumb2:     return "Thumb 2";
+        case button::thumb3:     return "Thumb 3";
+        case button::thumb4:     return "Thumb 4";
     }
     assert(0);
     return "";

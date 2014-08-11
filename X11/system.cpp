@@ -446,9 +446,9 @@ bool peek_event(native_event_t& ev)
     return true;
 }
 
-std::pair<keymod, keysym> translate_keydown(const native_event_t& key)
+std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
 {
-    std::pair<keymod, keysym> ret = {keymod::none, keysym::none};
+    std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
 
     const XEvent& ev = key;
 
@@ -484,6 +484,45 @@ std::pair<keymod, keysym> translate_keydown(const native_event_t& key)
         ret.first |= keymod::shift;
 
     return ret;
+}
+
+std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& btn)
+{
+    button b = button::none;
+    bitflag<keymod> m { keymod::none };
+
+    const auto button = btn.get().xbutton.button;
+
+    if (button == Button1)
+        b = wdk::button::left;
+    else if (button == Button2)
+        b = wdk::button::wheel;
+    else if (button == Button3)
+        b = wdk::button::right;
+    else if (button == Button4)
+        b = wdk::button::wheel_up;
+    else if (button == Button5)
+        b = wdk::button::wheel_down;
+    else if (button == Button5 + 1)
+        b = wdk::button::thumb1;
+    else if (button == Button5 + 2)
+        b = wdk::button::thumb2;
+    else if (button == Button5 + 3)
+        b = wdk::button::thumb3;
+    else if (button == Button5 + 4)
+        b = wdk::button::thumb4;
+
+    // todo: thumb1 and thumb2 buttons
+    const auto state  = btn.get().xbutton.state;
+
+    if (state & AltMask)
+        m.set(keymod::alt);
+    if (state & ControlMask)
+        m.set(keymod::control);
+    if (state & ShiftMask)
+        m.set(keymod::shift);
+
+    return { m, b };
 }
 
 bool test_key_down(keysym symbol)

@@ -241,9 +241,9 @@ native_event_t get_event()
 
 }
 
-std::pair<keymod, keysym> translate_keydown(const native_event_t& key)
+std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
 {
-    std::pair<keymod, keysym> ret = {keymod::none, keysym::none};
+    std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
 
     const MSG& m = key;
 
@@ -294,7 +294,7 @@ std::pair<keymod, keysym> translate_keydown(const native_event_t& key)
             sym = keysym::shift_R;
     }
 
-    return std::pair<keymod, keysym> {mods, sym};
+    return {mods, sym};
 }
 
 bool test_key_down(keysym symbol)
