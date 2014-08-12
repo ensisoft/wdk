@@ -24,7 +24,9 @@
 
 #include <vector>
 #include <string>
+#include "keys.h"
 #include "types.h"
+#include "bitflag.h"
 
 namespace wdk
 {
@@ -62,8 +64,10 @@ namespace wdk
     native_event_t get_event();
 
     // translate keydown event
-    std::pair<keymod, keysym> translate_keydown(const native_event_t& key);
+    std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key);
     
+    std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& bnt);
+
     bool test_key_down(keysym symbol);
 
     bool test_key_down(uint_t keycode);
