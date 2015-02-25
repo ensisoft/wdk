@@ -241,6 +241,7 @@ int main(int argc, char* argv[])
 {
 
     // start with opengl with default config
+
     wdk::opengl gl;
 
     printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));

@@ -43,8 +43,10 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, boost::indeterminate, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 0, 0, true, {true, false, false}};
+using buff = config::backbuffer;    
+
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, buff::dont_care, {true, false, false}};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 0, 0, buff::double_buffer, {true, false, false}};
 
 struct config::impl {
     EGLDisplay   display;
@@ -66,6 +68,10 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, EGL_DEPTH_SIZE, attrs.depth_size);
     set_if(criteria, EGL_CONFIG_ID, attrs.configid);
     set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
+
+    // EGL 1.4 supports two buffering models. Back buffered and single buffered.
+    // back buffered rendering is used by window and pbuffer surfaces automatically.
+    // there's no support for tripple buffering.
 
     int drawable_bits = 0;
     if (attrs.surfaces.window)
@@ -113,7 +119,7 @@ uint_t config::configid() const
 
 gl_config_t config::handle() const
 {
-    return gl_config_t { pimpl_->config };
+    return { pimpl_->config };
 }
 
 

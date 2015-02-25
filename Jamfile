@@ -11,9 +11,10 @@ lib Xxf86vm : : <name>Xxf86vm ;
 lib Xext    : : <name>Xext ;
 lib Xrandr  : : <name>Xrandr ;
 
+# for windows 
 path-constant GLES2_INC : "c:/imgtec_gles_sdk/Include" ;
 path-constant GLES2_LIB : "c:/imgtec_gles_sdk/Lib" ;
-path-constant BOOST_INC : "boost_1_51_0" ;
+
 
 project wdk 
 : requirements
@@ -21,7 +22,7 @@ project wdk
   <toolset>gcc:<cflags>-Wno-deprecated-declarations
   <toolset>clang:<cflags>-std=c++11
   <os>NT:<include>$(GLES2_INC)
-  <include>$(BOOST_INC)
+  <include>include/
 : usage-requirements
   <toolset>gcc:<cflags>-std=c++11
   <toolset>clang:<cflags>-std=c++11
@@ -34,7 +35,6 @@ project wdk
   <os>LINUX:<library>/wdk//Xrandr/<link>shared
   ;
 
-use-project /boost/ : $(BOOST_INC) ;
 
 if [ os.name ] = LINUX
 {
@@ -42,19 +42,10 @@ if [ os.name ] = LINUX
   lib GLES2 : : <name>GLESv2 ;
   lib GL    : : <name>GL ;
 
-  # boost.build wont let same source file be built with same default
-  # virtual target name by multiple build targets (read libraries)
-  # so we must use the obj rule to define an alternate target name for the source
+  lib linux : [ glob *.cpp ] [ glob X11/*.cpp ] : <link>static ;
 
-  local mobile_sources = [ glob *.cpp ] [ glob X11/*.cpp ] [ glob EGL/*.cpp ] ;
-  local mobile_objects ;  
-  for local source in $(mobile_sources)
-  {
-     mobile_objects += [ obj $(source:B)_egl : $(source) : <define>WDK_MOBILE ] ;
-  }
-
-  lib wdk-mobile : $(mobile_objects) : <link>static ;
-  lib wdk-desktop : [ glob *.cpp ] [ glob X11/*.cpp ] [ glob GLX/*.cpp ] : <link>static ;
+  lib wdk-mobile  : [ glob EGL/*.cpp ] linux : <link>static : <define>WDK_MOBILE ;
+  lib wdk-desktop : [ glob GLX/*.cpp ] linux : <link>static ;
 
 }
 
@@ -64,15 +55,11 @@ if [ os.name ] = NT
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
-  local mobile_sources = [ glob *.cpp ] [ glob win32/*.cpp ] [ glob EGL/*.cpp ] ;
-  local mobile_objects ;
-  for local source in $(mobile_sources)
-  {
-     mobile_objects += [ obj $(source:B)_egl : $(source) : <define>WDK_MOBILE ] ;  
-  }
+  lib win32 : [ glob *.cpp ] [ glob win32/*.cpp ] : <link>static ;
 
-  lib wdk-mobile  : $(mobile_objects) : <link>static ;
-  lib wdk-desktop : [ glob *.cpp ] [ glob win32/*.cpp ] [ glob WGL/*.cpp ] : <link>static ;
+  lib wdk-mobile  : [ glob EGL/*.cpp ] win32 : <link>static : <define>WDK_MOBILE ;
+
+  lib wdk-desktop : [ glob WGL/*.cpp ] win32 : <link>static ;
 
 }
 
@@ -83,4 +70,25 @@ install include/wdk
  : <install-source-root>.
  ;
 
-#build-project sample ;
+
+# 
+# samples
+#
+
+
+#
+# open a window and print events to the console
+#
+exe events : sample/events.cpp wdk-desktop ;
+
+
+#
+# render a simple triangle using OpenGL
+#
+exe triangle-opengl-gl : [ obj triangle_GL_2 : sample/triangle.cpp : ]  wdk-desktop GL ;
+
+
+#
+# render a simple triangle using OpenGL ES
+#
+exe triangle-opengl-es : [ obj triangle_GL_ES : sample/triangle.cpp : <define>SAMPLE_GLES ] wdk-mobile GLES2 EGL ;

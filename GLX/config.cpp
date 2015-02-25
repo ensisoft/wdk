@@ -41,8 +41,10 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, boost::indeterminate, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 0, 0, true, {true, false, false}};
+using buff = config::backbuffer;
+
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, buff::dont_care, {true, false, false}};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 0, 0, buff::double_buffer, {true, false, false}};
 
 struct config::impl {
     GLXFBConfig* configs;
@@ -77,12 +79,12 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     set_if(criteria, GLX_DRAWABLE_TYPE, drawable_bits);
 
-    if (!dont_care(attrs.doublebuffer) && attrs.doublebuffer)
+    if (attrs.backbuf == buff::double_buffer)
         set_if(criteria, GLX_DOUBLEBUFFER, (uint_t)True);
 
     criteria.push_back(None);
 
-    Display* dpy = get_display_handle();
+    auto dpy = get_display_handle();
 
     int num_matches = 0;
     auto matches = make_unique_ptr(glXChooseFBConfig(dpy, DefaultScreen(dpy), (const int*)&criteria[0], &num_matches), XFree);
@@ -121,7 +123,7 @@ uint_t config::configid() const
 
 gl_config_t config::handle() const
 {
-    return gl_config_t {pimpl_->config};
+    return {pimpl_->config};
 }
 
 } // wdk

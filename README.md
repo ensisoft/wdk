@@ -13,7 +13,14 @@ the following compilers:
 1. Building the library
 --------------------------------
 
-Install and prepare boost and boost.build:
+For the impatient on Linux:
+
+    $ make 
+
+
+Building with boost.build: 
+
+1. Install and prepare boost and boost.build:
 
     $ wget http://sourceforge.net/projects/boost/files/boost/1.51.0/boost_1_51_0.zip/download boost_1_51_0.zip
     $ unzip boost_15_0.zip
@@ -23,9 +30,10 @@ Install and prepare boost and boost.build:
     $ bjam --version
       Boost.build.2011.12-svn
 
-Build WDK libraries:
-    
+2. Build WDK:
+
     $ bjam 
+
 
 2. How to use the library?
 --------------------------------
@@ -61,6 +69,6 @@ Typical simple usage scenario:
 ---------------------------------
 
 - implement keyup events
-- mouse input
-- get rid of dependency on boost
+- mouse input for win32
+
 

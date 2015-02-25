@@ -22,12 +22,10 @@
 
 #pragma once
 
-#include <boost/logic/tribool.hpp>
 #include <memory>
 #include "types.h"
 #include "utility.h"
 
-BOOST_TRIBOOL_THIRD_STATE(dont_care)
 
 namespace wdk
 {
@@ -35,6 +33,11 @@ namespace wdk
     class config : noncopyable
     {
     public:
+        enum class backbuffer {
+            dont_care, single_buffer, double_buffer
+
+        };
+
         // framebuffer attributes. when using visualid or configid
         // other attributes are ignored. use 0 for don't care
         struct attributes {
@@ -46,7 +49,7 @@ namespace wdk
             uint_t visualid;
             uint_t configid;
 
-            boost::tribool doublebuffer;
+            backbuffer backbuf;
 
             struct {
                 bool window;
