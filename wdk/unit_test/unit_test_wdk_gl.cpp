@@ -20,6 +20,12 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#ifndef _WIN32
+#  define GL_GLEXT_PROTOTYPES
+#endif
+
+#include <GL/gl.h>
+
 #include <boost/test/minimal.hpp>
 #include <wdk/system.h>
 #include <wdk/config.h>
@@ -65,10 +71,10 @@ void unit_test_config()
 
     {
         config::attributes attrs = {0};
-        attrs.red_size = 8;
+        attrs.red_size   = 8;
         attrs.green_size = 8;
-        attrs.blue_size = 8;
-        attrs.doublebuffer = true;
+        attrs.blue_size  = 8;
+        attrs.double_buffer = true;
 
         config c(attrs);
 
@@ -88,10 +94,10 @@ void unit_test_context()
         context ctx_1(conf, 1, 0);
         context ctx_2(conf, 2, 0);
 #else
-        context ctx_1_1(conf, 1, 1);
-        context ctx_2_0(conf, 2, 0);
-        context ctx_2_1(conf, 2, 1);
-        context ctx_3_0(conf, 3, 0);
+        context ctx_1_1(conf, 1, 1, false);
+        context ctx_2_0(conf, 2, 0, false);
+        context ctx_2_1(conf, 2, 1, false);
+        context ctx_3_0(conf, 3, 0, false);
 
         BOOST_REQUIRE(context::resolve("glBegin"));
         BOOST_REQUIRE(context::resolve("glCreateProgram"));
@@ -220,11 +226,11 @@ void unit_test_surfaces()
     attrs.red_size = 8;
     attrs.green_size = 8;
     attrs.blue_size = 8;
-    attrs.doublebuffer = true;
+    attrs.double_buffer = true;
 
     config conf_window(attrs);
 
-    attrs.doublebuffer = false;
+    attrs.double_buffer = false;
 
     config conf_buffer(attrs);
 

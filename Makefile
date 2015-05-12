@@ -1,14 +1,13 @@
 
-CFLAGS=-DLINUX -std=c++11 -g -O0
-INCS=-I..
+CFLAGS=-DLINUX -std=c++11 -g -O0 
+INCS=-I.
 LIBS=-lX11 -lxcb -lXau -lXxf86vm -lXext -lXrandr
 GLES=-lEGL -lGLESv2
 GLGL=-lGL
 
-sources = $(wildcard *.cpp) $(wildcard X11/*.cpp)
-headers = $(wildcard *.h)
-glx = $(wildcard GLX/*.cpp)
-egl = $(wildcard EGL/*.cpp)
+sources = $(wildcard wdk/*.cpp) $(wildcard wdk/X11/*.cpp)
+glx = $(wildcard wdk/GLX/*.cpp)
+egl = $(wildcard wdk/EGL/*.cpp)
 
 all: events triangle-opengl-gl	triangle-opengl-es
 

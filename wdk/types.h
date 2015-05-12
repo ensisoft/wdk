@@ -22,51 +22,30 @@
 
 #pragma once
 
-#include <iostream>
-
 namespace wdk
 {
-    struct videomode {
-        uint_t xres;
-        uint_t yres;
-        videomode() : xres(0), yres(0)
-        {}
-        videomode(uint_t width, uint_t height) : xres(width), yres(height)
-        {}        
-        bool is_empty() const
-        {
-            return xres == 0 && yres == 0;
-        }
-    };
+    typedef int           int_t;
+    typedef unsigned int  uint_t;
+    typedef unsigned int  ms_t;
+    typedef unsigned int  errcode_t;
 
-    inline bool operator < (const videomode& lhs, const videomode& rhs)
-    {
-        return (lhs.xres * lhs.yres) < (rhs.xres * rhs.yres);
-    }
-
-    inline
-    bool operator > (const videomode& lhs, const videomode& rhs)
-    {
-        return (rhs < lhs);
-    }
-
-    inline
-    bool operator == (const videomode& lhs, const videomode& rhs)
-    {
-        return !(lhs < rhs) && !(rhs < lhs);
-    }
-
-    inline
-    bool operator != (const videomode& lhs, const videomode& rhs)
-    {
-        return !(lhs == rhs);
-    }
-
-    inline
-    std::ostream& operator << (std::ostream& o, const videomode& vm)
-    {
-        o << "VideoMode: " << vm.xres << "x" << vm.yres;
-        return o;
-    }
+    const ms_t NO_TIMEOUT = -1;
 
 } // wdk
+
+#if defined(WINDOWS) || defined(_WIN32)
+#  include "win32/types.h"
+#else
+#  include "X11/types.h"
+#endif
+
+#if defined(WDK_MOBILE)
+#  include "EGL/types.h"
+#else
+#  if defined(WINDOWS) || defined(_WIN32)
+#    include "WGL/types.h"
+#  else
+#    include "GLX/types.h"
+#  endif
+#endif
+

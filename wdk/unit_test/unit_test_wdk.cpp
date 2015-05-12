@@ -22,12 +22,11 @@
 
 #include <boost/test/minimal.hpp>
 #include <wdk/system.h>
-#include <wdk/events.h>
 #include <wdk/videomode.h>
 #include <wdk/modechange.h>
 #include <wdk/window.h>
-#include <wdk/events.h>
-#include <wdk/event_listener.h>
+#include <wdk/window_events.h>
+#include <wdk/window_listener.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -38,34 +37,31 @@
 #  include <unistd.h>
 #endif
 
-using namespace wdk;
-using namespace std;
-
 void unit_test_video_modes()
 {
     {
-        const videomode& original_mode = get_current_video_mode();
+        const wdk::videomode& original_mode = wdk::get_current_video_mode();
         BOOST_REQUIRE(original_mode.xres);
         BOOST_REQUIRE(original_mode.yres);
  
-        const vector<videomode> modes = list_video_modes();
+        const std::vector<wdk::videomode> modes = wdk::list_video_modes();
 
         BOOST_REQUIRE(find(modes.begin(), modes.end(), original_mode) != modes.end());
 
-        videomode curmode = original_mode;
+        wdk::videomode curmode = original_mode;
 
         for (auto& mode : modes)
         {
             if (mode == curmode)
                 continue;
-            cout << "Testing: " << mode << endl;
-            set_video_mode(mode);
+            std::cout << "Testing: " << mode << std::endl;
+            wdk::set_video_mode(mode);
 
             // wait for a change event
             while (true)
             {
-                const auto& e = get_event();
-                if (e.get_type() == event_type::display_resolution_change)
+                const auto& e = wdk::get_event();
+                if (e.identity() == wdk::native_event_t::type::system_resolution_change)
                     break;
             }
 
@@ -79,8 +75,8 @@ void unit_test_video_modes()
         {
             while (true)
             {
-                const auto& e = get_event();
-                if (e.get_type() == event_type::display_resolution_change)
+                const auto& e = wdk::get_event();
+                if (e.identity() == wdk::native_event_t::type::system_resolution_change)
                     break;
             }
         }
@@ -88,11 +84,9 @@ void unit_test_video_modes()
 
     // try setting to an invalid mode
     {
-        videomode m(50, 50);
-
         try 
         {
-            set_video_mode(videomode(50, 50));
+            wdk::set_video_mode(wdk::videomode(50, 50));
             BOOST_REQUIRE(!"failed to detect invalid video mode setting");
         }
         catch (const std::exception& e)
@@ -103,24 +97,24 @@ void unit_test_video_modes()
 
     // try restoring the mode
     {
-        const videomode& curmode = get_current_video_mode();
+        const wdk::videomode& curmode = wdk::get_current_video_mode();
         {
-            modechange vidmode;
-            vidmode.set(videomode(800, 600));
+            wdk::modechange vidmode;
+            vidmode.set(wdk::videomode(800, 600));
             while  (true)
             {
-                const auto& e = get_event();
-                if (e.get_type() == event_type::display_resolution_change)
+                const auto& e = wdk::get_event();
+                if (e.identity() == wdk::native_event_t::type::system_resolution_change)
                     break;
             }
         }
 
-        const videomode& now = get_current_video_mode();
+        const wdk::videomode& now = wdk::get_current_video_mode();
 
         while (true)
         {
-            const auto& e = get_event();
-            if (e.get_type() == event_type::display_resolution_change)
+            const auto& e = wdk::get_event();
+            if (e.identity() == wdk::native_event_t::type::system_resolution_change)
                 break;
         }
 
@@ -131,24 +125,23 @@ void unit_test_video_modes()
 
 void unit_test_keyboard()
 {
-    for (int i = (int)keysym::backspace; i <= (int)keysym::escape; ++i)
+    for (int i = (int)wdk::keysym::backspace; i <= (int)wdk::keysym::escape; ++i)
     {
-        const std::string& name = key_name((keysym)i);
-
+        const auto name = wdk::name((wdk::keysym)i);
         BOOST_REQUIRE(!name.empty());
 
-        const uint_t code = keysym_to_keycode((keysym)i);
+        const auto code = keysym_to_keycode((wdk::keysym)i);
         BOOST_REQUIRE(code);
 
         std::cout << "\rpress: " << name << std::endl;
 
-        while (!test_key_down((keysym)i))
+        while (!wdk::test_key_down((wdk::keysym)i))
         {}
 
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         std::cout << "\rpress: " << name << std::endl;
 
-        while (!test_key_down(code))
+        while (!wdk::test_key_down(code))
         {}
 
         std::cout << std::endl;
@@ -160,14 +153,14 @@ void unit_test_window()
 {
     // test different sizes
     {
-        window w;
+        wdk::window w;
 
         BOOST_REQUIRE(!w.exists());
 
         // create windows of various sizes, these should all be doable
         struct dim {
-            uint_t width;
-            uint_t height;
+            wdk::uint_t width;
+            wdk::uint_t height;
         };
 
         const dim sizes[] = {
@@ -215,13 +208,13 @@ void unit_test_window()
 
     // set to fullscreen
     {
-        const videomode& current_mode = get_current_video_mode();
+        const wdk::videomode& current_mode = wdk::get_current_video_mode();
 
-        window w;
+        wdk::window w;
         w.create("unit-test", 400, 400);
         w.set_fullscreen(true);
 
-        sync_events();
+        wdk::sync_events();
         BOOST_REQUIRE(w.surface_height() == current_mode.yres);
         BOOST_REQUIRE(w.surface_width() == current_mode.xres);
 
@@ -240,30 +233,30 @@ void unit_test_window()
     // test events
     {
 
-        struct events : public event_listener 
+        struct events : public wdk::window_listener 
         {
-            void on_create(const window_event_create& create)
+            void on_create(const wdk::window_event_create& create)
             {
                 BOOST_REQUIRE(create.width == 600);
                 BOOST_REQUIRE(create.height == 500);
                 got_create = true;
             }
-            void on_paint(const window_event_paint& paint)
+            void on_paint(const wdk::window_event_paint& paint)
             {
                 got_paint = true;
             }
-            void on_lost_focus(const window_event_focus&)
+            void on_lost_focus(const wdk::window_event_focus&)
             {
                 got_kill_focus = true;
             }
-            void on_gain_focus(const window_event_focus&)
+            void on_gain_focus(const wdk::window_event_focus&)
             {
                 got_gain_focus = true;
             }
-            void on_want_close(const window_event_want_close& close)
+            void on_want_close(const wdk::window_event_want_close& close)
             {
             }
-            void on_resize(const window_event_resize& resize)
+            void on_resize(const wdk::window_event_resize& resize)
             {
                 BOOST_REQUIRE(resize.width == 200);
                 BOOST_REQUIRE(resize.height == 300);
@@ -278,8 +271,8 @@ void unit_test_window()
         };
 
         // create two windows and use top window to obscure the below window which gets us events
-        window top;
-        window below;
+        wdk::window top;
+        wdk::window below;
 
         events ev; 
         below.on_create = std::bind(&events::on_create, &ev, std::placeholders::_1);
@@ -316,9 +309,8 @@ void unit_test_window()
 
 int test_main(int, char*[])
 {
-    //unit_test_video_modes();
-    //unit_test_keyboard();
+    unit_test_video_modes();
+    unit_test_keyboard();
     unit_test_window();
-
     return 0;
 }

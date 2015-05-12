@@ -109,10 +109,9 @@ namespace {
 namespace wdk
 {
 
-using buff = config::backbuffer;
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, buff::dont_care, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 0, 0, buff::double_buffer, {true, false, false}};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, {true, false, false}};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 0, 0, true, {true, false, false}};
 
 struct config::impl {
     int pixelformat;
@@ -144,7 +143,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
         assert(!attrs.surfaces.pbuffer && "pbuffer is not implemented");
 
-        if (attrs.backbuf == buff::double_buffer)
+        if (attrs.double_buffer)
             set_if(criteria, WGL_DOUBLE_BUFFER_ARB, TRUE);
 
         set_if(criteria, WGL_DRAW_TO_WINDOW_ARB, (uint_t)attrs.surfaces.window);

@@ -43,10 +43,8 @@ namespace {
 namespace wdk
 {
 
-using buff = config::backbuffer;    
-
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, buff::dont_care, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 0, 0, buff::double_buffer, {true, false, false}};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, true, {true, false, false}};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 0, 0, true, {true, false, false}};
 
 struct config::impl {
     EGLDisplay   display;
