@@ -86,7 +86,8 @@ namespace wdk
         void detach()
         {
             context_.make_current(nullptr);
-            surface_->dispose();
+            if (surface_)
+                surface_->dispose();
         }
 
         void swap()
