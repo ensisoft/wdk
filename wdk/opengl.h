@@ -43,11 +43,11 @@ namespace wdk
     class opengl : noncopyable
     {
     public:
-        // create default context with specific attributes
+        // create default context version with specific attributes
         opengl(const config::attributes& attrs) : config_(attrs), context_(config_)
         {}
 
-        // create specific context with specific attributes
+        // create specific context version with specific attributes
         opengl(const config::attributes& attrs, int major_version, int minor_version, bool debug) 
             : config_(attrs), context_(config_, major_version, minor_version, debug)
         {}
@@ -56,7 +56,7 @@ namespace wdk
         opengl(int major_version, int minor_version, bool debug) : context_(config_, major_version, minor_version, debug)
         {}
 
-        // create default context with default attributes
+        // create default context version with default attributes
         opengl() : context_(config_)
         {}
 
@@ -75,6 +75,13 @@ namespace wdk
             context_.make_current(surface_.get());
         }
 
+        void attach(surface& surf)
+        {
+            context_.make_current(nullptr);
+            surface_.reset();
+            context_.make_current(&surf);
+        }
+
         // detach the currently set renderable from the rendering context.
         void detach()
         {
@@ -89,6 +96,11 @@ namespace wdk
         uint_t visualid() const
         {
             return config_.visualid();
+        }
+
+        const config& get_config() const 
+        { 
+            return config_; 
         }
 
         // resolve (an extension) function pointer.
