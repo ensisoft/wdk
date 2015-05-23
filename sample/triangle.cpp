@@ -258,7 +258,8 @@ int main(int argc, char* argv[])
     // listen to the events
     connect(win, model);
 
-    win.create("Triangle", 600, 600, gl.visualid());
+    win.create("Triangle", 600, 600, 
+      true, true, true, gl.visualid());
 
     gl.attach(win);
 

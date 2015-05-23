@@ -89,10 +89,34 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     if (!matches.get() || !num_matches)
         throw std::runtime_error("no matching framebuffer configuration available");
 
+    GLXFBConfig* configs = matches.get();
+
+    int best_index = 0;
+
     // choose a configuration from the list of matching configurations.
     // todo: sort matches?
 
-    GLXFBConfig best = matches.get()[0];
+
+    // hmmm.. it seems that the GLX_VISUAL_ID option is not really considered properly
+    // so we check here. 
+    if (attrs.visualid)
+    {
+        bool found = false;
+        for (; best_index < num_matches; ++best_index)
+        {
+            const auto conf = configs[best_index];
+            const auto visu = make_unique_ptr(glXGetVisualFromFBConfig(dpy, conf), XFree);
+            if (attrs.visualid == visu->visualid)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            throw std::runtime_error("no matching framebuffer configuration available");
+    }
+
+    GLXFBConfig best = configs[best_index];
 
     auto visual = make_unique_ptr(glXGetVisualFromFBConfig(dpy, best), XFree);
 

@@ -12,7 +12,7 @@ egl = $(wildcard wdk/EGL/*.cpp)
 all: events triangle-opengl-gl	triangle-opengl-es
 
 events: sample/events.cpp 
-	g++ -o events $(CFLAGS) $(INCS) sample/events.cpp $(sources) $(LIBS)
+	g++ -o events $(CFLAGS) $(INCS) sample/events.cpp $(sources) $(glx) $(LIBS) $(GLGL)
 
 triangle-opengl-gl: sample/triangle.cpp
 	g++ -o triangle-opengl-gl $(CFLAGS) $(INCS) -DWDK_DESKTOP sample/triangle.cpp $(sources) $(glx) $(LIBS) $(GLGL)

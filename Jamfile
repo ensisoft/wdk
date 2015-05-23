@@ -73,7 +73,7 @@ if [ os.name ] = NT
 #
 # open a window and print events to the console
 #
-exe events : sample/events.cpp wdk-desktop ;
+exe events : sample/events.cpp wdk-desktop GL ;
 
 
 #

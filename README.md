@@ -80,3 +80,35 @@ Typical simple usage scenario:
 - mouse input for win32
 
 
+4. Quick Intro to OpenGL Context Creation
+
+Each OpenGL implementation comes with a something referred to as configuration. 
+The configurations specify properties such as the color buffer depth, depth buffer,
+stencil and auxiliary buffers. The properties vary and each distinct configuration is
+identified by an id. (hint on Linux you can use glxinfo to list available configurations).
+
+
+The window system (such as X11) provides objects such as Windows and Pixmaps which also
+come with different properties and configurations. Note that these objects are not 
+directly related to OpenGL nor provided by OpenGL but instead are created and managed
+by the *window system*. However clearly there's a need for OpenGL to be aware of these
+resources to some extent in order to be able to use them when for example rendering to a 
+window as is commonly done. But in order to do so OpenGL needs to understand the properties
+of the window system provided object and make sure that the object is in fact compatible.
+
+This compatibility is achieved through a shared ID called a "visual id". Visual id is a
+an ID (just an integer value) that is used by both opengl and window system implementations
+to identity common sets of compatible properties. For example when you create a window on X11
+with XCreateWindow it has an associated visual id. (X window will choose a visual for you
+if you don't explicitly specify one). Likewise each opengl config will also have an associated
+visual id with it. 
+
+Two Ways to Create a Context
+----------------------------
+
+1. Select desired OpenGL framebuffer properties. Use the configs visual id to create
+   compatible window system objects (windows, pixmaps)
+
+2. Create a window system object and then use the visualid to choose a compatible
+   OpenGL configuration. 
+

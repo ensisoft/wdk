@@ -30,6 +30,7 @@
 #include "../system.h"
 #include "../videomode.h"
 #include "../utf8.h"
+#include "../config.h"
 #include "errorhandler.h"
 #include "atoms.h"
 
@@ -61,13 +62,25 @@ window::~window()
         destroy();
 }
 
-void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
-    bool can_resize, bool has_border, bool initially_visible)
+void window::create(const std::string& title, uint_t width, uint_t height,
+    bool can_resize, bool has_border, bool initially_visible, uint_t visualid)
 {
     assert(width);
     assert(height);    
     assert(!title.empty());
     assert(!pimpl_->window);
+
+    // a problem was that when first creating a window with default visual
+    // the window defaulted to a visualid for which there was no matching opengl config.
+    // so we're kinda improving our chances of compatibility here by actually 
+    // choosing a visual that does have a opengl support. this is most likely what we want.
+    if (visualid == 0)
+    {
+        config::attributes attrs = config::DEFAULT;
+        config conf(attrs);
+        visualid = conf.visualid();
+    }
+
 
     Display* d = get_display_handle();
 

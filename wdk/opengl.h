@@ -20,6 +20,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#pragma once
+
 #include <memory>
 #include "utility.h"
 #include "context.h"
@@ -97,6 +99,10 @@ namespace wdk
         uint_t visualid() const
         {
             return config_.visualid();
+        }
+        uint_t configid() const 
+        { 
+            return config_.configid(); 
         }
 
         const config& get_config() const 

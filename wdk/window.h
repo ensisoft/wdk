@@ -20,6 +20,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#pragma once
+
 #include <functional> // for funtion
 #include <memory>  // for unique_ptr
 #include <utility> // for pair
@@ -69,8 +71,9 @@ namespace wdk
 
         // create the window with the given dimension and flags.
         // window must not exist before.
-        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid = 0,
-            bool can_resize = true, bool has_border = true, bool initially_visible = true);
+        void create(const std::string& title, uint_t width, uint_t height, 
+            bool can_resize = true, bool has_border = true, bool initially_visible = true, 
+            uint_t visualid = 0);
 
         // hide the window if currently visible. (shown)
         void hide();
@@ -131,6 +134,9 @@ namespace wdk
         // get native window handle
         native_window_t handle() const;
 
+        // get the visual id that identifies the 
+        // window's underlying operating/window system specific
+        // configuration. 
         uint_t visualid() const;
 
         std::pair<uint_t, uint_t> min_size() const;

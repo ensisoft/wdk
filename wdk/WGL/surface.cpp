@@ -68,6 +68,7 @@ surface::surface(const config& conf, const pixmap& px)
 
 surface::surface(const config& conf, uint_t width, uint_t height)
 {
+    assert(!"not implemented");
 }
 
 surface::~surface()
