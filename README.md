@@ -81,6 +81,7 @@ Typical simple usage scenario:
 
 
 4. Quick Intro to OpenGL Context Creation
+-----------------------------------------
 
 Each OpenGL implementation comes with a something referred to as configuration. 
 The configurations specify properties such as the color buffer depth, depth buffer,
@@ -103,8 +104,7 @@ with XCreateWindow it has an associated visual id. (X window will choose a visua
 if you don't explicitly specify one). Likewise each opengl config will also have an associated
 visual id with it. 
 
-Two Ways to Create a Context
-----------------------------
+Two Ways to Create a Context:
 
 1. Select desired OpenGL framebuffer properties. Use the configs visual id to create
    compatible window system objects (windows, pixmaps)
