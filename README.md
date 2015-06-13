@@ -102,13 +102,14 @@ an ID (just an integer value) that is used by both opengl and window system impl
 to identity common sets of compatible properties. For example when you create a window on X11
 with XCreateWindow it has an associated visual id. (X window will choose a visual for you
 if you don't explicitly specify one). Likewise each opengl config will also have an associated
-visual id with it. 
+visual id with it to identify the visual id that it is compatible. with. Hence we have 
+essentially two ways to setup the rendering context:
 
-Two Ways to Create a Context:
+a) Decice on the OpenGL framebuffer properties and then select a config based on those properties.
+   Then Use the config's visual id to create compatible window system objects such as windows.
 
-1. Select desired OpenGL framebuffer properties. Use the configs visual id to create
-   compatible window system objects (windows, pixmaps)
+or
 
-2. Create a window system object and then use the visualid to choose a compatible
-   OpenGL configuration. 
+b) First create a window system object and then query the object the visual id. Then use the visualid 
+   to choose a compatible OpenGL configuration and use that configuration to create the context.
 
