@@ -40,6 +40,8 @@ namespace wdk
             window_resize,
             window_create,
             window_destroy,
+            window_close,
+            window_paint,
             window_keyup,
             window_keydown,
             window_char,

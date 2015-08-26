@@ -31,6 +31,8 @@
 #include "../utf8.h"
 #include "../config.h"
 
+#pragma comment(lib, "User32.lib")
+
 namespace wdk
 {
 
@@ -512,7 +514,7 @@ void window::process_event(const native_event_t& ev)
         case WM_KEYDOWN:
             if (on_keydown)
             {
-                const auto& keys = translate_keydown(ev);
+                const auto& keys = translate_keydown_event(ev);
                 if (keys.second != keysym::none)
                     on_keydown(window_event_keydown{keys.second, keys.first});
             }
@@ -531,7 +533,7 @@ void window::process_event(const native_event_t& ev)
 
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
-        case WM_MBUTTONUP;
+        case WM_MBUTTONUP:
             break;
 
         case WM_CHAR:

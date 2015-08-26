@@ -29,6 +29,8 @@
 #include "../utility.h"
 #include "../win32/helpers.h"
 
+#pragma comment(lib, "Gdi32.lib") // For PixelFormat funcs
+
 // http://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
 // Accepted in the <piAttributes> parameter array of
 // wglGetPixelFormatAttribivARB, and wglGetPixelFormatAttribfvARB, and

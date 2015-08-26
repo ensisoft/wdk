@@ -20,7 +20,6 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <windows.h>
 #include <algorithm>
 #include <cassert>
 #include "../system.h"
@@ -243,14 +242,10 @@ native_event_t get_event()
 
 std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
 {
-    std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
-
     const MSG& m = key;
-
     const uint_t native_keycode = m.wParam;
 
-    keymod mods = keymod::none;
-    keysym sym  = keysym::none;
+    std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
 
     const auto it = std::find_if(std::begin(keymap), std::end(keymap), 
         [=](const key_mapping& map)
@@ -265,36 +260,36 @@ std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t&
         const short ctrl_key  = GetKeyState(VK_CONTROL);
 
         if (native_keycode != VK_MENU && (alt_key & KEY_DOWN))
-            mods |= keymod::alt;
+            ret.first |= keymod::alt;
         if (native_keycode != VK_SHIFT && (shift_key & KEY_DOWN))
-            mods |= keymod::shift;
+            ret.first |= keymod::shift;
         if (native_keycode != VK_CONTROL && (ctrl_key & KEY_DOWN))
-            mods |= keymod::control;
-        sym = (*it).wdk;
+            ret.first |= keymod::control;
+        ret.second = (*it).wdk;
     }
     else if (native_keycode == VK_CONTROL)
     {
         if (GetKeyState(VK_LCONTROL) & KEY_DOWN)
-            sym = keysym::control_L;
+            ret.second = keysym::control_L;
         else if (GetKeyState(VK_RCONTROL) & KEY_DOWN)
-            sym = keysym::control_R;
+            ret.second = keysym::control_R;
     }
     else if (native_keycode == VK_MENU)
     {
         if (GetKeyState(VK_LMENU) & KEY_DOWN)
-            sym = keysym::alt_L;
+            ret.second = keysym::alt_L;
       /*  else if (GetAsyncKeyState(VK_RMENU) & KEY_DOWN)
             sym = keysym::alt_R;*/
     }
     else if (native_keycode == VK_SHIFT)
     {
        if (GetKeyState(VK_LSHIFT) & KEY_DOWN)
-            sym = keysym::shift_L;
+            ret.second = keysym::shift_L;
        else if (GetKeyState(VK_RSHIFT) & KEY_DOWN)
-            sym = keysym::shift_R;
+            ret.second = keysym::shift_R;
     }
 
-    return {mods, sym};
+    return ret;
 }
 
 bool test_key_down(keysym symbol)

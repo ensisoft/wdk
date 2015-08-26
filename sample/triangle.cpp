@@ -1,4 +1,4 @@
-    // Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft 
 //
 // http://www.ensisoft.com
 //
@@ -75,23 +75,46 @@ PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
 PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
 PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
 PFNGLGETSTRINGPROC glGetString;
+PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+PFNGLUNIFORM1FPROC glUniform1f;
 
 template<typename T>
 T resolve(const char* name)
 {
-	return (T)wdk::context::resolve(name);
+    printf("Resolving %s ", "name");
+
+    T ret = (T)wdk::context::resolve(name);
+
+    printf(" ... %p\n", (void*)ret);
+
+    return ret;
 }
 
 #define RESOLVE(x) x = resolve<decltype(x)>(#x)
 
 void resolve()
 {
-	// RESOLVE(glCreateProgram);
-	// RESOLVE(glCreateShader);
-	// RESOLVE(glShaderSource);
-	// RESOLVE(glGetError);
-	// RESOLVE(glCompileShader);
-	// RESOLVE(glAttachShader);
+    RESOLVE(glCreateProgram);
+    RESOLVE(glCreateShader);
+	RESOLVE(glShaderSource);
+	RESOLVE(glGetError);
+	RESOLVE(glCompileShader);
+	RESOLVE(glAttachShader);
+    RESOLVE(glDeleteShader);
+    RESOLVE(glLinkProgram);
+    RESOLVE(glUseProgram);
+    RESOLVE(glValidateProgram);
+    RESOLVE(glClearColor);
+    RESOLVE(glClear);
+    RESOLVE(glViewport);
+    RESOLVE(glDrawArrays);
+    RESOLVE(glGetAttribLocation);
+    RESOLVE(glVertexAttribPointer);
+    RESOLVE(glEnableVertexAttribArray);
+    RESOLVE(glGetString);
+    RESOLVE(glGetUniformLocation);
+    RESOLVE(glUniform1f);
+    RESOLVE(glGetString);
 }
 #else
 void resolve() {}
@@ -244,10 +267,10 @@ int main(int argc, char* argv[])
 
     wdk::opengl gl;
 
-    printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
-
     // resolve function pointers if needed
     resolve();
+
+    printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
 
     // rendering window
     wdk::window win;
