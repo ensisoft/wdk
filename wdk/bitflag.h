@@ -138,7 +138,7 @@ namespace wdk
     }
 
     template<typename Bits, typename Enum>
-    auto operator | (Enum e, bitflag<Enum, Bits> rhs) -> decltype(lhs)
+    auto operator | (Enum e, bitflag<Enum, Bits> rhs) -> decltype(rhs)
     {
         return rhs | bitflag<Enum, Bits>(e);
     }
