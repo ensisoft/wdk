@@ -10,6 +10,8 @@ the following compilers:
     * clang >= 3.4.2 
     * msvc  >= 2013 Express RC
 
+![Screenshot](https://raw.githubusercontent.com/ensisoft/wdk/master/screens/triangle.png "Triangle demo")
+
 1. Building the library
 --------------------------------
 
