@@ -36,20 +36,44 @@ namespace wdk
         // framebuffer attributes. when using visualid or configid
         // other attributes are ignored. use 0 for don't care
         struct attributes {
+            // color buffer red bits
             uint_t red_size;
+
+            // color buffer green bits
             uint_t green_size;
+
+            // color buffer blue bits
             uint_t blue_size;
+
+            // color buffer alpha bits
             uint_t alpha_size;
+
+            // depth buffer bits
             uint_t depth_size;
+
+            // stencil buffer bits
+            uint_t stencil_size;
+
+            // specific visual id by which configuration is chosen.
             uint_t visualid;
+
+            // specific configuration which is to be used.
             uint_t configid;
 
             bool double_buffer;
 
+            // possible rendering surfaces.
             struct {
-                bool window;
-                bool pbuffer;
-                bool pixmap;
+                // window backed surface. Normal choice.
+                bool window;  
+
+                // offscreen rendering surface.
+                bool pbuffer; 
+
+                // window system provided surface such as a bitmap or a pixmap.
+                // Note that this might not always be available or might be very
+                // slow to render into.
+                bool pixmap;  
             } surfaces;
         };
 

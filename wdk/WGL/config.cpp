@@ -112,8 +112,8 @@ namespace wdk
 {
 
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 0, 0, true, {true, false, false}};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, {true, false, false}};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, {true, false, false}};
 
 struct config::impl {
     int pixelformat;
@@ -142,6 +142,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
         set_if(criteria, WGL_BLUE_BITS_ARB, attrs.blue_size);
         set_if(criteria, WGL_ALPHA_BITS_ARB, attrs.alpha_size);
         set_if(criteria, WGL_DEPTH_BITS_ARB, attrs.depth_size);
+        set_if(criteria, WGL_STENCIL_BITS_ARB, attrs.stencil_size);
 
         assert(!attrs.surfaces.pbuffer && "pbuffer is not implemented");
 

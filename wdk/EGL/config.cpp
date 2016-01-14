@@ -43,8 +43,8 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, true, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 0, 0, true, {true, false, false}};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, true, {true, false, false}};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 8, 0, 0, true, {true, false, false}};
 
 struct config::impl {
     EGLDisplay   display;
@@ -64,6 +64,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, EGL_BLUE_SIZE, attrs.blue_size);
     set_if(criteria, EGL_ALPHA_SIZE, attrs.alpha_size);
     set_if(criteria, EGL_DEPTH_SIZE, attrs.depth_size);
+    set_if(criteria, EGL_STENCIL_SIZE, attrs.stencil_size);    
     set_if(criteria, EGL_CONFIG_ID, attrs.configid);
     set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
 
