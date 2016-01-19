@@ -84,6 +84,8 @@ namespace wdk
                 bool pixmap;  
             } surfaces;
 
+            // multisample antialising. defaults to none.
+            // remember to glEnable(GL_MULTISAMPLE)
             multisampling sampling;
         };
 
