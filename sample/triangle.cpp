@@ -96,9 +96,9 @@ void resolve()
 {
     RESOLVE(glCreateProgram);
     RESOLVE(glCreateShader);
-	RESOLVE(glShaderSource);
-	RESOLVE(glGetError);
-	RESOLVE(glCompileShader);
+    RESOLVE(glShaderSource);
+    RESOLVE(glGetError);
+    RESOLVE(glCompileShader);
 	RESOLVE(glAttachShader);
     RESOLVE(glDeleteShader);
     RESOLVE(glLinkProgram);
@@ -263,9 +263,23 @@ private:
 int main(int argc, char* argv[])
 {
 
-    // start with opengl with default config
+    auto msaa = wdk::config::multisampling::none;
 
-    wdk::opengl gl;
+    for (int i=1; i<argc; ++i)
+    {
+        if (!std::strcmp(argv[i], "--msaa4"))
+            msaa = wdk::config::multisampling::msaa4;
+        else if (!std::strcmp(argv[i], "--msaa8"))
+            msaa = wdk::config::multisampling::msaa8;
+        else if (!std::strcmp(argv[i], "--msaa16"))
+            msaa = wdk::config::multisampling::msaa16;
+    }
+
+    // start with opengl with default config
+    wdk::config::attributes attr = wdk::config::DEFAULT;
+    attr.sampling = msaa;
+
+    wdk::opengl gl(attr);
 
     // resolve function pointers if needed
     resolve();

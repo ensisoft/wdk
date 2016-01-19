@@ -95,6 +95,13 @@
 // Accepted by the <attribute> parameter of wglChoosePixelFormatEXT:
 #define WGL_DRAW_TO_PBUFFER_ARB                 0x202D
 
+// Accepted by the <piAttributes> parameter of
+// wglGetPixelFormatAttribivEXT, wglGetPixelFormatAttribfvEXT, and
+// the <piAttribIList> and <pfAttribIList> of wglChoosePixelFormatEXT:
+// https://www.opengl.org/registry/specs/ARB/multisample.txt
+#define WGL_SAMPLE_BUFFERS_ARB               0x2041
+#define WGL_SAMPLES_ARB                      0x2042
+
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
     {
@@ -153,9 +160,19 @@ config::config(const attributes& attrs) : pimpl_(new impl)
         set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
         set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
 
-		const int ARNOLD = 0;
+        if (attrs.sampling != multisampling::none)
+        {
+            set_if(criteria, WGL_SAMPLE_BUFFERS_ARB, 1);
+            if (attrs.sampling == multisampling::msaa4)
+                set_if(criteria, WGL_SAMPLES_ARB, 4);
+            else if (attrs.sampling == multisampling::msaa8)
+                set_if(criteria, WGL_SAMPLES_ARB, 8);            
+            else if (attrs.sampling == multisampling::msaa16)
+                set_if(criteria, WGL_SAMPLES_ARB, 16);                        
+        }
 
-		criteria.push_back(ARNOLD);
+        const int ARNOLD = 0;
+        criteria.push_back(ARNOLD);
 
         UINT num_matches = 0;
         if (!wglChoosePixelFormat(win.surface(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)

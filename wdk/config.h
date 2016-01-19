@@ -33,6 +33,13 @@ namespace wdk
     class config : noncopyable
     {
     public:
+        enum class multisampling {
+            none,
+            msaa4,
+            msaa8,
+            msaa16
+        };
+
         // framebuffer attributes. when using visualid or configid
         // other attributes are ignored. use 0 for don't care
         struct attributes {
@@ -60,6 +67,7 @@ namespace wdk
             // specific configuration which is to be used.
             uint_t configid;
 
+            // double buffered or not. you'll generally want this to be true.
             bool double_buffer;
 
             // possible rendering surfaces.
@@ -75,6 +83,8 @@ namespace wdk
                 // slow to render into.
                 bool pixmap;  
             } surfaces;
+
+            multisampling sampling;
         };
 
         // some predefined attributes.

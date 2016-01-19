@@ -82,6 +82,17 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     set_if(criteria, EGL_SURFACE_TYPE, drawable_bits);
 
+    if (attrs.sampling != multisampling::none)
+    {
+        set_if(criteria, EGL_SAMPLE_BUFFERS, 1);
+        if (attrs.sampling == multisampling::msaa4)
+            set_if(criteria, EGL_SAMPLES, 4);
+        else if (attrs.sampling == multisampling::msaa8)
+            set_if(criteria, EGL_SAMPLES, 8);
+        else if (attrs.sampling == multisampling::msaa16)
+            set_if(criteria, EGL_SAMPLES, 16);
+    }
+
     criteria.push_back(EGL_NONE);
 
     EGLint num_matches = 0;

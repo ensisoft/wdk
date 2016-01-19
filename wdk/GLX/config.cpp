@@ -41,8 +41,8 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, {true, false, false}};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, {true, false, false}};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, {true, false, false}, multisampling::none};
 
 struct config::impl {
     GLXFBConfig* configs;
@@ -80,6 +80,17 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     if (attrs.double_buffer)
         set_if(criteria, GLX_DOUBLEBUFFER, (uint_t)True);
+
+    if (attrs.sampling != multisampling::none)
+    {
+        set_if(criteria, GLX_SAMPLE_BUFFERS, 1);
+        if (attrs.sampling == multisampling::msaa4)
+            set_if(criteria, GLX_SAMPLES, 4);
+        else if (attrs.sampling == multisampling::msaa8)
+            set_if(criteria, GLX_SAMPLES, 8);
+        else if (attrs.sampling == multisampling::msaa16)
+            set_if(criteria, GLX_SAMPLES, 16);
+    }
 
     criteria.push_back(None);
 
