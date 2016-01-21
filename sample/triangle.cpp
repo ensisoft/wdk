@@ -31,10 +31,10 @@
 #include <wdk/window_listener.h>
 #include <wdk/window_events.h>
 #include <wdk/window.h>
-#include <wdk/context.h>
-#include <wdk/surface.h>
-#include <wdk/config.h>
-#include <wdk/opengl.h>
+#include <wdk/opengl/context.h>
+#include <wdk/opengl/surface.h>
+#include <wdk/opengl/config.h>
+#include <wdk/opengl/opengl.h>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -295,8 +295,8 @@ int main(int argc, char* argv[])
     // listen to the events
     connect(win, model);
 
-    win.create("Triangle", 600, 600, 
-      true, true, true, gl.visualid());
+    win.create("Triangle", 600, 600, gl.visualid(),
+      true, true, true);
 
     gl.attach(win);
 

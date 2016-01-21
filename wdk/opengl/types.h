@@ -20,11 +20,18 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <EGL/egl.h>
-#include "../types.h"
+#pragma once
 
-namespace wdk
-{
-    EGLDisplay egl_init(native_display_t disp);
+// include the platform dependant type definitions
+// for opengl - window system glue integration.
 
-} // wdk
+#if defined(WDK_MOBILE)
+#  include "EGL/types.h"
+#else
+#  if defined(WINDOWS) || defined(_WIN32)
+#    include "WGL/types.h"
+#  else
+#    include "GLX/types.h"
+#  endif
+#endif
+

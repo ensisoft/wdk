@@ -23,12 +23,12 @@
 #include <GL/glx.h>
 #include <functional>
 #include <stdexcept>
+#include <wdk/X11/errorhandler.h>
+#include <wdk/system.h>
+#include <wdk/window.h>
+#include <wdk/pixmap.h>
 #include "../surface.h"
-#include "../system.h"
 #include "../config.h"
-#include "../window.h"
-#include "../pixmap.h"
-#include "../X11/errorhandler.h"
 
 namespace {
     enum class surface_type { window, pixmap, pbuffer };

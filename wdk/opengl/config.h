@@ -23,9 +23,9 @@
 #pragma once
 
 #include <memory>
+#include <wdk/utility.h>
+#include <wdk/types.h>
 #include "types.h"
-#include "utility.h"
-
 
 namespace wdk
 {

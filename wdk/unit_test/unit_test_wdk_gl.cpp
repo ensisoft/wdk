@@ -27,11 +27,11 @@
 #include <GL/gl.h>
 
 #include <boost/test/minimal.hpp>
+#include <wdk/opengl/config.h>
+#include <wdk/opengl/context.h>
+#include <wdk/opengl/surface.h>
 #include <wdk/system.h>
-#include <wdk/config.h>
-#include <wdk/context.h>
 #include <wdk/window.h>
-#include <wdk/surface.h>
 #include <wdk/pixmap.h>
 
 using namespace wdk;

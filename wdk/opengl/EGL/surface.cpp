@@ -22,10 +22,10 @@
 
 #include <EGL/egl.h>
 #include <stdexcept>
+#include <wdk/system.h>
+#include <wdk/window.h>
+#include <wdk/pixmap.h>
 #include "../surface.h"
-#include "../system.h"
-#include "../window.h"
-#include "../pixmap.h"
 #include "../config.h"
 #include "egldisplay.h"
 

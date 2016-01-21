@@ -24,11 +24,11 @@
 #include <GL/glx.h>     // for GLX
 #include <cassert>
 #include <stdexcept>
+#include <wdk/system.h>
+#include <wdk/X11/errorhandler.h>
 #include "../context.h"
 #include "../config.h"
-#include "../system.h"
 #include "../surface.h"
-#include "../X11/errorhandler.h"
 
 namespace wdk
 {

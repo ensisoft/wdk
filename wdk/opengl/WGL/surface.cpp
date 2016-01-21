@@ -22,8 +22,9 @@
 
 #include <windows.h>
 #include <cassert>
+#include <wdk/window.h>
+#include <wdk/pixmap.h>
 #include "../surface.h"
-#include "../window.h"
 #include "../config.h"
 
 namespace {

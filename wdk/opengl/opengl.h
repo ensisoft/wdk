@@ -23,7 +23,7 @@
 #pragma once
 
 #include <memory>
-#include "utility.h"
+#include <wdk/utility.h>
 #include "context.h"
 #include "config.h"
 #include "surface.h"

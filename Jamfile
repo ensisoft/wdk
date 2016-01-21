@@ -44,8 +44,8 @@ if [ os.name ] = LINUX
 
   lib linux : [ glob wdk/*.cpp ] [ glob wdk/X11/*.cpp ] : <link>static ;
 
-  lib wdk-mobile  : [ glob wdk/EGL/*.cpp ] linux : <link>static : <define>WDK_MOBILE ;
-  lib wdk-desktop : [ glob wdk/GLX/*.cpp ] linux : <link>static ;
+  lib wdk-mobile  : [ glob wdk/opengl/EGL/*.cpp ] linux : <link>static : <define>WDK_MOBILE ;
+  lib wdk-desktop : [ glob wdk/opengl/GLX/*.cpp ] linux : <link>static ;
 
 }
 
@@ -57,9 +57,8 @@ if [ os.name ] = NT
 
   lib win32 : [ glob wdk/*.cpp ] [ glob wdk/win32/*.cpp ] : <link>static ;
 
-  lib wdk-mobile  : [ glob wdk/EGL/*.cpp ] win32 : <link>static : <define>WDK_MOBILE ;
-
-  lib wdk-desktop : [ glob wdk/WGL/*.cpp ] win32 : <link>static ;
+  lib wdk-mobile  : [ glob wdk/opengl/EGL/*.cpp ] win32 : <link>static : <define>WDK_MOBILE ;
+  lib wdk-desktop : [ glob wdk/opengl/WGL/*.cpp ] win32 : <link>static ;
 
 }
 

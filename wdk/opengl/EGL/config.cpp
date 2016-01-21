@@ -21,10 +21,10 @@
 //  THE SOFTWARE.
 
 #include <EGL/egl.h>
+#include <wdk/system.h>
 #include <stdexcept>
 #include <vector>
 #include <cassert>
-#include "../system.h"
 #include "../config.h"
 #include "egldisplay.h"
 

@@ -23,8 +23,7 @@
 #pragma once
 
 #include <memory>
-#include "types.h"
-#include "utility.h"
+#include <wdk/utility.h>
 
 namespace wdk
 {

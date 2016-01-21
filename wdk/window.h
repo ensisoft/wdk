@@ -71,9 +71,12 @@ namespace wdk
 
         // create the window with the given dimension and flags.
         // window must not exist before.
-        void create(const std::string& title, uint_t width, uint_t height, 
-            bool can_resize = true, bool has_border = true, bool initially_visible = true, 
-            uint_t visualid = 0);
+        //
+        // If you're planning on using this window for OpenGL drawing
+        // you should pass in a visual id that identifies your OpenGL ćonfiguration.
+        // If visualid is 0 the window may not be compatible with your opengl config.
+        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid, 
+            bool can_resize = true, bool has_border = true, bool initially_visible = true);
 
         // hide the window if currently visible. (shown)
         void hide();

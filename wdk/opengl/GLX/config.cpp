@@ -23,9 +23,9 @@
 #include <GL/glx.h>
 #include <stdexcept>
 #include <vector>
+#include <wdk/system.h>
+#include <wdk/utility.h>
 #include "../config.h"
-#include "../system.h"
-#include "../utility.h"
 
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)

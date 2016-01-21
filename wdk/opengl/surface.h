@@ -22,26 +22,46 @@
 
 #pragma once
 
-#include <X11/Xlib.h>
+#include <memory>
+#include <wdk/utility.h>
+#include <wdk/types.h>
+#include "types.h"
 
 namespace wdk
 {
+    class window;
+    class pixmap;
+    class config;
 
-// see the extended window manager hints here.
-// http://standards.freedesktop.org/wm-spec/wm-spec-latest.html    
+    // rendering surface.
+    class surface : noncopyable
+    {
+    public:
+        // create a rendering surface that renders to the given window.
+        surface(const config& conf, const window& win);
 
-extern Atom _NET_WM_STATE;
-extern Atom _NET_WM_STATE_FULLSCREEN;
-extern Atom _MOTIF_WM_HINTS;
+        // create a rendering surface that renders to the given pixmap.
+        surface(const config& conf, const pixmap& px);
 
-extern Atom WM_SIZE_HINTS;
-extern Atom WM_DELETE_WINDOW;
+        // create an offscreen width x height px rendering surface.
+        surface(const config& conf, uint_t width, uint_t height);
 
-extern const long _NET_WM_STATE_REMOVE;
-extern const long _NET_WM_STATE_ADD; 
-extern const long _NET_WM_STATE_TOGGLE;
+       ~surface();
 
-extern int AltMask;
-extern int XRandREventBase;
+        // get surface width
+        uint_t width() const;
+
+        // get surface height
+        uint_t height() const;
+
+        // get implemntation specific handle
+        gl_surface_t handle() const;
+
+        void dispose();
+    private:
+        struct impl;
+
+        std::unique_ptr<impl> pimpl_;
+    }; 
 
 } // wdk

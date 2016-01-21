@@ -31,6 +31,8 @@
 //#include <GL/glx.h>
 #include <X11/Xlib.h>
 
+// GLX specific types.
+
 struct __GLXFBConfigRec;
 struct __GLXcontextRec;
 
@@ -52,13 +54,13 @@ namespace wdk
     };
 
     template<typename T, int discriminator> inline
-    bool operator==(const glx_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
+    bool operator==(const glx_t<T, discriminator>& rhs, const glx_t<T, discriminator>& lhs)
     {
         return rhs.xid == lhs.xid;
     }
 
     template<typename T, int discriminator> inline
-    bool operator!=(const glx_t<T, discriminator>& rhs, const xid_t<T, discriminator>& lhs)
+    bool operator!=(const glx_t<T, discriminator>& rhs, const glx_t<T, discriminator>& lhs)
     {
         return rhs.xid != lhs.xid;
     }

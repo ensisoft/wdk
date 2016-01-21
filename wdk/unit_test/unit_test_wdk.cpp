@@ -171,7 +171,7 @@ void unit_test_window()
 
         for (const auto& it : sizes)
         {
-            w.create("unit-test", it.width, it.height);
+            w.create("unit-test", it.width, it.height, 0);
             BOOST_REQUIRE(w.surface_height() == it.height);
             BOOST_REQUIRE(w.surface_width() == it.width);
             BOOST_REQUIRE(w.exists());
@@ -211,7 +211,7 @@ void unit_test_window()
         const wdk::videomode& current_mode = wdk::get_current_video_mode();
 
         wdk::window w;
-        w.create("unit-test", 400, 400);
+        w.create("unit-test", 400, 400, 0);
         w.set_fullscreen(true);
 
         wdk::sync_events();
@@ -280,7 +280,7 @@ void unit_test_window()
         below.on_gain_focus = std::bind(&events::on_gain_focus, &ev, std::placeholders::_1);
         below.on_paint = std::bind(&events::on_paint, &ev, std::placeholders::_1);
 
-        below.create("Below", 600, 500);
+        below.create("Below", 600, 500, 0);
         below.move(0, 0);
         below.sync_all_events();
         BOOST_REQUIRE(ev.got_create);
@@ -289,7 +289,7 @@ void unit_test_window()
         ev.got_gain_focus = false;
         ev.got_paint = false;
 
-        top.create("Top", 800, 800);
+        top.create("Top", 800, 800, 0);
         top.move(0, 0);
         top.set_focus();
 

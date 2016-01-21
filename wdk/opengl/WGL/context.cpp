@@ -26,11 +26,11 @@
 #include <stdexcept>
 #include <functional>
 #include <vector>
+#include <wdk/win32/helpers.h>
+#include <wdk/utility.h>
 #include "../context.h"
 #include "../config.h"
-#include "../utility.h"
 #include "../surface.h"
-#include "../win32/helpers.h"
 
 // http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
 // Accepted as an attribute name in <*attribList>:

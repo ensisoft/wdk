@@ -6,8 +6,8 @@ GLES=-lEGL -lGLESv2
 GLGL=-lGL
 
 sources = $(wildcard wdk/*.cpp) $(wildcard wdk/X11/*.cpp)
-glx = $(wildcard wdk/GLX/*.cpp)
-egl = $(wildcard wdk/EGL/*.cpp)
+glx = $(wildcard wdk/opengl/GLX/*.cpp)
+egl = $(wildcard wdk/opengl/EGL/*.cpp)
 
 all: events triangle-opengl-gl	triangle-opengl-es
 

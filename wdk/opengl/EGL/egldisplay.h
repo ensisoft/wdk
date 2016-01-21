@@ -20,47 +20,12 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
-
-#include <memory>
-#include "utility.h"
+#include <EGL/egl.h>
+#include <wdk/types.h>
 #include "types.h"
 
 namespace wdk
 {
-    class window;
-    class pixmap;
-    class config;
-
-    // rendering surface.
-    class surface : noncopyable
-    {
-    public:
-        // create a rendering surface that renders to the given window.
-        surface(const config& conf, const window& win);
-
-        // create a rendering surface that renders to the given pixmap.
-        surface(const config& conf, const pixmap& px);
-
-        // create an offscreen width x height px rendering surface.
-        surface(const config& conf, uint_t width, uint_t height);
-
-       ~surface();
-
-        // get surface width
-        uint_t width() const;
-
-        // get surface height
-        uint_t height() const;
-
-        // get implemntation specific handle
-        gl_surface_t handle() const;
-
-        void dispose();
-    private:
-        struct impl;
-
-        std::unique_ptr<impl> pimpl_;
-    }; 
+    EGLDisplay egl_init(native_display_t disp);
 
 } // wdk
