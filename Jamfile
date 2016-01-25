@@ -67,8 +67,8 @@ if [ os.name ] = LINUX
   lib wdk-opengl-desktop : [ glob wdk/opengl/GLX/*.cpp ] X11-system-libs     : <link>static ;
 
   # default to x11
-  alias wdk-system : wdk-system-x11 ;
-  #alias wdk-system : wdk-system-wayland ;
+  #alias wdk-system : wdk-system-x11 ;
+  alias wdk-system : wdk-system-wayland ;
 }
 
 if [ os.name ] = NT

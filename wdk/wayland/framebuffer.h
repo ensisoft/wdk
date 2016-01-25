@@ -128,10 +128,6 @@ namespace wdk
 
             auto* p = (std::uint8_t*)m_shmem->mem();
 
-    //#ifndef _NDEBUG
-            std::memset(p, 0xff, total);
-    //#endif
-
             for (std::size_t i=0; i<N; ++i)
             {
                 const auto offset = i * page;
@@ -203,7 +199,7 @@ namespace wdk
                 if (::ftruncate(m_fd, size) == -1)
                     throw std::runtime_error("failed to resize shared memory");
                 m_base = ::mmap(nullptr, size, PROT_READ | PROT_WRITE,
-                    MAP_PRIVATE, m_fd, 0);
+                    MAP_SHARED, m_fd, 0);
                 if (m_base == nullptr)
                     throw std::runtime_error("memory mapping failed");
 

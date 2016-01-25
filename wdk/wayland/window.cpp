@@ -153,7 +153,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     pimpl_->height = height;
 
     auto* front = pimpl_->fb->get_current();
-    //front->clear();
+    front->clear();
     pimpl_->fb->flip();
 }
 

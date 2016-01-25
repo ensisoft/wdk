@@ -232,10 +232,10 @@ int main(int argc, char* argv[])
         return 0;        
     }
 
-    wdk::modechange vidmode;
+    //wdk::modechange vidmode;
 
-    if (!cmd.mode.is_empty())
-        vidmode.set(cmd.mode);
+    //if (!cmd.mode.is_empty())
+    //    vidmode.set(cmd.mode);
  
     wdk::window win;
     win.on_create     = handle_window_create;
