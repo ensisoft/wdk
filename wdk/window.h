@@ -137,6 +137,11 @@ namespace wdk
         // get native window handle
         native_window_t handle() const;
 
+        // get EGL compatible handle.
+        // this could be same as native_window_t
+        // or different type. implementation defined.
+        egl_handle_t egl_handle() const;
+
         // get the visual id that identifies the 
         // window's underlying operating/window system specific
         // configuration. 

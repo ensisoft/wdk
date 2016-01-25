@@ -20,6 +20,14 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+
+// XKeycodeToKeysym warns about being deprecated,
+// but we're choosing to ignore that for now.
+#if defined(__GNUG__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations" 
+#endif
+
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
@@ -35,6 +43,10 @@
 #include "../utility.h"
 #include "../videomode.h"
 #include "../keys.h"
+
+#if defined(__GNUG__)
+#  pragma GCC dianostic pop
+#endif
 
 namespace {
 

@@ -553,7 +553,12 @@ window::encoding window::get_encoding() const
 
 native_window_t window::handle() const
 {
-    return native_window_t {pimpl_->window};
+    return { pimpl_->window };
+}
+
+egl_handle_t window::egl_handle() const 
+{
+    return { pimpl_->window };
 }
 
 uint_t window::visualid() const

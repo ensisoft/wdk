@@ -30,6 +30,7 @@ namespace wdk
     typedef HANDLE  native_handle_t;
     typedef HBITMAP native_pixmap_t;
     typedef HDC     native_display_t;
+    typedef HWND    egl_handle_t;
 
     class native_event_t 
     {

@@ -40,7 +40,7 @@ surface::surface(const config& conf, const window& win) : pimpl_(new impl)
 {
     pimpl_->display = egl_init(get_display_handle());
 
-    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), nullptr);
+    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.egl_handle(), nullptr);
     if (!pimpl_->surface)
         throw std::runtime_error("create window surface failed");
 }

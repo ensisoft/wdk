@@ -3,13 +3,6 @@ import os ;
 import path ;
 import common ;
 
-lib X11     : : <name>X11  ;
-lib Xcb     : : <name>xcb  ;
-lib Xau     : : <name>Xau  ;
-lib Xdmcp   : : <name>Xdmcp ;
-lib Xxf86vm : : <name>Xxf86vm ;
-lib Xext    : : <name>Xext ;
-lib Xrandr  : : <name>Xrandr ;
 
 # for windows 
 path-constant GLES2_INC : "c:/imgtec_gles_sdk/Include" ;
@@ -26,62 +19,109 @@ project wdk
 : usage-requirements
   <toolset>gcc:<cflags>-std=c++11
   <toolset>clang:<cflags>-std=c++11
-  <os>LINUX:<library>/wdk//Xxf86vm/<link>shared
-  <os>LINUX:<library>/wdk//X11/<link>shared
-  <os>LINUX:<library>/wdk//Xcb/<link>shared
-  <os>LINUX:<library>/wdk//Xau/<link>shared
-  <os>LINUX:<library>/wdk//Xdmcp/<link>shared
-  <os>LINUX:<library>/wdk//Xext/<link>shared
-  <os>LINUX:<library>/wdk//Xrandr/<link>shared
   ;
 
+#
+# wdk-system is library that contains the platform specific windowing code.
+# On Linux we have 2 choices available. X11 or Wayland. So the alias is used
+# to define the actual windowing system that we want to use.
+# 
+# On Windows we only have 1 implementation using Windows API.
+#
+# Also we several different implementations for Desktop OpenGL. 
+# GLX is the implementation for Linux and WGL for Windows.
+# 
+# EGL works theoretically portably across all systems. 
+#
+
+lib wdk-core : [ glob wdk/*.cpp ] : <link>static ;
 
 if [ os.name ] = LINUX
 {
-  lib EGL   : : <name>EGL ;
-  lib GLES2 : : <name>GLESv2 ;
-  lib GL    : : <name>GL ;
+  
+  # OpenGL libraries
+  lib EGL     : : <name>EGL    : <link>shared ;
+  lib GLES2   : : <name>GLESv2 : <link>shared ;
+  lib GL      : : <name>GL     : <link>shared ;
 
-  lib linux : [ glob wdk/*.cpp ] [ glob wdk/X11/*.cpp ] : <link>static ;
+  # Wayland window system libraries.
+  lib wayland-client : : <name>wayland-client ;
+  lib wayland-server : : <name>wayland-server ;
+  lib wayland-egl    : : <name>wayland-egl ;
+  lib rt             : : <name>rt ;
+  alias wayland-system-libs : wayland-client wayland-server wayland-egl rt : <link>shared ;
 
-  lib wdk-mobile  : [ glob wdk/opengl/EGL/*.cpp ] linux : <link>static : <define>WDK_MOBILE ;
-  lib wdk-desktop : [ glob wdk/opengl/GLX/*.cpp ] linux : <link>static ;
+  # X11 window system libraries.
+  lib X11     : : <name>X11 ;
+  lib Xcb     : : <name>xcb  ;
+  lib Xau     : : <name>Xau  ;
+  lib Xdmcp   : : <name>Xdmcp ;
+  lib Xxf86vm : : <name>Xxf86vm ;
+  lib Xext    : : <name>Xext ;
+  lib Xrandr  : : <name>Xrandr ;
+  alias X11-system-libs : X11 Xcb Xau Xdmcp Xxf86vm Xext Xrandr : <link>shared ;
 
+  lib wdk-system-x11     : [ glob wdk/X11/*.cpp ]        X11-system-libs     : <link>static ;
+  lib wdk-system-wayland : [ glob wdk/wayland/*.cpp ]    wayland-system-libs : <link>static ;
+  lib wdk-opengl-mobile  : [ glob wdk/opengl/EGL/*.cpp ] EGL/<link>shared    : <link>static : <define>WDK_MOBILE ;
+  lib wdk-opengl-desktop : [ glob wdk/opengl/GLX/*.cpp ] X11-system-libs     : <link>static ;
+
+  # default to x11
+  alias wdk-system : wdk-system-x11 ;
+  #alias wdk-system : wdk-system-wayland ;
 }
 
 if [ os.name ] = NT
 {
-  lib EGL   : : <name>libEGL <search>$(GLES2_LIB) ;
+  # OpenGL libraries.
+  lib EGL   : : <name>libEGL    <search>$(GLES2_LIB) ;
   lib GLES2 : : <name>libGLESv2 <search>$(GLES2_LIB) ;
   lib GL    : : <name>opengl32 ;
 
-  lib win32 : [ glob wdk/*.cpp ] [ glob wdk/win32/*.cpp ] : <link>static ;
+  lib wdk-system-win32   : [ glob wdk/*.cpp ] [ glob wdk/win32/*.cpp ] : <link>static ;
+  lib wdk-opengl-mobile  : [ glob wdk/opengl/EGL/*.cpp ] : <link>static : <define>WDK_MOBILE ;
+  lib wdk-opengl-desktop : [ glob wdk/opengl/WGL/*.cpp ] : <link>static ;
 
-  lib wdk-mobile  : [ glob wdk/opengl/EGL/*.cpp ] win32 : <link>static : <define>WDK_MOBILE ;
-  lib wdk-desktop : [ glob wdk/opengl/WGL/*.cpp ] win32 : <link>static ;
-
+  # only win32 api available
+  alias wdk-system : win32 ;
 }
 
 
 
 # 
-# samples
+# Samples
 #
 
 
 #
-# open a window and print events to the console
+# Open a window and print window events to the console
 #
-exe events : sample/events.cpp wdk-desktop GL ;
+exe events 
+  : sample/events.cpp 
+    wdk-core 
+    wdk-system 
+  ;
+
+#
+# Render a simple triangle using OpenGL
+#
+exe triangle-opengl-gl 
+  : [ obj triangle_GL_2 : sample/triangle.cpp : ]  
+    wdk-opengl-desktop 
+    wdk-system 
+    wdk-core
+    GL 
+  ;
 
 
 #
-# render a simple triangle using OpenGL
+# Render a simple triangle using OpenGL ES
 #
-exe triangle-opengl-gl : [ obj triangle_GL_2 : sample/triangle.cpp : ]  wdk-desktop GL ;
+exe triangle-opengl-es 
+  : [ obj triangle_GL_ES : sample/triangle.cpp : <define>SAMPLE_GLES ] 
+    wdk-opengl-mobile 
+    wdk-system
+    wdk-core
+    GLES2 
+  ;
 
-
-#
-# render a simple triangle using OpenGL ES
-#
-exe triangle-opengl-es : [ obj triangle_GL_ES : sample/triangle.cpp : <define>SAMPLE_GLES ] wdk-mobile GLES2 EGL ;

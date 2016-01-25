@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013-2016 Sami Väisänen, Ensisoft 
 //
 // http://www.ensisoft.com
 //
@@ -20,28 +20,44 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#pragma once
+// for clang in SublimeText2
+#ifndef WDK_WAYLAND
+#  define WDK_WAYLAND
+#endif
 
-// generic wdk specific types
+#include "../pixmap.h"
 
 namespace wdk
 {
-    typedef int           int_t;
-    typedef unsigned int  uint_t;
-    typedef unsigned int  ms_t;
-    typedef unsigned int  errcode_t;
 
-    const ms_t NO_TIMEOUT = -1;
+struct pixmap::impl {
+
+};
+
+pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
+{}
+
+pixmap::~pixmap()
+{}
+
+native_pixmap_t pixmap::handle() const 
+{
+    return {};
+}
+
+uint_t pixmap::width() const 
+{
+    return 0;
+}
+
+uint_t pixmap::height() const 
+{
+    return 0;
+}
+
+uint_t pixmap::depth() const 
+{
+    return 0;
+}
 
 } // wdk
-
-
-// include windowing types too these are needed throughout.
-
-#if defined(WINDOWS) || defined(_WIN32)
-#  include "win32/types.h"
-#elif defined(WDK_WAYLAND)
-#  include "wayland/types.h"
-#else
-#  include "X11/types.h"
-#endif

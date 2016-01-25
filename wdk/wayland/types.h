@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2010-2016 Sami Väisänen, Ensisoft 
 //
 // http://www.ensisoft.com
 //
@@ -22,26 +22,30 @@
 
 #pragma once
 
-// generic wdk specific types
+// window system types specific to Wayland.
+
+struct wl_display;
+struct wl_compositor;
+struct wl_shell;
+struct wl_surface;
+struct wl_egl_window;
+struct wl_shm;
+struct wl_dummy;
 
 namespace wdk
 {
-    typedef int           int_t;
-    typedef unsigned int  uint_t;
-    typedef unsigned int  ms_t;
-    typedef unsigned int  errcode_t;
+    struct native_display_t {
+        wl_display*    display;
+        wl_compositor* compositor;
+        wl_shell*      shell;
+        wl_shm*        shm;
+    };
 
-    const ms_t NO_TIMEOUT = -1;
+    typedef wl_egl_window* native_window_t;
+    typedef wl_surface*    egl_handle_t;
+    typedef wl_dummy*      native_event_t;
+    typedef wl_dummy*      native_pixmap_t;
 
 } // wdk
 
-
-// include windowing types too these are needed throughout.
-
-#if defined(WINDOWS) || defined(_WIN32)
-#  include "win32/types.h"
-#elif defined(WDK_WAYLAND)
-#  include "wayland/types.h"
-#else
-#  include "X11/types.h"
-#endif
+struct wl_dummy {};

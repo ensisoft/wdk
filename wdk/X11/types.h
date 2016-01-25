@@ -56,6 +56,7 @@ namespace wdk
     typedef xid_t<Pixmap, 1> native_pixmap_t;
     typedef int              native_handle_t;
     typedef Display*         native_display_t;
+    typedef native_window_t  egl_handle_t;
 
     class native_event_t 
     {
