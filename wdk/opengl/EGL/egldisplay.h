@@ -26,6 +26,6 @@
 
 namespace wdk
 {
-    EGLDisplay egl_init(native_display_t disp);
+    EGLDisplay egl_init(egl_display_t disp);
 
 } // wdk

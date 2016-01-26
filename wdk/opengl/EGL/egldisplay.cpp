@@ -26,7 +26,7 @@
 namespace wdk
 {
 
-EGLDisplay egl_init(native_display_t disp)
+EGLDisplay egl_init(egl_display_t disp)
 {
     // initialize the EGL display. this is a bit of a hack
     // and won't work if there ever is more than a single

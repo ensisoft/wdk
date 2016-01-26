@@ -38,6 +38,9 @@ namespace wdk
     // get native display handle
     native_display_t get_display_handle();
 
+    // get native display handle for EGL.
+    egl_display_t get_display_handle_egl();
+
      // get current videomode setting
     videomode get_current_video_mode();
 

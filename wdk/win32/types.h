@@ -31,6 +31,7 @@ namespace wdk
     typedef HBITMAP native_pixmap_t;
     typedef HDC     native_display_t;
     typedef HWND    egl_handle_t;
+    typedef HDC     egl_display_t;
 
     class native_event_t 
     {

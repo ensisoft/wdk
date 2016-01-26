@@ -28,6 +28,7 @@
 
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
+#include <wayland-egl.h>
 #include <stdexcept>
 #include <cassert>
 #include "../window.h"
@@ -111,7 +112,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     assert(pimpl_->window == nullptr &&
         "Window exists already.");
 
-    std::unique_ptr<framebuff> fb(new framebuff);
+    //std::unique_ptr<framebuff> fb(new framebuff);
 
     auto display = get_display_handle();
 
@@ -126,7 +127,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     if (surface == nullptr)
         throw std::runtime_error("create wayland surface failed");
 
-    fb->prepare(surface, width, height);
+    //fb->prepare(surface, width, height);
 
     // set shell window role + retrieve shell interface object.
     wl_shell_surface* shell = wl_shell_get_shell_surface(display.shell, surface);
@@ -148,13 +149,13 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     pimpl_->shell   = shell;
     pimpl_->fullscreen = false;
     pimpl_->canresize  = can_resize;
-    pimpl_->fb  = std::move(fb);
+    //pimpl_->fb  = std::move(fb);
     pimpl_->width  = width;
     pimpl_->height = height;
 
-    auto* front = pimpl_->fb->get_current();
-    front->clear();
-    pimpl_->fb->flip();
+    //auto* front = pimpl_->fb->get_current();
+    //front->clear();
+    //pimpl_->fb->flip();
 }
 
 void window::hide()
@@ -247,12 +248,30 @@ window::encoding window::get_encoding() const
 
 native_window_t window::handle() const 
 {
-    return pimpl_->window;
+    return pimpl_->surface;
 }
 
 egl_handle_t  window::egl_handle() const 
 {
-    return pimpl_->surface;
+    if (pimpl_->window)
+        return pimpl_->window;
+
+    auto disp = get_display_handle();
+
+    pimpl_->region = wl_compositor_create_region(disp.compositor);
+    if (pimpl_->region == nullptr)
+        throw std::runtime_error("create wayland region failed");
+
+    wl_region_add(pimpl_->region, 0, 0, 
+        pimpl_->width, pimpl_->height);
+    wl_surface_set_opaque_region(pimpl_->surface, pimpl_->region);
+
+    pimpl_->window = wl_egl_window_create(pimpl_->surface,
+        pimpl_->width, pimpl_->height);
+    if (pimpl_->window == nullptr)
+        throw std::runtime_error("create egl window failed");
+
+    return pimpl_->window;
 }
 
 } // wdk

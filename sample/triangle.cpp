@@ -99,7 +99,7 @@ void resolve()
     RESOLVE(glShaderSource);
     RESOLVE(glGetError);
     RESOLVE(glCompileShader);
-	RESOLVE(glAttachShader);
+    RESOLVE(glAttachShader);
     RESOLVE(glDeleteShader);
     RESOLVE(glLinkProgram);
     RESOLVE(glUseProgram);

@@ -116,6 +116,11 @@ native_display_t get_display_handle()
     return { dpy.d, dpy.c, dpy.s, dpy.shm };
 }
 
+egl_display_t get_display_handle_egl()
+{
+    return get_display_handle().display;
+}
+
 videomode get_current_video_mode()
 {
     UNIMPLEMENTED

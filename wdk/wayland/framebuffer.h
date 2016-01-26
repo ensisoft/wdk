@@ -101,10 +101,10 @@ namespace wdk
             wl_buffer* m_buff;
         };
 
-        framebuffer()
+        framebuffer() : m_pool(nullptr)
         {}
 
-        framebuffer(wl_surface* target, std::size_t width, std::size_t height)
+        framebuffer(wl_surface* target, std::size_t width, std::size_t height) : m_pool(nullptr)
         {
             prepare(target, width, height);
         }

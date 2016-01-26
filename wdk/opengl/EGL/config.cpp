@@ -55,7 +55,7 @@ struct config::impl {
 
 config::config(const attributes& attrs) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(get_display_handle_egl());
 
     std::vector<uint_t> criteria;
 

@@ -38,7 +38,7 @@ struct surface::impl {
 
 surface::surface(const config& conf, const window& win) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(get_display_handle_egl());
 
     pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.egl_handle(), nullptr);
     if (!pimpl_->surface)
@@ -47,7 +47,7 @@ surface::surface(const config& conf, const window& win) : pimpl_(new impl)
 
 surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(get_display_handle_egl());
 
     pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), nullptr);
     if (!pimpl_->surface)
@@ -56,7 +56,7 @@ surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
 
 surface::surface(const config& conf, uint_t width, uint_t height) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(get_display_handle_egl());
 
     const EGLint attrs[] = {
         EGL_HEIGHT, (EGLint)height,

@@ -41,8 +41,10 @@ namespace wdk
         wl_shm*        shm;
     };
 
-    typedef wl_egl_window* native_window_t;
-    typedef wl_surface*    egl_handle_t;
+    typedef wl_surface*    native_window_t;
+    typedef wl_egl_window* egl_handle_t;
+    typedef wl_display*    egl_display_t;
+
     typedef wl_dummy*      native_event_t;
     typedef wl_dummy*      native_pixmap_t;
 

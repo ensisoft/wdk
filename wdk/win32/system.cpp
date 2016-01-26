@@ -159,6 +159,11 @@ native_display_t get_display_handle()
     return d.hdc;
 }
 
+egl_display_t get_display_handle_egl()
+{
+    return get_display_handle();    
+}
+
 videomode get_current_video_mode()
 {
     DEVMODE cur_mode = {0};

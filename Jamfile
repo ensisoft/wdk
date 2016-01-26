@@ -40,16 +40,16 @@ if [ os.name ] = LINUX
 {
   
   # OpenGL libraries
+  #lib EGL     : : <name>wayland-egl : <link>shared ;
   lib EGL     : : <name>EGL    : <link>shared ;
   lib GLES2   : : <name>GLESv2 : <link>shared ;
   lib GL      : : <name>GL     : <link>shared ;
 
   # Wayland window system libraries.
   lib wayland-client : : <name>wayland-client ;
-  lib wayland-server : : <name>wayland-server ;
   lib wayland-egl    : : <name>wayland-egl ;
   lib rt             : : <name>rt ;
-  alias wayland-system-libs : wayland-client wayland-server wayland-egl rt : <link>shared ;
+  alias wayland-system-libs : wayland-client wayland-egl rt : <link>shared ;
 
   # X11 window system libraries.
   lib X11     : : <name>X11 ;
