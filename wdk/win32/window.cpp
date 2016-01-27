@@ -29,9 +29,10 @@
 #include "../window.h"
 #include "../system.h"
 #include "../utf8.h"
-#include "../config.h"
 
+// blatantly assuming msvc (or another compiler that understands this pragma)
 #pragma comment(lib, "User32.lib")
+#pragma comment(lib, "Gdi32.lib")
 
 namespace wdk
 {
@@ -173,20 +174,14 @@ window::~window()
         destroy();
 }
 
-void window::create(const std::string& title, uint_t width, uint_t height, 
-    bool can_resize, bool has_border, bool initially_visible, uint_t visualid)
+void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+    bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
     assert(height);
     assert(!title.empty());
     assert(!exists());
 
-    if (visualid == 0)
-    {
-        config::attributes attrs = config::DEFAULT;
-        config conf(attrs);
-        visualid = conf.visualid();
-    }
 
     DWORD new_style  = WS_EX_APPWINDOW;
     DWORD old_style  = WS_POPUP;

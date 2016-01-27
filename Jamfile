@@ -83,7 +83,7 @@ if [ os.name ] = NT
   lib wdk-opengl-desktop : [ glob wdk/opengl/WGL/*.cpp ] : <link>static ;
 
   # only win32 api available
-  alias wdk-system : win32 ;
+  alias wdk-system : wdk-system-win32 ;
 }
 
 

@@ -25,9 +25,9 @@
 #include <vector>
 #include <cassert>
 #include <wdk/win32/helpers.h>
+#include <wdk/utility.h>
 #include "../config.h"
 #include "../context.h"
-#include "../utility.h"
 
 #pragma comment(lib, "Gdi32.lib") // For PixelFormat funcs
 

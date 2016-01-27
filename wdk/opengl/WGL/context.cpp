@@ -32,6 +32,8 @@
 #include "../config.h"
 #include "../surface.h"
 
+#pragma comment(lib, "Gdi32.lib") // for Set/GetPixelFormat
+
 // http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
 // Accepted as an attribute name in <*attribList>:
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
