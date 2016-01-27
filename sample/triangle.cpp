@@ -262,8 +262,8 @@ private:
 
 int main(int argc, char* argv[])
 {
-
     auto msaa = wdk::config::multisampling::none;
+    bool srgb = false;
 
     for (int i=1; i<argc; ++i)
     {
@@ -273,11 +273,15 @@ int main(int argc, char* argv[])
             msaa = wdk::config::multisampling::msaa8;
         else if (!std::strcmp(argv[i], "--msaa16"))
             msaa = wdk::config::multisampling::msaa16;
+
+        if (!std::strcmp(argv[i], "--srgb"))
+          srgb = true;
     }
 
     // start with opengl with default config
     wdk::config::attributes attr = wdk::config::DEFAULT;
-    attr.sampling = msaa;
+    attr.sampling    = msaa;
+    attr.srgb_buffer = srgb;
 
     wdk::opengl gl(attr);
 

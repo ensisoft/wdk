@@ -102,6 +102,11 @@
 #define WGL_SAMPLE_BUFFERS_ARB               0x2041
 #define WGL_SAMPLES_ARB                      0x2042
 
+// Accepted by the <piAttributes> parameter of
+// wglGetPixelFormatAttribivEXT, wglGetPixelFormatAttribfvEXT, and
+// the <piAttribIList> and <pfAttribIList> of wglChoosePixelFormatEXT:
+#define WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT             0x20A9
+
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
     {
@@ -119,12 +124,13 @@ namespace wdk
 {
 
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, {true, false, false}, multisampling::none};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, false, {true, false, false}, multisampling::none};
 
 struct config::impl {
     int pixelformat;
     PIXELFORMATDESCRIPTOR desc;
+    bool srgb;
 };
 
 config::config(const attributes& attrs) : pimpl_(new impl)
@@ -156,6 +162,9 @@ config::config(const attributes& attrs) : pimpl_(new impl)
         if (attrs.double_buffer)
             set_if(criteria, WGL_DOUBLE_BUFFER_ARB, TRUE);
 
+        if (attrs.srgb_buffer)
+            set_if(criteria, WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT, TRUE);
+
         set_if(criteria, WGL_DRAW_TO_WINDOW_ARB, (uint_t)attrs.surfaces.window);
         set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
         set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
@@ -180,6 +189,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     }
 
     pimpl_->pixelformat = pixelformat;
+    pimpl_->srgb        = attrs.srgb_buffer;
 
     const int ret = DescribePixelFormat(win.surface(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
 
@@ -204,6 +214,11 @@ uint_t config::configid() const
 gl_config_t config::handle() const
 {
     return gl_config_t { &pimpl_->desc };
+}
+
+bool config::srgb_buffer() const 
+{
+    return pimpl_->srgb;
 }
 
 } // wdk

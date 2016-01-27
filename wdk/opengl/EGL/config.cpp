@@ -20,6 +20,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+// for clang in SublimeText2
+#ifndef WDK_MOBILE
+#  define WDK_MOBILE
+#endif
+
 #include <EGL/egl.h>
 #include <wdk/system.h>
 #include <stdexcept>
@@ -27,6 +32,7 @@
 #include <cassert>
 #include "../config.h"
 #include "egldisplay.h"
+
 
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
@@ -43,14 +49,15 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, true, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 8, 0, 0, true, {true, false, false}, multisampling::none};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, true, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 8, 0, 0, true, false, {true, false, false}, multisampling::none};
 
 struct config::impl {
     EGLDisplay   display;
     EGLConfig    config;
     uint_t       visualid;
     uint_t       configid;
+    bool         srgb;
 };
 
 config::config(const attributes& attrs) : pimpl_(new impl)
@@ -103,6 +110,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     pimpl_->config   = config;
     pimpl_->visualid = 0;
     pimpl_->configid = 0;
+    pimpl_->srgb     = attrs.srgb_buffer;
 
     eglGetConfigAttrib(pimpl_->display, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
     eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
@@ -132,5 +140,9 @@ gl_config_t config::handle() const
     return { pimpl_->config };
 }
 
+bool config::srgb_buffer() const 
+{
+    return pimpl_->srgb;
+}
 
 } // wdk

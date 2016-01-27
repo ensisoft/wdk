@@ -20,6 +20,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+// for clang in SublimeText2
+#ifndef WDK_MOBILE
+#  define WDK_MOBILE
+#endif
+
 #include <EGL/egl.h>
 #include <stdexcept>
 #include <wdk/system.h>
@@ -28,6 +33,20 @@
 #include "../surface.h"
 #include "../config.h"
 #include "egldisplay.h"
+
+// EGK_KHR_gl_colorspace.txt
+//
+// Accepted as an attribute name by eglCreateWindowSurface,
+// eglCreatePbufferSurface and eglCreatePixmapSurface
+
+#define EGL_GL_COLORSPACE_KHR                   0x309D
+
+// Accepted as attribute values for EGL_GL_COLORSPACE_KHR by
+// eglCreateWindowSurface, eglCreatePbufferSurface and
+// eglCreatePixmapSurface
+#define EGL_GL_COLORSPACE_SRGB_KHR              0x3089
+#define EGL_GL_COLORSPACE_LINEAR_KHR            0x308A
+
 
 namespace wdk 
 {
@@ -40,7 +59,15 @@ surface::surface(const config& conf, const window& win) : pimpl_(new impl)
 {
     pimpl_->display = egl_init(get_display_handle());
 
-    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), nullptr);
+    std::vector<EGLint> attribs;
+    if (conf.srgb_buffer())
+    { 
+        attribs.push_back(EGL_GL_COLORSPACE_KHR);
+        attribs.push_back(EGL_GL_COLORSPACE_SRGB_KHR);
+    }
+    attribs.push_back(EGL_NONE);
+
+    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create window surface failed");
 }
@@ -49,7 +76,15 @@ surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
 {
     pimpl_->display = egl_init(get_display_handle());
 
-    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), nullptr);
+    std::vector<EGLint> attribs;
+    if (conf.srgb_buffer())
+    {
+        attribs.push_back(EGL_GL_COLORSPACE_KHR);
+        attribs.push_back(EGL_GL_COLORSPACE_SRGB_KHR);
+    }
+    attribs.push_back(EGL_NONE);
+
+    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create pixmap surface failed");
 }
@@ -58,13 +93,19 @@ surface::surface(const config& conf, uint_t width, uint_t height) : pimpl_(new i
 {
     pimpl_->display = egl_init(get_display_handle());
 
-    const EGLint attrs[] = {
+    std::vector<EGLint> attribs {
         EGL_HEIGHT, (EGLint)height,
-	    EGL_WIDTH,(EGLint)width,
-	    EGL_NONE
+	EGL_WIDTH,  (EGLint)width
     };
 
-    pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), attrs);
+    if (conf.srgb_buffer())
+    {
+        attribs.push_back(EGL_GL_COLORSPACE_KHR);
+        attribs.push_back(EGL_GL_COLORSPACE_SRGB_KHR);
+    } 
+    attribs.push_back(EGL_NONE);
+
+    pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create offscreen surface failed");
 }

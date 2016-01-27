@@ -27,6 +27,11 @@
 #include <wdk/utility.h>
 #include "../config.h"
 
+// from EXT_framebuffer_sRGB.txt
+// Accepted by the <attribList> parameter of glXChooseVisual, and by
+// the <attrib> parameter of glXGetConfig:
+#define GLX_FRAMEBUFFER_SRGB_CAPABLE_EXT             0x20B2
+
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
     {
@@ -41,14 +46,15 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, {true, false, false}, multisampling::none};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, false, {true, false, false}, multisampling::none};
 
 struct config::impl {
     GLXFBConfig* configs;
     GLXFBConfig  config;
     uint_t       visualid;
     uint_t       configid;
+    bool         srgb;
 };
 
 config::config(const attributes& attrs) : pimpl_(new impl)
@@ -80,6 +86,9 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     if (attrs.double_buffer)
         set_if(criteria, GLX_DOUBLEBUFFER, (uint_t)True);
+
+    if (attrs.srgb_buffer)
+        set_if(criteria, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, (uint_t)True);
 
     if (attrs.sampling != multisampling::none)
     {
@@ -136,6 +145,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     pimpl_->config   = best;
     pimpl_->visualid = visual->visualid;
     pimpl_->configid = 0;
+    pimpl_->srgb     = attrs.srgb_buffer;
 
     glXGetFBConfigAttrib(dpy, best, GLX_FBCONFIG_ID, (int*)&pimpl_->configid);
 }
@@ -158,6 +168,11 @@ uint_t config::configid() const
 gl_config_t config::handle() const
 {
     return {pimpl_->config};
+}
+
+bool config::srgb_buffer() const 
+{
+    return pimpl_->srgb;
 }
 
 } // wdk

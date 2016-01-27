@@ -70,6 +70,13 @@ namespace wdk
             // double buffered or not. you'll generally want this to be true.
             bool double_buffer;
 
+            // use sRGB frame buffer. 
+            // see EXt_framebuffer_sRGB.txt.
+            // this might not always be available, but depends on the driver.
+            // remember to glEnable(FRAMEBUFFER_SRGB_EXT)
+            // https://www.opengl.org/registry/specs/EXT/framebuffer_sRGB.txt            
+            bool srgb_buffer;
+
             // possible rendering surfaces.
             struct {
                 // window backed surface. Normal choice.
@@ -86,6 +93,7 @@ namespace wdk
 
             // multisample antialising. defaults to none.
             // remember to glEnable(GL_MULTISAMPLE)
+            // https://www.opengl.org/registry/specs/ARB/multisample.txt
             multisampling sampling;
         };
 
@@ -106,6 +114,8 @@ namespace wdk
         uint_t configid() const;
 
         gl_config_t handle() const;
+
+        bool srgb_buffer() const;
 
         // todo: static query functions
     private:
