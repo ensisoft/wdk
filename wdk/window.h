@@ -134,12 +134,17 @@ namespace wdk
         // get the current character encoding. the default is utf8
         encoding get_encoding() const;
 
+        // get CPU drawable handle for some platform specific drawing.
+        native_drawable_t drawable() const;
+
         // get native window handle
         native_window_t handle() const;
 
-        // get EGL compatible handle.
-        // this could be same as native_window_t
-        // or different type. implementation defined.
+        // get EGL compatible handle for setting up EGL surface for GLES drawing.
+        // note that obtaining this handle might be mutually exclusive
+        // with drawable() handle. I.e. the window may at any given time
+        // only support CPU or GPU drawing and may not be able to switch
+        // between drawable modes.
         egl_handle_t egl_handle() const;
 
         // get the visual id that identifies the 

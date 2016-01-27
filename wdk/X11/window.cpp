@@ -407,6 +407,7 @@ void window::process_event(const native_event_t& ev)
                 paint.y      = event.xexpose.y;
                 paint.width  = event.xexpose.width;
                 paint.height = event.xexpose.height;
+                paint.dw     = { pimpl_->window };
                 on_paint(paint);
             }
             break;
@@ -549,6 +550,12 @@ bool window::is_fullscreen() const
 window::encoding window::get_encoding() const
 {
     return pimpl_->enc;
+}
+
+
+native_drawable_t window::drawable() const 
+{
+    return { pimpl_->window };
 }
 
 native_window_t window::handle() const

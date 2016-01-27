@@ -39,6 +39,7 @@ namespace wdk
 
 struct window::impl {
     HWND window;
+    HDC  hdc;
     encoding enc;
     bool fullscreen;
     bool resizing;
@@ -147,6 +148,7 @@ struct window::impl {
 window::window() : pimpl_(new impl)
 {
     pimpl_->window     = NULL;
+    pimpl_->hdc        = NULL;
     pimpl_->enc        = encoding::utf8;
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
@@ -268,11 +270,15 @@ void window::destroy()
 {
     assert(handle());
 
+    if (pimpl_->hdc)
+        ReleaseDC(pimpl_->hwnd, pimpl_->hdc);
+
     const BOOL ret = DestroyWindow(pimpl_->window);
 
     assert(ret);
 
     pimpl_->window = NULL;
+    pimpl_->hdc    = NULL;
 }
 
 void window::move(int x, int y)
@@ -463,13 +469,18 @@ void window::process_event(const native_event_t& ev)
                 RECT rcPaint;
                 GetUpdateRect(m.hwnd, &rcPaint, FALSE);
 
+                PAINTSTRUCT ps;
+                HDC hdc = BeginPaint(m.hwnd, &ps);
+
                 window_event_paint paint = {0};
                 paint.x      = rcPaint.left;
                 paint.y      = rcPaint.top;
                 paint.width  = rcPaint.right - rcPaint.left;
                 paint.height = rcPaint.bottom - rcPaint.top;
+                paint.dw     = hdc;
                 on_paint(paint);
 
+                EndPaint(m.hwnd, &ps);
             }
             break;
 
@@ -594,6 +605,14 @@ window::encoding window::get_encoding() const
     return pimpl_->enc;
 }
 
+native_drawable_t window::drawable() const 
+{
+    if (pimpl_->hdc == NULL)
+        pimpl_->hdc = GetDC(pimpl_->window);
+
+    return pimpl_->hdc;
+}
+
 native_window_t window::handle() const
 {
     return pimpl_->window;
@@ -608,11 +627,10 @@ uint_t window::visualid() const
 {
     assert(exists());
 
-    HDC hdc = GetDC(pimpl_->window);
+    if (pimpl_->hdc == NULL)
+        pimpl_->hdc = GetDC(pimpl_->window);
 
-    int pixelformat = GetPixelFormat(hdc);
-
-    ReleaseDC(pimpl_->window,hdc);
+    int pixelformat = GetPixelFormat(pimpl_->hdc);
 
     return pixelformat;
 }

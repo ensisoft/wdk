@@ -25,6 +25,7 @@
 #include <cstdint>
 #include "keys.h"
 #include "bitflag.h"
+#include "types.h"
 
 namespace wdk
 {
@@ -48,6 +49,7 @@ namespace wdk
         int x, y;                       // x, y origin of the dirty rectangle (top left corner within the window)
         int width;                      // width of the dirty rect
         int height;                     // height of the dirty rect
+        native_drawable_t dw;           // drawable object.
     };
 
     // window has been resized

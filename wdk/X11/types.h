@@ -54,6 +54,7 @@ namespace wdk
 
     typedef xid_t<Window, 0> native_window_t;
     typedef xid_t<Pixmap, 1> native_pixmap_t;
+    typedef xid_t<Window, 2> native_drawable_t;
     typedef int              native_handle_t;
     typedef Display*         native_display_t;
     typedef Display*         egl_display_t;

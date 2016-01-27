@@ -85,6 +85,23 @@ struct window::impl {
     {
 
     }
+
+    // the server sends this when surface's creation, movement
+    // or resizing results in it no longer having any part of it
+    // within the scanout region of an output.
+    static void surface_leave(void* data,
+        wl_surface* surface, wl_output* output)
+    {}
+
+    // the server sends this when surfaces creation, movement
+    // or resizing results in some part of the surface
+    // being within the scanout region of an output.
+    // (i.e. visible rectangle??)
+    static void surface_enter(void* data,
+        wl_surface* surface, wl_output* output)
+    {
+        
+    }
 };
 
 
@@ -112,7 +129,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     assert(pimpl_->window == nullptr &&
         "Window exists already.");
 
-    //std::unique_ptr<framebuff> fb(new framebuff);
+    std::unique_ptr<framebuff> fb(new framebuff);
 
     auto display = get_display_handle();
 
@@ -127,20 +144,25 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     if (surface == nullptr)
         throw std::runtime_error("create wayland surface failed");
 
-    //fb->prepare(surface, width, height);
+    fb->prepare(surface, width, height);
 
     // set shell window role + retrieve shell interface object.
     wl_shell_surface* shell = wl_shell_get_shell_surface(display.shell, surface);
     if (shell == nullptr)
         throw std::runtime_error("create wayland shell surface failed");
 
-    static const wl_shell_surface_listener listener = {
+    static const wl_shell_surface_listener shell_listener = {
         &impl::shell_surface_ping,
         &impl::shell_surface_configure,
         &impl::shell_surface_popup_done
     };
+    static const wl_surface_listener surf_listener = {
+        &impl::surface_enter,
+        &impl::surface_leave
+    };
+    wl_surface_add_listener(surface, &surf_listener, pimpl_.get());
 
-    wl_shell_surface_add_listener(shell, &listener, pimpl_.get());
+    wl_shell_surface_add_listener(shell, &shell_listener, pimpl_.get());
     wl_shell_surface_set_toplevel(shell);
     wl_shell_surface_set_title(shell, "keke");
 
@@ -149,13 +171,13 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     pimpl_->shell   = shell;
     pimpl_->fullscreen = false;
     pimpl_->canresize  = can_resize;
-    //pimpl_->fb  = std::move(fb);
+    pimpl_->fb  = std::move(fb);
     pimpl_->width  = width;
     pimpl_->height = height;
 
-    //auto* front = pimpl_->fb->get_current();
-    //front->clear();
-    //pimpl_->fb->flip();
+    auto* front = pimpl_->fb->get_current();
+    front->clear();
+    pimpl_->fb->flip();
 }
 
 void window::hide()
@@ -246,6 +268,15 @@ window::encoding window::get_encoding() const
     return encoding::ascii;
 }
 
+native_drawable_t window::drawable() const 
+{
+    if (!pimpl_->fb)
+        return nullptr;
+
+    auto* current = pimpl_->fb->get_current();
+    return current->ptr();
+}
+
 native_window_t window::handle() const 
 {
     return pimpl_->surface;
@@ -257,6 +288,9 @@ egl_handle_t  window::egl_handle() const
         return pimpl_->window;
 
     auto disp = get_display_handle();
+
+    if (pimpl_->fb)
+        pimpl_->fb.reset();
 
     pimpl_->region = wl_compositor_create_region(disp.compositor);
     if (pimpl_->region == nullptr)

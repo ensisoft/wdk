@@ -150,6 +150,8 @@ namespace wdk
        ~framebuffer()
         {
             wl_shm_pool_destroy(m_pool);
+            wl_surface_attach(m_surface, nullptr, 0, 0);
+            wl_surface_commit(m_surface);
         }
 
         shared_mem_buffer* get_current() 
