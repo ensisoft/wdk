@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -69,11 +69,11 @@ struct context::impl {
     {
         display = egl_init(get_display_handle());
 
-        const EGLint FLAGS = debug ? 
+        const EGLint FLAGS = debug ?
             EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR : 0;
 
-        // we require EGL_KHR_create_context extension for the debug context 
-        // if this extension is not available at runtime context creation 
+        // we require EGL_KHR_create_context extension for the debug context
+        // if this extension is not available at runtime context creation
         // will simply fail.
         const EGLint attrs[] = {
             EGL_CONTEXT_CLIENT_VERSION, (EGLint)major_version,
@@ -81,11 +81,13 @@ struct context::impl {
             EGL_NONE
         };
 
+        eglBindAPI(EGL_OPENGL_API);
+
         context = eglCreateContext(display, conf.handle(), EGL_NO_CONTEXT, attrs);
         if (!context)
             throw std::runtime_error("create context failed");
-            
-        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);        
+
+        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);
     }
 };
 
@@ -109,6 +111,8 @@ context::~context()
 
 void context::make_current(surface* surf)
 {
+    eglBindAPI(EGL_OPENGL_API);
+
     eglMakeCurrent(pimpl_->display, EGL_NO_SURFACE, EGL_NO_SURFACE, pimpl_->context);
 
     pimpl_->surface = nullptr;
@@ -125,7 +129,7 @@ void context::make_current(surface* surf)
 void context::swap_buffers()
 {
     assert((pimpl_->surface != EGL_NO_SURFACE) && "context has no valid surface. did you forget to call make_current?");
-    
+
     EGLBoolean ret = eglSwapBuffers(pimpl_->display, pimpl_->surface);
 
     assert(ret);
@@ -134,15 +138,15 @@ void context::swap_buffers()
 bool context::has_dri() const
 {
     // todo ???
-    return true; 
+    return true;
 }
 
 void* context::resolve(const char* function)
 {
     assert(function && "null function name");
-    
+
     void* ret = (void*)eglGetProcAddress(function);
-    
+
     return ret;
 }
 
