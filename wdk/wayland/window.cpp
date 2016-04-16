@@ -31,12 +31,17 @@
 #include <wayland-egl.h>
 #include <stdexcept>
 #include <cassert>
+#include <queue>
 #include "../window.h"
+#include "../window_events.h"
 #include "../system.h"
 #include "framebuffer.h"
+#include "types.h"
 
 namespace wdk
 {
+
+extern std::queue<native_event_t> g_queue;
 
 // double buffering. we can render into 1st buffer
 // while the compositor is using the 2nd buffer and 
@@ -100,7 +105,14 @@ struct window::impl {
     static void surface_enter(void* data,
         wl_surface* surface, wl_output* output)
     {
-        
+        auto* self = static_cast<impl*>(data);
+
+        native_event_t::paint_region region;
+        region.x = 0;
+        region.y = 0;
+        region.height = self->height;
+        region.width  = self->width;
+        g_queue.push(native_event_t{region, native_event_t::type::window_paint, surface});
     }
 };
 
@@ -229,16 +241,42 @@ void window::poll_one_event()
 
 void window::wait_one_event()
 {
-    auto display = wdk::get_display_handle();
+    const auto& ev = get_event();
+    if (ev.get_window_handle() != handle())
+        return;
+    process_event(ev);
+    //auto disp = get_display_handle();
+    //wl_display_dispatch(disp.display);
 
-    wl_display_dispatch(display.display);
 }
 
 void window::process_all_events()
 {}
 
 void window::process_event(const native_event_t& ev)
-{}
+{
+    assert(ev.get_window_handle());
+    assert(ev.get_window_handle() == handle());
+
+    using type = native_event_t::type;
+
+    switch (ev.identity())
+    {
+        case type::window_paint:
+            if (on_paint)
+            {
+                const auto& ref = ev.as<native_event_t::paint_region>();
+                window_event_paint paint = {0};
+                paint.x = ref.x;
+                paint.y = ref.y;
+                paint.height = ref.height;
+                paint.width  = ref.width;
+                paint.dw     = ev.get_window_handle();
+                on_paint(paint);
+            }
+            break;
+    }
+}
 
 void window::sync_all_events()
 {}

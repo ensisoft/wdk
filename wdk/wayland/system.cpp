@@ -25,11 +25,13 @@
 #  define WDK_WAYLAND
 #endif
 
-
+#include <sys/select.h>
 #include <wayland-client.h>
 #include <stdexcept>
 #include <cstring>
 #include <cassert>
+#include <stdexcept>
+#include <queue>
 #include "../system.h"
 #include "../videomode.h"
 
@@ -38,16 +40,23 @@
 namespace wdk
 {
 
+std::queue<native_event_t> g_queue;
+
 native_display_t get_display_handle()
 {
-    struct open_display {
+    struct display {
         wl_display* d;
         wl_compositor* c;
         wl_shell* s;
         wl_registry* r;
         wl_shm* shm;
+        wl_seat* seat;
+        wl_keyboard* keyboard;
+        wl_pointer* mouse;
 
-        open_display() : d(wl_display_connect(nullptr))
+        wl_surface* input_focus_surface;
+
+        display() : d(wl_display_connect(nullptr))
         {
             if (!d)
                 throw std::runtime_error("failed to connect to wayland display");
@@ -69,10 +78,36 @@ native_display_t get_display_handle()
                 throw std::runtime_error("failed to get wayland compositor");
             else if (s == nullptr)
                 throw std::runtime_error("failed to get wayland shell");
+            else if (shm == nullptr)
+                throw std::runtime_error("failed to get wayland shared memory manager");
+            else if (seat == nullptr)
+                throw std::runtime_error("failed to get wayland input peripheral manager");
 
+            keyboard = wl_seat_get_keyboard(seat);
+            if (keyboard) 
+            {
+                const static wl_keyboard_listener list[] = {
+                    keyboard_keymap,
+                    keyboard_enter,
+                    keyboard_leave,
+                    keyboard_keypress,
+                    keyboard_modifier_state,
+                    keyboard_repeat_state
+                };
+                wl_keyboard_add_listener(keyboard, list, this);
+            }
+
+            mouse    = wl_seat_get_pointer(seat);
+            input_focus_surface = nullptr;
         }
-       ~open_display()
+       ~display()
         {
+            if (keyboard)
+                wl_keyboard_destroy(keyboard);
+            if (mouse)
+                wl_pointer_destroy(mouse);
+
+            wl_seat_destroy(seat);
             wl_shm_destroy(shm);
             wl_shell_destroy(s);
             wl_compositor_destroy(c);
@@ -80,11 +115,50 @@ native_display_t get_display_handle()
             wl_display_disconnect(d);            
         }
 
+        static
+        void keyboard_keymap(void* data, wl_keyboard* keyboard,
+            uint32_t format, int32_t fd, uint32_t size)
+        {}
+
+        static
+        void keyboard_enter(void* data, wl_keyboard* keyboard,
+            uint32_t serial, wl_surface* surface, wl_array* keys)
+        {}
+
+        static
+        void keyboard_leave(void* data, wl_keyboard* keyboard,
+            uint32_t serial, wl_surface* surface)
+        {
+            auto* self = static_cast<display*>(data);
+        }
+
+        static 
+        void keyboard_keypress(void* data, wl_keyboard* keyboard,
+            uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
+        {
+
+        }
+
+
+
+        static 
+        void keyboard_modifier_state(void* data, wl_keyboard* keyboard,
+            uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked,
+            uint32_t group)
+        {
+
+        }
+
+        static
+        void keyboard_repeat_state(void* data, wl_keyboard* keyboard,
+            int32_t rate, int32_t delay)
+        {}
+
         static 
         void global_registry_handler(void* data, struct wl_registry* registry,
             uint32_t id, const char* interface, uint32_t version)
         {
-            auto* self = static_cast<open_display*>(data);
+            auto* self = static_cast<display*>(data);
 
             if (!std::strcmp(interface, wl_compositor_interface.name))
             {
@@ -101,6 +175,11 @@ native_display_t get_display_handle()
                 self->shm = (wl_shm*)wl_registry_bind(registry, id,
                     &wl_shm_interface, 1);
             }
+            else if (!std::strcmp(interface, wl_seat_interface.name))
+            {
+                self->seat = (wl_seat*)wl_registry_bind(registry, id,
+                    &wl_seat_interface, 1);
+            }
         }
 
         static
@@ -111,7 +190,7 @@ native_display_t get_display_handle()
         }
     };
 
-    static open_display dpy;
+    static display dpy;
 
     return { dpy.d, dpy.c, dpy.s, dpy.shm };
 }
@@ -138,22 +217,62 @@ std::vector<videomode> list_video_modes()
 
 bool have_events()
 {
-    UNIMPLEMENTED
+    return !g_queue.empty();
 }
 
 bool sync_events()
 {
-    UNIMPLEMENTED
+    auto disp = get_display_handle();
+
+    wl_display_dispatch_pending(disp.display);
+
+    return true;
 }
 
 native_event_t get_event()
 {
-    UNIMPLEMENTED
+    auto disp = get_display_handle();
+
+    const auto fd = wl_display_get_fd(disp.display);
+    fd_set read;
+    fd_set write;
+    FD_ZERO(&read);
+    FD_ZERO(&write);
+    FD_SET(fd, &read);
+    FD_SET(fd, &write);
+
+    while (g_queue.empty())
+    {
+        wl_display_dispatch_pending(disp.display);
+        if (!g_queue.empty())
+            break;
+
+        int ret = wl_display_flush(disp.display);        
+        if (ret == 0)
+            FD_ZERO(&write);
+        else if (ret == -1 && errno == EAGAIN)
+            FD_SET(fd, &write);
+
+        ret = ::select(fd + 1, &read, &write, nullptr, nullptr);
+        if (ret == -1)
+            throw std::runtime_error("select failed");
+    }
+
+    assert(!g_queue.empty());
+
+    auto ret = g_queue.front();
+    g_queue.pop();
+
+    return ret;
 }
 
 bool peek_event(native_event_t& ev)
 {
-    UNIMPLEMENTED
+    if (g_queue.empty())
+        return false;
+
+    ev = g_queue.front();
+    return true;
 }
 
 std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
