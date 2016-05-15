@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -23,6 +23,7 @@
 #include <cassert>
 #include "videomode.h"
 #include "utility.h"
+#include "system.h"
 
 namespace wdk
 {
