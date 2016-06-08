@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -19,6 +19,13 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
+
+// we're getting a warning about XKeycodeToKeysym. Suppress this for now.
+#if defined(__clang__)
+#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__GNUG__)
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -153,7 +160,7 @@ namespace {
     };
 
     struct table_sorter {
-        table_sorter() 
+        table_sorter()
         {
             // sort the keymap table for binary lookup on wdk::keysym
             std::sort(std::begin(keymap), std::end(keymap));
@@ -169,7 +176,7 @@ namespace {
 
         // should be there.
         assert(it != std::end(keymap));
-        
+
         return (*it).x11;
     }
 
@@ -218,10 +225,10 @@ native_display_t get_display_handle()
 
             int root = RootWindow(d, DefaultScreen(d));
             // set masks on our root window handle.
-            // StructureNotifyMask means that we receive events that pertain to 
+            // StructureNotifyMask means that we receive events that pertain to
             // root window's structure changes such as ConfigureNotify.
-            // SubstructureNotifyMask means that we get events that pertain to 
-            // child windows of the root window, i.e. create/destroy events. 
+            // SubstructureNotifyMask means that we get events that pertain to
+            // child windows of the root window, i.e. create/destroy events.
             // (our windows are children of the root)
             XSelectInput(d, root, StructureNotifyMask | SubstructureNotifyMask);
 
@@ -233,7 +240,7 @@ native_display_t get_display_handle()
 
             // there's a maximum of 8 modifiers in X server.
             // (Shift, Alt, Control, Meta, Super, Hyper, ModeSwitch, NumLock)
-            // but a server can support a variable number of keys 
+            // but a server can support a variable number of keys
             // being assigned to any given modifier (max_keypermod)
             // Alt is the one that we try to find here through XK_Alt_L or XK_Alt_R.
             // Other interesting modifiers, control and shift are constants
@@ -244,10 +251,10 @@ native_display_t get_display_handle()
                     const KeyCode code = mods->modifiermap[mod * mods->max_keypermod + key];
                     KeySym  sym  = NoSymbol;
                     int group    = 0;
-                    do 
+                    do
                     {
                         sym = XKeycodeToKeysym(d, code, group++);
-                    } 
+                    }
                     while (sym == NoSymbol && group < 4);
 
                     if (sym == XK_Alt_L)
@@ -271,7 +278,7 @@ native_display_t get_display_handle()
             _NET_WM_STATE_FULLSCREEN = XInternAtom(d, "_NET_WM_STATE_FULLSCREEN", True);
 
         }
-       ~open_display() 
+       ~open_display()
         {
             XCloseDisplay(d);
         }
@@ -299,7 +306,7 @@ videomode get_current_video_mode()
     videomode vm;
     vm.xres = sizes[cur_mode_index].width;
     vm.yres = sizes[cur_mode_index].height;
-    return vm;    
+    return vm;
 }
 
 void set_video_mode(const videomode& m)
@@ -332,7 +339,7 @@ void set_video_mode(const videomode& m)
         return;
 
     if (XRRSetScreenConfig(dpy, config.get(), root, found_index, rot, CurrentTime) == RRSetConfigFailed)
-        throw std::runtime_error("Xrandr set video mode failed");    
+        throw std::runtime_error("Xrandr set video mode failed");
 }
 
 std::vector<videomode> list_video_modes()
@@ -374,7 +381,7 @@ bool sync_events()
     // the reason why it might fail is that set_size will generate a request to the X server
     // which then processes the change and sends back the response. Xlib will contain
     // cached state for the window size untill it receives a response from the server
-    // for the size request. 
+    // for the size request.
     // so this sync function tries to make sure that the event queue is fully processed and
     // the Xlib state is synced with the latest state changes originating from the client.
 
@@ -384,8 +391,8 @@ bool sync_events()
     if (last_event_received >= next -1)
         return false;
 
-    XSync(d, False);        
-    
+    XSync(d, False);
+
     std::vector<XEvent> events;
 
     while (true)
@@ -394,7 +401,7 @@ bool sync_events()
         XNextEvent(d, &x);
 
         events.push_back(x);
-        
+
         // assuming a reasonable sequential operation here.
         if (x.xany.serial >= next - 1)
             break;
@@ -463,7 +470,7 @@ std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t&
     if (sym == NoSymbol)
         return ret;
 
-    // have to do a linear search since the keyboard mapping table 
+    // have to do a linear search since the keyboard mapping table
     // is sorted by X11 values.
     const auto it = std::find_if(std::begin(keymap), std::end(keymap),
         [=] (const key_mapping& map)
