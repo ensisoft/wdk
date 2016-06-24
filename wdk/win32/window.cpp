@@ -29,7 +29,6 @@
 #include "../window.h"
 #include "../system.h"
 #include "../utf8.h"
-#include "../config.h"
 
 #pragma comment(lib, "User32.lib")
 
@@ -173,20 +172,13 @@ window::~window()
         destroy();
 }
 
-void window::create(const std::string& title, uint_t width, uint_t height, 
-    bool can_resize, bool has_border, bool initially_visible, uint_t visualid)
+void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+    bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
     assert(height);
     assert(!title.empty());
     assert(!exists());
-
-    if (visualid == 0)
-    {
-        config::attributes attrs = config::DEFAULT;
-        config conf(attrs);
-        visualid = conf.visualid();
-    }
 
     DWORD new_style  = WS_EX_APPWINDOW;
     DWORD old_style  = WS_POPUP;
@@ -389,9 +381,9 @@ void window::set_size(uint_t width, uint_t height)
     // borders and title bar. So if we want to grow to a certain *client* size
     // we must include the borders and title bar in the actual new size. 
     
-    if (width > client.right)
+    if (width > (uint_t)client.right)
         width += dx;
-    if (height > client.bottom)
+    if (height > (uint_t)client.bottom)
         height += dy;
 
     if (width < dx)
