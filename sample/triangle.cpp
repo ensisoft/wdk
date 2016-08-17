@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -28,6 +28,7 @@
 #  endif
 #  include "glcorearb.h"
 #endif
+#  include "glcorearb.h"
 #include <wdk/window_listener.h>
 #include <wdk/window_events.h>
 #include <wdk/window.h>
@@ -54,34 +55,37 @@
             printf("GL error 0x%04x @ %s,%d\n", err, __FILE__, __LINE__); \
             abort(); \
         }\
-    } while(0)    
+    } while(0)
 
 #if !defined(SAMPLE_GLES) && !defined(GL_GLEXT_PROTOTYPES)
-PFNGLCREATEPROGRAMPROC glCreateProgram;
-PFNGLCREATESHADERPROC  glCreateShader;
-PFNGLSHADERSOURCEPROC  glShaderSource;
-PFNGLGETERRORPROC      glGetError;
-PFNGLCOMPILESHADERPROC glCompileShader;
-PFNGLDETACHSHADERPROC  glAttachShader;
-PFNGLDELETESHADERPROC  glDeleteShader;
-PFNGLLINKPROGRAMPROC   glLinkProgram;
-PFNGLUSEPROGRAMPROC    glUseProgram;
-PFNGLVALIDATEPROGRAMPROC glValidateProgram;
-PFNGLCLEARCOLORPROC glClearColor;
-PFNGLCLEARPROC glClear;
-PFNGLVIEWPORTPROC glViewport;
-PFNGLDRAWARRAYSPROC glDrawArrays;
-PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
-PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
+PFNGLCREATEPROGRAMPROC           glCreateProgram;
+PFNGLCREATESHADERPROC            glCreateShader;
+PFNGLSHADERSOURCEPROC            glShaderSource;
+PFNGLGETERRORPROC                glGetError;
+PFNGLCOMPILESHADERPROC           glCompileShader;
+PFNGLDETACHSHADERPROC            glAttachShader;
+PFNGLDELETESHADERPROC            glDeleteShader;
+PFNGLLINKPROGRAMPROC             glLinkProgram;
+PFNGLUSEPROGRAMPROC              glUseProgram;
+PFNGLVALIDATEPROGRAMPROC         glValidateProgram;
+PFNGLCLEARCOLORPROC              glClearColor;
+PFNGLCLEARPROC                   glClear;
+PFNGLVIEWPORTPROC                glViewport;
+PFNGLDRAWARRAYSPROC              glDrawArrays;
+PFNGLGETATTRIBLOCATIONPROC       glGetAttribLocation;
+PFNGLVERTEXATTRIBPOINTERPROC     glVertexAttribPointer;
 PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
-PFNGLGETSTRINGPROC glGetString;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-PFNGLUNIFORM1FPROC glUniform1f;
+PFNGLGETSTRINGPROC               glGetString;
+PFNGLGETUNIFORMLOCATIONPROC      glGetUniformLocation;
+PFNGLUNIFORM1FPROC               glUniform1f;
+PFNGLGETPROGRAMIVPROC            glGetProgramiv;
+PFNGLGETSHADERIVPROC             glGetShaderiv;
+PFNGLGETPROGRAMINFOLOGPROC       glGetProgramInfoLog;
 
 template<typename T>
 T resolve(const char* name)
 {
-    printf("Resolving %s ", "name");
+    printf("Resolving %s ", name);
 
     T ret = (T)wdk::context::resolve(name);
 
@@ -99,7 +103,7 @@ void resolve()
     RESOLVE(glShaderSource);
     RESOLVE(glGetError);
     RESOLVE(glCompileShader);
-	RESOLVE(glAttachShader);
+    RESOLVE(glAttachShader);
     RESOLVE(glDeleteShader);
     RESOLVE(glLinkProgram);
     RESOLVE(glUseProgram);
@@ -115,6 +119,9 @@ void resolve()
     RESOLVE(glGetUniformLocation);
     RESOLVE(glUniform1f);
     RESOLVE(glGetString);
+    RESOLVE(glGetProgramiv);
+    RESOLVE(glGetShaderiv);
+    RESOLVE(glGetProgramInfoLog);
 }
 #else
 void resolve() {}
@@ -131,8 +138,8 @@ public:
         GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
 
 #if defined(SAMPLE_GLES)
-        const char* v_src = 
-          "precision highp float;                                       \n"
+        const char* v_src =
+          "#version 100\n"
           "attribute vec2 a_position;                                   \n"
           "uniform float u_rot;                                         \n"
           "void main()                                                  \n"
@@ -140,35 +147,37 @@ public:
           "   mat2 r = mat2(cos(u_rot), -sin(u_rot),                    \n"
           "                 sin(u_rot), cos(u_rot));                    \n"
           "   vec2 v = r * a_position;                                  \n"
-          "   v.x = clamp(v.x, -1, 1);                                  \n"
-          "   v.y = clamp(v.y, -1, 1);                                  \n"
-          "   gl_Position = vec4(v, 0, 1);                              \n"
+          "   v.x = clamp(v.x, -1.0, 1.0);                              \n"
+          "   v.y = clamp(v.y, -1.0, 1.0);                              \n"
+          "   gl_Position = vec4(v, 0.0, 1.0);                          \n"
           "}                                                            \n"
           "\n";
 
-        const char* f_src = 
+        const char* f_src =
+          "#version 100\n"
+          "precision mediump float;                                     \n"
           "void main()                                                  \n"
           "{                                                            \n"
-          "  gl_FragColor = vec4(0, 0.8, 0, 0);                         \n"
+          "  gl_FragColor = vec4(0.0, 0.8, 0.0, 0.0);                   \n"
           "}                                                            \n"
           "\n";
 #else
-        const char* v_src = 
+        const char* v_src =
           "#version 130                                                  \n"
           "in vec2 a_position;                                           \n"
           "uniform float u_rot;"
           "void main()                                                   \n"
-          "{                                                             \n"                                                               
-          "   mat2 r = mat2(cos(u_rot), -sin(u_rot),                     \n"                        
+          "{                                                             \n"
+          "   mat2 r = mat2(cos(u_rot), -sin(u_rot),                     \n"
           "                 sin(u_rot), cos(u_rot));                     \n"
           "   vec2 v = r * a_position;                                   \n"
-          "   v.x = clamp(v.x, -1, 1);                                   \n"
-          "   v.y = clamp(v.y, -1, 1);                                   \n"
-          "   gl_Position = vec4(v, 0, 1);                               \n"
+          "   v.x = clamp(v.x, -1.0, 1.0);                               \n"
+          "   v.y = clamp(v.y, -1.0, 1.0);                               \n"
+          "   gl_Position = vec4(v, 0.0, 1.0);                           \n"
           "}                                                             \n"
           "\n";
 
-        const char* f_src = 
+        const char* f_src =
           "#version 130                                                  \n"
           "out vec4 outColor;                                            \n"
           "void main()                                                   \n"
@@ -180,12 +189,47 @@ public:
         GL_CHECK(glShaderSource(vert, 1, &v_src, NULL));
         GL_CHECK(glCompileShader(vert));
 
+        GLint compile = 0;
+        GL_CHECK(glGetShaderiv(vert, GL_COMPILE_STATUS, &compile));
+        if (compile == 1)
+        {
+            std::cout << "Vertex shader compiled OK\n";
+        }
+        else
+        {
+            std::cout << "Vertex shader compile failed. :(\n";
+        }
+
         GL_CHECK(glShaderSource(frag, 1, &f_src, NULL));
         GL_CHECK(glCompileShader(frag));
+        GL_CHECK(glGetShaderiv(frag, GL_COMPILE_STATUS, &compile));
+        if (compile == 1)
+        {
+            std::cout << "Fragment shader compiled OK\n";
+        }
+        else
+        {
+            std::cout << "Fragment shader compile failed. :(\n";
+        }
 
         GL_CHECK(glAttachShader(program_, vert));
         GL_CHECK(glAttachShader(program_, frag));
         GL_CHECK(glLinkProgram(program_));
+
+        GLint link = 0;
+        GL_CHECK(glGetProgramiv(program_, GL_LINK_STATUS, &link));
+        if (link == 1)
+        {
+            std::cout << "Program linked OK\n";
+        }
+        else
+        {
+            std::cout << "Program link failed :(\n";
+            std::string info;
+            info.resize(1024);
+            GL_CHECK(glGetProgramInfoLog(program_, 1024, NULL, &info[0]));
+            std::cout << info;
+        }
 
         GL_CHECK(glUseProgram(program_));
 
@@ -201,10 +245,10 @@ public:
         // instead of time_point<steady_clock> and then there are no conversion
         // operators between these two unrelated types.
         typedef std::chrono::time_point < std::chrono::system_clock > time;
-#else       
+#else
         typedef std::chrono::time_point<clock> time;
 #endif
-                
+
         typedef std::chrono::duration<float> duration;
 
         static time stamp = clock::now();
@@ -219,16 +263,16 @@ public:
 
         GL_ERR_CLEAR;
 
-        GL_CHECK(glClearColor(0, 0, 0, 0));
+        GL_CHECK(glClearColor(0.0, 0.0, 0.2, 1.0));
         GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
 
         struct vertex {
             float x, y;
-        };        
+        };
         const vertex triangle[3] = {{0, 1}, {-1, -1}, {1, -1}};
-        
+
         GLint pos = glGetAttribLocation(program_, "a_position");
-        GLint rot = glGetUniformLocation(program_, "u_rot"); 
+        GLint rot = glGetUniformLocation(program_, "u_rot");
 
         GL_CHECK(glVertexAttribPointer(pos, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
         GL_CHECK(glEnableVertexAttribArray(pos));
