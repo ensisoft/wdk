@@ -32,6 +32,8 @@
 #include "../config.h"
 #include "../surface.h"
 
+#pragma comment(lib, "opengl32.lib") // needed for wgl functions
+
 // http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
 // Accepted as an attribute name in <*attribList>:
 #define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091

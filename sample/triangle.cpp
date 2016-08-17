@@ -196,7 +196,15 @@ public:
     void render()
     {
         typedef std::chrono::steady_clock clock;
+#if defined(_MSC_VER)
+        // msvc2013 returns this type from steady_clock::now
+        // instead of time_point<steady_clock> and then there are no conversion
+        // operators between these two unrelated types.
+        typedef std::chrono::time_point < std::chrono::system_clock > time;
+#else       
         typedef std::chrono::time_point<clock> time;
+#endif
+                
         typedef std::chrono::duration<float> duration;
 
         static time stamp = clock::now();
