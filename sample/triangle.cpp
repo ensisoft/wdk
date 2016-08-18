@@ -264,7 +264,7 @@ public:
         GL_ERR_CLEAR;
 
         GL_CHECK(glClearColor(0.0, 0.0, 0.2, 1.0));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
         struct vertex {
             float x, y;
