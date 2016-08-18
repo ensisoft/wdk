@@ -81,13 +81,26 @@ struct context::impl {
             EGL_NONE
         };
 
-        eglBindAPI(EGL_OPENGL_API);
+        // Theoretically we shouldn't hardcode the API here.
+        // It's conceivable that the user of this library would want to use
+        // the EGL framework to setup rendering context for other apis such as GL or VG.
+        // In order to support this properly the config selection needs to support
+        // choosing configs which support these rendering apis
+        // and the context creation needs an API as well.
+        // But for the time being we're just going to baldly assume the user always
+        // wants to use OpenGL ES.
+        const auto BeforeAPI = eglQueryAPI();
+
+        // force switch
+        eglBindAPI(EGL_OPENGL_ES_API);
 
         context = eglCreateContext(display, conf.handle(), EGL_NO_CONTEXT, attrs);
         if (!context)
             throw std::runtime_error("create context failed");
 
         eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context);
+
+        eglBindAPI(BeforeAPI);
     }
 };
 
@@ -111,7 +124,8 @@ context::~context()
 
 void context::make_current(surface* surf)
 {
-    eglBindAPI(EGL_OPENGL_API);
+    // See comments about this BindAPI call in the context::impl constructor.
+    eglBindAPI(EGL_OPENGL_ES_API);
 
     eglMakeCurrent(pimpl_->display, EGL_NO_SURFACE, EGL_NO_SURFACE, pimpl_->context);
 
