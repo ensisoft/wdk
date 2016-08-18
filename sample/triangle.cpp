@@ -21,6 +21,7 @@
 //  THE SOFTWARE.
 
 #ifdef SAMPLE_GLES
+#    define GL_GLEXT_PROTOTYPES
 #  include <GLES2/gl2.h>
 #else
 #  ifndef _WIN32
@@ -28,7 +29,6 @@
 #  endif
 #  include "glcorearb.h"
 #endif
-#  include "glcorearb.h"
 #include <wdk/window_listener.h>
 #include <wdk/window_events.h>
 #include <wdk/window.h>
@@ -240,7 +240,7 @@ public:
     void render()
     {
         typedef std::chrono::steady_clock clock;
-#if defined(_MSC_VER)
+#if _MSC_VER == 1800 // VS2013 has this bug
         // msvc2013 returns this type from steady_clock::now
         // instead of time_point<steady_clock> and then there are no conversion
         // operators between these two unrelated types.
@@ -277,7 +277,7 @@ public:
         GL_CHECK(glVertexAttribPointer(pos, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
         GL_CHECK(glEnableVertexAttribArray(pos));
         GL_CHECK(glUniform1f(rot, rotation));
-
+       
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
 
         stamp = now;
@@ -312,7 +312,7 @@ private:
 };
 
 
-int main(int argc, char* argv[])
+int launch(int argc, char* argv[])
 {
     auto msaa = wdk::config::multisampling::none;
     bool srgb = false;
@@ -370,6 +370,20 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+int main(int argc, char* argv[])
+{
+    try
+    {
+        launch(argc, argv);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Oops there was a problem...\n";
+        std::cerr << e.what();
+        return 1;
+    }
+    return 0;
+}
 
 
 
