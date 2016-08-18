@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <limits>
 #include <cassert>
+#include <cstring>
 #include "../window_events.h"
 #include "../window.h"
 #include "../system.h"
@@ -65,7 +66,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
-    assert(height);    
+    assert(height);
     assert(!title.empty());
     assert(!pimpl_->window);
 
@@ -81,34 +82,35 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     int num_visuals = 0;
     XVisualInfo* visinfo = XGetVisualInfo(d, visual_mask, &vistemplate, &num_visuals);
     if (!visinfo || !num_visuals)
-        throw std::runtime_error("no such visual");    
+        throw std::runtime_error("no such visual");
 
-    XSetWindowAttributes attr = {0};
+    XSetWindowAttributes attr;
+    std::memset(&attr, 0, sizeof(attr));
     attr.colormap             = XCreateColormap(d, root, visinfo->visual, AllocNone);
     attr.event_mask           = KeyPressMask | KeyReleaseMask | // keyboard
                                 ButtonPressMask | ButtonReleaseMask | // pointer aka. mouse clicked
                                 EnterWindowMask | LeaveWindowMask   | // pointer aka. mouse leaves/enters window
-                                PointerMotionMask | ButtonMotionMask | // pointer aka.mouse motion 
+                                PointerMotionMask | ButtonMotionMask | // pointer aka.mouse motion
                                 StructureNotifyMask | // window size changed, mapping change (ConfigureNotify)
                                 ExposureMask | // window exposure (paint)
                                 FocusChangeMask; // lost, gain focus
 
-    const unsigned long attr_mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;   
-
+    const unsigned long AttrMask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
+    
     factory<Window> win_factory(d);
 
-    Window win = win_factory.create([&](Display* d) 
+    Window win = win_factory.create([&](Display* d)
     {
-        Window ret = XCreateWindow(d, 
-            root, 
-            0, 0, 
-            width, 
-            height, 
+        Window ret = XCreateWindow(d,
+            root,
+            0, 0,
+            width,
+            height,
             0,
-            visinfo->depth, 
+            visinfo->depth,
             InputOutput,
             visinfo->visual,
-            attr_mask,
+            AttrMask,
             &attr);
         return ret;
     });
@@ -158,7 +160,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
         // show window
         XMapWindow(d, win);
 
-        // X hack, since the api is asynchronous it's possible that 
+        // X hack, since the api is asynchronous it's possible that
         // the client code can call a function such as set_setfocus which
         // fails siply because the WM hasn't mapped the window yet.
         // so we wait here  untill we're notified that it's actually mapped.
@@ -169,7 +171,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
         XPutBackEvent(d, &ev);
     }
 
-    XFlush(d);    
+    XFlush(d);
 
     pimpl_->window   = win;
     pimpl_->visualid = visual_id;
@@ -236,11 +238,12 @@ void window::set_fullscreen(bool fullscreen)
     Display* d = get_display_handle();
     Window   w = handle();
 
-    // todo: this is a bit slow at changing and will get confused if 
+    // todo: this is a bit slow at changing and will get confused if
     // multiple requests are made before the previous one is complete
     if (fullscreen)
     {
-        XEvent ev = {0};
+        XEvent ev;
+        std::memset(&ev, 0, sizeof(ev));
         ev.type = ClientMessage;
         ev.xclient.message_type = _NET_WM_STATE;
         ev.xclient.format       = 32;
@@ -262,8 +265,9 @@ void window::set_fullscreen(bool fullscreen)
         XUngrabPointer(d, CurrentTime);
 
         XUngrabKeyboard(d, CurrentTime);
- 
-        XEvent ev = {0};
+
+        XEvent ev;
+        std::memset(&ev, 0, sizeof(ev));
         ev.type = ClientMessage;
         ev.xclient.message_type = _NET_WM_STATE;
         ev.xclient.format       = 32;
@@ -272,7 +276,7 @@ void window::set_fullscreen(bool fullscreen)
         ev.xclient.data.l[1]    = _NET_WM_STATE_FULLSCREEN;
         ev.xclient.data.l[3]    = w;
         XSendEvent(d, DefaultRootWindow(d), False, SubstructureRedirectMask | SubstructureNotifyMask, &ev);
-        
+
     }
     XFlush(d);
 
@@ -300,7 +304,7 @@ void window::set_size(uint_t width, uint_t height)
     Display* d = get_display_handle();
 
     XResizeWindow(d, pimpl_->window, width, height);
-    
+
     XFlush(d);
 }
 
@@ -469,10 +473,11 @@ void window::process_event(const native_event_t& ev)
                 // note that ClientMessage didn't work as expected.
                 static_assert(sizeof(Window) >= sizeof(ucs2), "");
 
-                XEvent hack = {0};
+                XEvent hack;
+                std::memset(&hack, 0, sizeof(hack));
                 hack.type        = MapNotify;
-                hack.xmap.event  = ucs2; 
-                hack.xmap.window = handle(); 
+                hack.xmap.event  = ucs2;
+                hack.xmap.window = handle();
                 XSendEvent(event.xany.display, handle(), False, 0, &hack);
             }
             break;
@@ -542,7 +547,7 @@ bool window::exists() const
 
 bool window::is_fullscreen() const
 {
-    return pimpl_->fullscreen;    
+    return pimpl_->fullscreen;
 }
 
 
