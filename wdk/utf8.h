@@ -30,55 +30,15 @@
 #include <cstdint>
 #include <string>
 #include <iterator>
+#include <type_traits>
 
 namespace enc
 {
-    namespace detail {
-        template<typename T>
-        struct integer_type;
-        
-        template<>
-        struct integer_type<int>
-        {
-            typedef unsigned int unsigned_type;
-        };
-
-        template<>
-        struct integer_type<long>
-        {
-            typedef unsigned long unsigned_type;
-        };
-        
-        template<>
-        struct integer_type<unsigned long>
-        {
-            typedef unsigned long unsigned_type;
-        };
-        
-        template<>
-        struct integer_type<unsigned int>
-        {
-            typedef unsigned int unsigned_type;
-        };
-
-        template<>
-        struct integer_type<char>
-        {
-            typedef unsigned char unsigned_type;
-        };
-        template<>
-        struct integer_type<wchar_t>
-        {
-            //typedef unsigned wchar_t unsigned_type;
-            typedef unsigned short unsigned_type;
-        };
-    };
-
     template<typename InputIterator, typename OutputIterator>
     void utf8_encode(InputIterator beg, InputIterator end, OutputIterator dest)
     {
         typedef typename std::iterator_traits<InputIterator>::value_type value_type;
-        typedef typename detail::integer_type<value_type>::unsigned_type unsigned_type;
+        typedef typename std::make_unsigned<value_type>::type unsigned_type;
 
         // Unicode conversion table
         // number range (4 bytes)| binary representation (octets) 

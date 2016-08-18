@@ -73,7 +73,7 @@ struct window::impl {
         // dispatches it to keyboard/window/mouse objects we *post* the message back
         // into the queue, so that it gets picked up by Get/PeekMessage on a later call.
 
-        LONG_PTR lptr = GetWindowLong(hwnd, GWL_USERDATA);
+        LONG_PTR lptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
         assert(lptr);
 
@@ -222,8 +222,8 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
 
     }
 
-    SetWindowLongPtr(hwnd, GWL_USERDATA, (LONG_PTR)pimpl_.get());
-    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pimpl_.get());
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
 
     // resize window to match the drawable client area with the desired size
     // based on the difference by client and window size. note that this might
@@ -279,11 +279,11 @@ void window::move(int x, int y)
     RECT rc;
     GetWindowRect(pimpl_->window, &rc);
 
-    SetWindowLongPtr(pimpl_->window, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
+    SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
 
     MoveWindow(pimpl_->window, x, y, rc.right - rc.left, rc.bottom - rc.top, FALSE);
 
-    SetWindowLongPtr(pimpl_->window, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
 }
 
 void window::set_fullscreen(bool fullscreen)
@@ -295,7 +295,7 @@ void window::set_fullscreen(bool fullscreen)
 
     HWND hwnd = pimpl_->window;
    
-    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
 
     if (fullscreen)
     {
@@ -346,7 +346,7 @@ void window::set_fullscreen(bool fullscreen)
         SetFocus(hwnd);
     }
 
-    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
 
     // Since we swapped in the DefWindowProc we didn't get a chance to handle the
     // resize message. Thus we're going to regenerate one so that the client is
@@ -379,7 +379,7 @@ void window::set_size(uint_t width, uint_t height)
     const int y = wnd.right;
 
     // make sure our wndproc doesnt mess up with things, set to Default
-    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
 
     const int dx = (wnd.right - wnd.left) - client.right;
     const int dy = (wnd.bottom - wnd.top) - client.bottom;
@@ -406,7 +406,7 @@ void window::set_size(uint_t width, uint_t height)
     MoveWindow(hwnd, x, y, width, height, TRUE);
 
     // restore our wndproc
-    SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
 }
 
 void window::set_encoding(encoding enc)

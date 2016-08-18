@@ -66,7 +66,7 @@ namespace wdk
         }
         void bounce_display_change()
         {
-            SetWindowLongPtr(hwnd_, GWL_WNDPROC, (LONG_PTR)window_message_proc);
+            SetWindowLongPtr(hwnd_, GWLP_WNDPROC, (LONG_PTR)window_message_proc);
         }
     private:
         static
