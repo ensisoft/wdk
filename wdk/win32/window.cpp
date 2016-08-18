@@ -294,7 +294,7 @@ void window::set_fullscreen(bool fullscreen)
         return;
 
     HWND hwnd = pimpl_->window;
-
+   
     SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)DefWindowProc);
 
     if (fullscreen)
@@ -311,7 +311,7 @@ void window::set_fullscreen(bool fullscreen)
         pimpl_->h = surface_height();
 
         ShowWindow(hwnd, SW_HIDE);
-        SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+        SetWindowLong(hwnd, GWL_STYLE,   WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
         SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
 
         DEVMODE mode = {0};
@@ -319,30 +319,42 @@ void window::set_fullscreen(bool fullscreen)
         if (!EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &mode))
             throw std::runtime_error("failed to get current display device videomode");
 
+        // Get rid of the start bar by enabling "fullscreen" mode
         mode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
         if (ChangeDisplaySettings(&mode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
             throw std::runtime_error("videomode change failed");
 
+        // Resize the window to occupy the whole screen dimensions
         MoveWindow(hwnd, 0, 0, mode.dmPelsWidth, mode.dmPelsHeight, TRUE);
-
         ShowWindow(hwnd, SW_SHOW);
+        SetFocus(hwnd);
     }
     else
     {
         ShowWindow(hwnd, SW_HIDE);
 
+        // restore start bar and restore to the "default mode".
+        // Todo: what if've changed the display mode manually through system
+        // change. Maybe we should use some appropriate settings here?
         ChangeDisplaySettings(NULL, 0);
 
         SetWindowLong(hwnd, GWL_STYLE, pimpl_->style);
         SetWindowLong(hwnd, GWL_EXSTYLE, pimpl_->exstyle);
 
         MoveWindow(hwnd, pimpl_->x, pimpl_->y, pimpl_->w, pimpl_->h, TRUE);
-
         ShowWindow(hwnd, SW_SHOW);
+        SetFocus(hwnd);
     }
 
     SetWindowLongPtr(hwnd, GWL_WNDPROC, (LONG_PTR)impl::window_message_proc);
 
+    // Since we swapped in the DefWindowProc we didn't get a chance to handle the
+    // resize message. Thus we're going to regenerate one so that the client is
+    // properly notified of the window size change.
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    PostMessage(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(rc.right, rc.bottom));
+     
     pimpl_->fullscreen = fullscreen;
 }
 
