@@ -119,6 +119,8 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     EGLint num_matches = 0;
     EGLConfig config   = NULL;
     if (!eglChooseConfig(pimpl_->display, (const EGLint*)&criteria[0], &config, 1, &num_matches))
+        throw std::runtime_error("eglChooseConfig failed");
+    if (!num_matches || !config)
         throw std::runtime_error("no matching framebuffer configuration available");
 
     pimpl_->config   = config;
