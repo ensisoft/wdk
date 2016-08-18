@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -71,9 +71,23 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, EGL_BLUE_SIZE, attrs.blue_size);
     set_if(criteria, EGL_ALPHA_SIZE, attrs.alpha_size);
     set_if(criteria, EGL_DEPTH_SIZE, attrs.depth_size);
-    set_if(criteria, EGL_STENCIL_SIZE, attrs.stencil_size);    
+    set_if(criteria, EGL_STENCIL_SIZE, attrs.stencil_size);
     set_if(criteria, EGL_CONFIG_ID, attrs.configid);
     set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
+
+    // it's possible to create Big GL rendering context through EGL.
+    // this then requires the use of eglBindAPI to select the correct API
+    // to be used by the thread.
+    // However our config attributes do not provide means for saying
+    // what kind of rendering context support we want from our config (ES/GL/VG)
+    // so we're going to assume here that EGL is only used for GLES1/2/3
+#ifdef EGL_OPENGL_ES3_BIT
+    set_if(criteria, EGL_RENDERABLE_TYPE,
+        EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT | EGL_OPENGL_ES3_BIT);
+#else
+    set_if(criteria, EGL_RENDERABLE_TYPE,
+        EGL_OPENGL_ES_BIT |  EGL_OPENGL_ES2_BIT);
+#endif
 
     // EGL 1.4 supports two buffering models. Back buffered and single buffered.
     // back buffered rendering is used by window and pbuffer surfaces automatically.
@@ -115,8 +129,8 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     eglGetConfigAttrib(pimpl_->display, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
     eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
 
-    // should there always be visualid? one would think that this is the case even on windows 
-    // (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid! 
+    // should there always be visualid? one would think that this is the case even on windows
+    // (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid!
     // assert(pimpl_->visualid);
     // assert(pimpl_->configid);
 }
@@ -140,7 +154,7 @@ gl_config_t config::handle() const
     return { pimpl_->config };
 }
 
-bool config::srgb_buffer() const 
+bool config::srgb_buffer() const
 {
     return pimpl_->srgb;
 }
