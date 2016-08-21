@@ -317,8 +317,8 @@ void window::set_fullscreen(bool fullscreen)
         pimpl_->exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         pimpl_->x = rc.left;
         pimpl_->y = rc.top;
-        pimpl_->w = surface_width();
-        pimpl_->h = surface_height();
+        pimpl_->w = surface_width(); //rc.right; 
+        pimpl_->h = surface_height(); //rc.bottom; 
 
         ShowWindow(hwnd, SW_HIDE);
         SetWindowLong(hwnd, GWL_STYLE,   WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
@@ -351,7 +351,30 @@ void window::set_fullscreen(bool fullscreen)
         SetWindowLong(hwnd, GWL_STYLE, pimpl_->style);
         SetWindowLong(hwnd, GWL_EXSTYLE, pimpl_->exstyle);
 
+        // MSDN tells us for MoveWindow that width and height
+        // should be the width and the height of the client area.
+        // However if we restore to the window size when going into
+        // fullscreen the window *grows*, but if restoring to 
+        // *client* size then the window shrinks.  
         MoveWindow(hwnd, pimpl_->x, pimpl_->y, pimpl_->w, pimpl_->h, TRUE);
+
+        RECT wnd, client;
+        GetClientRect(hwnd, &client);
+        GetWindowRect(hwnd, &wnd);
+        const int dx = (wnd.right - wnd.left) - client.right;
+        const int dy = (wnd.bottom - wnd.top) - client.bottom;
+        auto width  = pimpl_->w;
+        auto height = pimpl_->h;
+        if (width > (uint_t)client.right)
+            width += dx;
+        if (height > (uint_t)client.bottom)
+            height += dy;
+        if (width < dx)
+            width += dx;
+        if (height < dy)
+            height += dy;
+        MoveWindow(hwnd, pimpl_->x, pimpl_->y, width, height, TRUE);
+
         ShowWindow(hwnd, SW_SHOW);
         SetFocus(hwnd);
     }
