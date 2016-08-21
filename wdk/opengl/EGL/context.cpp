@@ -155,7 +155,7 @@ bool context::has_dri() const
     return true;
 }
 
-void* context::resolve(const char* function)
+void* context::resolve(const char* function) const
 {
     assert(function && "null function name");
 

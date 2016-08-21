@@ -55,7 +55,7 @@ namespace wdk
         bool has_dri() const;
 
         // resolve (an extension) function
-        static void* resolve(const char* function);
+        void* resolve(const char* function) const;
         
     private:
         struct impl;

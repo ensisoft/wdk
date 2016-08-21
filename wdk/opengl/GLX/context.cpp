@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -46,11 +46,11 @@ struct context::impl {
         // if this is not available at runtime then context creation simply fails.
         typedef GLXContext (APIENTRY *glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
-        auto glXCreateContextAttribs = reinterpret_cast<glXCreateContextAttribsARBProc>(context::resolve("glXCreateContextAttribsARB"));
+        auto glXCreateContextAttribs = reinterpret_cast<glXCreateContextAttribsARBProc>(glXGetProcAddress((GLubyte*)"glXCreateContextAttribsARB"));
         if (!glXCreateContextAttribs)
            throw std::runtime_error("cannot create context");
 
-        
+
         Display* dpy    = get_display_handle();
         GLXFBConfig fbc = conf.handle();
 
@@ -58,7 +58,7 @@ struct context::impl {
 
         GLXContext context = context_factory.create([&](Display* dpy)
         {
-            const int FLAGS = debug ? 
+            const int FLAGS = debug ?
                GLX_CONTEXT_DEBUG_BIT_ARB : 0;
 
             const int attrs[] = {
@@ -174,12 +174,12 @@ bool context::has_dri() const
     return (glXIsDirect(d, pimpl_->context) == True);
 }
 
-void* context::resolve(const char* function)
+void* context::resolve(const char* function) const
 {
     assert(function && "null function name");
-    
+
     void* ret = (void*)glXGetProcAddress((GLubyte*)function);
-    
+
     return ret;
 }
 

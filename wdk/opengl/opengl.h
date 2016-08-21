@@ -113,9 +113,9 @@ namespace wdk
         // resolve (an extension) function pointer.
         // returns the address of the function if succesfully resolved,
         // otherwise nullptr.
-        static void* resolve(const char* function)
+        void* resolve(const char* function) const
         {
-            return context::resolve(function);
+            return context_.resolve(function);
         }
     private:
         config  config_;

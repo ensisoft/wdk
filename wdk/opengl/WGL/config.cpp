@@ -24,10 +24,10 @@
 #include <stdexcept>
 #include <vector>
 #include <cassert>
-#include <wdk/win32/helpers.h>
 #include <wdk/utility.h>
 #include "../config.h"
 #include "../context.h"
+#include "fakecontext.h"
 
 #pragma comment(lib, "Gdi32.lib") // For PixelFormat funcs
 
@@ -131,16 +131,35 @@ struct config::impl {
     int pixelformat;
     PIXELFORMATDESCRIPTOR desc;
     bool srgb;
+    std::shared_ptr<wgl::FakeContext> fake;
 };
 
 config::config(const attributes& attrs) : pimpl_(new impl)
 {
-    auto wglChoosePixelFormat = reinterpret_cast<wglChoosePixelFormatARBProc>(context::resolve("wglChoosePixelFormatARB"));
+    // Create the dummy context first, so we can query it for better WGL functions
+    // for creating the actual context later.
+    PIXELFORMATDESCRIPTOR desc = {0};
+    desc.nSize        = sizeof(desc);
+    desc.nVersion     = 1;
+    desc.iPixelType   = PFD_TYPE_RGBA;
+    desc.dwFlags      = PFD_SUPPORT_OPENGL;
+    desc.dwFlags     |= attrs.surfaces.window ? PFD_DRAW_TO_WINDOW : 0;
+    desc.dwFlags     |= attrs.surfaces.pixmap ? PFD_DRAW_TO_BITMAP : 0;
+    desc.dwFlags     |= attrs.double_buffer ? PFD_DOUBLEBUFFER : 0;
+    desc.cRedBits     = attrs.red_size ? attrs.red_size : 8;
+    desc.cGreenBits   = attrs.green_size ? attrs.green_size : 8;
+    desc.cBlueBits    = attrs.blue_size ? attrs.blue_size : 8;
+    desc.cAlphaBits   = attrs.alpha_size ? attrs.alpha_size : 8;
+    desc.cDepthBits   = attrs.depth_size ? attrs.depth_size : 16;
+    desc.cStencilBits = attrs.stencil_size ? attrs.stencil_size : 8;
+    
+    auto fake = std::make_shared<wgl::FakeContext>(desc);
+    auto wglChoosePixelFormat = fake->resolve<wglChoosePixelFormatARBProc>("wglChoosePixelFormatARB");
     if (!wglChoosePixelFormat)
         throw std::runtime_error("unable to choose framebuffer format. no wglChoosePixelFormatARB");
 
-    dummywin win;
-
+    // fixme: this pixelformat based logic is wrong.
+    // Issue: #6
     int pixelformat = attrs.visualid ? attrs.visualid : 0;
     if (!pixelformat)
     {
@@ -184,16 +203,16 @@ config::config(const attributes& attrs) : pimpl_(new impl)
         criteria.push_back(ARNOLD);
 
         UINT num_matches = 0;
-        if (!wglChoosePixelFormat(win.surface(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
+        if (!wglChoosePixelFormat(fake->getDC(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
             throw std::runtime_error("no matching framebuffer configuration available");
     }
 
     pimpl_->pixelformat = pixelformat;
     pimpl_->srgb        = attrs.srgb_buffer;
+    pimpl_->fake        = fake;
+    DescribePixelFormat(fake->getDC(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
 
-    const int ret = DescribePixelFormat(win.surface(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
-
-    assert(ret);
+    wgl::stashFakeContext(this, fake);
 }
 
 config::~config()

@@ -26,6 +26,7 @@
 #include <wdk/pixmap.h>
 #include "../surface.h"
 #include "../config.h"
+#include "fakecontext.h"
 
 namespace {
     enum class surface_type { window };
@@ -48,18 +49,25 @@ surface::surface(const config& conf, const window& win)
     pimpl_->height = 0;
     pimpl_->type   = surface_type::window;
 
-    if (win.visualid() == conf.visualid())
-        return;
-
-    const int pixelformat = conf.visualid();
+    // grab the pixelformat descriptor that the configuration has
+    // and then resolve that to the HDC specific pixel format index.
     const PIXELFORMATDESCRIPTOR* desc = conf.handle();
 
-    if (!SetPixelFormat(pimpl_->hdc, pixelformat, desc))
+    // note: this PixelFormat id can be different than what the
+    // "visualid" of the config object is since it's per HDC
+    const int PixelFormat = ChoosePixelFormat(pimpl_->hdc, desc);
+
+    // the pixelformat can be set only once, so check here instead of 
+    // erroring out later.
+    if (win.visualid() == PixelFormat)
+        return;
+
+    // Windows allows us to do this only once!
+    if (!SetPixelFormat(pimpl_->hdc, PixelFormat, desc))
     {
         ReleaseDC(win.handle(), pimpl_->hdc);
         throw std::runtime_error("set pixelformat failed");
     }
-
 }
 
 surface::surface(const config& conf, const pixmap& px)

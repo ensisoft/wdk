@@ -44,7 +44,8 @@ IF (WIN32)
     ADD_LIBRARY(wdk_desktop_gl STATIC
         wdk/opengl/WGL/config.cpp
         wdk/opengl/WGL/context.cpp
-        wdk/opengl/WGL/surface.cpp)
+        wdk/opengl/WGL/surface.cpp
+        wdk/opengl/WGL/fakecontext.cpp)
 
     # TODO: build the mobile opengl library (using EGL)
     # but for this we need the EGL headers

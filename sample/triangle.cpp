@@ -83,20 +83,20 @@ PFNGLGETSHADERIVPROC             glGetShaderiv;
 PFNGLGETPROGRAMINFOLOGPROC       glGetProgramInfoLog;
 
 template<typename T>
-T resolve(const char* name)
+T resolve(const char* name, const wdk::opengl& opengl)
 {
     printf("Resolving %s ", name);
 
-    T ret = (T)wdk::context::resolve(name);
+    T ret = (T)opengl.resolve(name);
 
     printf(" ... %p\n", (void*)ret);
 
     return ret;
 }
 
-#define RESOLVE(x) x = resolve<decltype(x)>(#x)
+#define RESOLVE(x) x = resolve<decltype(x)>(#x, opengl)
 
-void resolve()
+void resolve(const wdk::opengl& opengl)
 {
     RESOLVE(glCreateProgram);
     RESOLVE(glCreateShader);
@@ -124,7 +124,7 @@ void resolve()
     RESOLVE(glGetProgramInfoLog);
 }
 #else
-void resolve() {}
+void resolve(const wdk::opengl&) {}
 #endif
 
 class triangle : public wdk::window_listener
@@ -338,7 +338,7 @@ int launch(int argc, char* argv[])
     wdk::opengl gl(attr);
 
     // resolve function pointers if needed
-    resolve();
+    resolve(gl);
 
     printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
 

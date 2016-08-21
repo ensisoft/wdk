@@ -158,7 +158,7 @@ window::window() : pimpl_(new impl)
     cls.hInstance     = GetModuleHandle(NULL);
     cls.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     cls.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    cls.style         = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
+	cls.style         = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS | CS_OWNDC;
     cls.lpfnWndProc   = impl::window_startup_proc;
     cls.lpszClassName = TEXT("WDK-WINDOW");
     if (!RegisterClassEx(&cls))
@@ -179,6 +179,29 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     assert(height);
     assert(!title.empty());
     assert(!exists());
+
+    // notes about the visualid.
+    // on Windows the visualid (i.e. pixelformat id) is specific to a HDC.
+    // and without the HDC is kinda useless.
+    // Also Windows let's us only set the PixelFormat once per HDC.
+    // Thus we let that be "unset" for now, and only if the window
+    // is placed into a OpenGL rendering context as a rendering surface
+    // we actually lock down on the PixelFormat.
+    //
+    // The other way around, i.e. creating the opengl context based 
+    // on the Window, we'd need to use the visualid and the HDC
+    // to load the PIXELFORMATDESCRIPTOR and use that as the selection
+    // criteria for choosing the config.
+    //
+    // What this really means is that the visualid should really be a
+    // a type other than just an uint.
+    // In fact on windows it should be a PIXELFORMATDESCRIPTOR*
+    // 
+    // However this "abstraction" breaks down when used with EGL
+    // since it only has a concept of an EGLint for a visualid. 
+    //
+    // So what this really means is that on Windows there's no way to 
+    // create an OpenGL rendering context based on a Window portably.
 
     DWORD new_style  = WS_EX_APPWINDOW;
     DWORD old_style  = WS_POPUP;
@@ -208,19 +231,6 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
         throw std::runtime_error("create window failed");
 
     HWND hwnd = win.get();
-
-    if (visualid)
-    {
-        auto hdc = make_unique_ptr(GetDC(hwnd), std::bind(ReleaseDC, hwnd, std::placeholders::_1));
-
-        PIXELFORMATDESCRIPTOR pxd = {0};
-        if (!DescribePixelFormat(hdc.get(), visualid, sizeof(pxd), &pxd))
-            throw std::runtime_error("incorrect visualid");
-
-        if (!SetPixelFormat(hdc.get(), visualid, &pxd))
-            throw std::runtime_error("set pixelformat failed");
-
-    }
 
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pimpl_.get());
     SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
