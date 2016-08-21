@@ -82,8 +82,11 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     // what kind of rendering context support we want from our config (ES/GL/VG)
     // so we're going to assume here that EGL is only used for GLES1/2/3
 #ifdef EGL_OPENGL_ES3_BIT
+    // fixme: OpenVR sdk doesn't support GLES1 configs
+    // We really need to support context type bit flag properly. 
+    // see issue #7
     set_if(criteria, EGL_RENDERABLE_TYPE,
-        EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT | EGL_OPENGL_ES3_BIT);
+       /* EGL_OPENGL_ES_BIT | */ EGL_OPENGL_ES2_BIT | EGL_OPENGL_ES3_BIT);
 #else
     set_if(criteria, EGL_RENDERABLE_TYPE,
         EGL_OPENGL_ES_BIT |  EGL_OPENGL_ES2_BIT);
