@@ -25,7 +25,6 @@
 #include "../system.h"
 #include "../videomode.h"
 #include "../keys.h"
-#include "helpers.h"
 
 namespace {
     using namespace wdk;
@@ -139,24 +138,61 @@ namespace wdk
 {
 native_display_t get_display_handle()
 {
-    struct desktop {
-        HDC hdc;
-        dummywin win;
+    class Display 
+    {
+    public:
+        Display() 
+        {
+            WNDCLASSEX cls    = {0};
+            cls.cbSize        = sizeof(cls);
+            cls.lpfnWndProc   = DefWindowProc;
+            cls.lpszClassName = TEXT("WDK-SYSTEM-WINDOW");
+            RegisterClassEx(&cls);            
 
-        desktop() 
-        {
-            hdc = GetDC(NULL);
-            win.bounce_display_change();
+            // In order to detect the display change notification we need
+            // to have a valid window. We don't know if the user has created
+            // any windows or not, so we'll create one here just to listen
+            // for that message.
+            m_wnd_system = CreateWindow(TEXT("WDK-SYSTEM-WINDOW"), TEXT(""),
+                WS_POPUP, 0, 0, 1, 1,
+                NULL, NULL, NULL, NULL);
+            if (m_wnd_system == NULL)
+                throw std::runtime_error("create system window failed");
+
+            SetWindowLongPtr(m_wnd_system, GWLP_WNDPROC, 
+                (LONG_PTR)Display::WndProc);
+
+            m_hdc_desktop = GetDC(NULL);
+            
         }
-        ~desktop() 
+       ~Display() 
         {
-            ReleaseDC(GetDesktopWindow(), hdc);
+            BOOL ret = TRUE;
+            ret = ReleaseDC(GetDesktopWindow(), m_hdc_desktop);
+            assert(ret == TRUE);
+            ret = DestroyWindow(m_wnd_system);
+            (void*)ret;
         }
+        HDC getDesktopHDC() const 
+        { return m_hdc_desktop; }
+    private:
+        static 
+        LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+        {
+            if (msg != WM_DISPLAYCHANGE)
+                return DefWindowProc(hwnd, msg, wp, lp);
+            PostMessage(hwnd, WM_DISPLAYCHANGE, wp, lp);
+            return 0;
+        }
+
+    private:
+        HDC   m_hdc_desktop;
+        HWND  m_wnd_system;    
     };
 
-    static desktop d;
+    static Display disp;
 
-    return d.hdc;
+    return disp.getDesktopHDC();
 }
 
 videomode get_current_video_mode()
@@ -181,6 +217,10 @@ void set_video_mode(const videomode& m)
     mode.dmPelsHeight = m.yres;
     mode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
 
+    // Call this function here so that we actually create
+    // our window to listen for the notification about display change.
+    // todo: should we be able to receive this notification *always*
+    // without having to initiate display change ourselves?
     get_display_handle();
 
     if (ChangeDisplaySettings(&mode, 0) != DISP_CHANGE_SUCCESSFUL)
