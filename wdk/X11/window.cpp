@@ -47,7 +47,6 @@ struct window::impl {
     int height;
     encoding enc;
     bool fullscreen;
-    uint_t visualid;
 };
 
 window::window() : pimpl_(new impl)
@@ -174,7 +173,6 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     XFlush(d);
 
     pimpl_->window   = win;
-    pimpl_->visualid = visual_id;
     pimpl_->width    = 0;
     pimpl_->height   = 0;
     pimpl_->fullscreen = false;
@@ -559,11 +557,6 @@ window::encoding window::get_encoding() const
 native_window_t window::handle() const
 {
     return native_window_t {pimpl_->window};
-}
-
-uint_t window::visualid() const
-{
-    return pimpl_->visualid;
 }
 
 std::pair<uint_t, uint_t> window::min_size() const

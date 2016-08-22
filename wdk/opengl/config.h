@@ -61,9 +61,6 @@ namespace wdk
             // stencil buffer bits
             uint_t stencil_size;
 
-            // specific visual id by which configuration is chosen.
-            uint_t visualid;
-
             // specific configuration which is to be used.
             uint_t configid;
 

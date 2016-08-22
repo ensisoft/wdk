@@ -59,7 +59,8 @@ surface::surface(const config& conf, const window& win)
 
     // the pixelformat can be set only once, so check here instead of 
     // erroring out later.
-    if (win.visualid() == PixelFormat)
+    const int CurrentPixelFormat = GetPixelFormat(pimpl_->hdc);
+    if (CurrentPixelFormat == PixelFormat)
         return;
 
     // Windows allows us to do this only once!

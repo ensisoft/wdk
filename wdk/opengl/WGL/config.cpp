@@ -124,11 +124,10 @@ namespace wdk
 {
 
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, false, {true, false, false}, multisampling::none};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, true, false, {true, false, false}, multisampling::none};
 
 struct config::impl {
-    int pixelformat;
     PIXELFORMATDESCRIPTOR desc;
     bool srgb;
     std::shared_ptr<wgl::FakeContext> fake;
@@ -158,56 +157,50 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     if (!wglChoosePixelFormat)
         throw std::runtime_error("unable to choose framebuffer format. no wglChoosePixelFormatARB");
 
-    // fixme: this pixelformat based logic is wrong.
-    // Issue: #6
-    int pixelformat = attrs.visualid ? attrs.visualid : 0;
-    if (!pixelformat)
+    std::vector<uint_t> criteria = 
     {
-        std::vector<uint_t> criteria = 
-        {
-            WGL_SUPPORT_OPENGL_ARB, TRUE,
-            WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB
-        };
+        WGL_SUPPORT_OPENGL_ARB, TRUE,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB
+    };
 
-        set_if(criteria, WGL_RED_BITS_ARB, attrs.red_size);
-        set_if(criteria, WGL_GREEN_BITS_ARB, attrs.green_size);
-        set_if(criteria, WGL_BLUE_BITS_ARB, attrs.blue_size);
-        set_if(criteria, WGL_ALPHA_BITS_ARB, attrs.alpha_size);
-        set_if(criteria, WGL_DEPTH_BITS_ARB, attrs.depth_size);
-        set_if(criteria, WGL_STENCIL_BITS_ARB, attrs.stencil_size);
+    set_if(criteria, WGL_RED_BITS_ARB, attrs.red_size);
+    set_if(criteria, WGL_GREEN_BITS_ARB, attrs.green_size);
+    set_if(criteria, WGL_BLUE_BITS_ARB, attrs.blue_size);
+    set_if(criteria, WGL_ALPHA_BITS_ARB, attrs.alpha_size);
+    set_if(criteria, WGL_DEPTH_BITS_ARB, attrs.depth_size);
+    set_if(criteria, WGL_STENCIL_BITS_ARB, attrs.stencil_size);
 
-        assert(!attrs.surfaces.pbuffer && "pbuffer is not implemented");
+    assert(!attrs.surfaces.pbuffer && "pbuffer is not implemented");
 
-        if (attrs.double_buffer)
-            set_if(criteria, WGL_DOUBLE_BUFFER_ARB, TRUE);
+    if (attrs.double_buffer)
+        set_if(criteria, WGL_DOUBLE_BUFFER_ARB, TRUE);
 
-        if (attrs.srgb_buffer)
-            set_if(criteria, WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT, TRUE);
+    if (attrs.srgb_buffer)
+        set_if(criteria, WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT, TRUE);
 
-        set_if(criteria, WGL_DRAW_TO_WINDOW_ARB, (uint_t)attrs.surfaces.window);
-        set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
-        set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
+    set_if(criteria, WGL_DRAW_TO_WINDOW_ARB, (uint_t)attrs.surfaces.window);
+    set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
+    set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
 
-        if (attrs.sampling != multisampling::none)
-        {
-            set_if(criteria, WGL_SAMPLE_BUFFERS_ARB, 1);
-            if (attrs.sampling == multisampling::msaa4)
-                set_if(criteria, WGL_SAMPLES_ARB, 4);
-            else if (attrs.sampling == multisampling::msaa8)
-                set_if(criteria, WGL_SAMPLES_ARB, 8);            
-            else if (attrs.sampling == multisampling::msaa16)
-                set_if(criteria, WGL_SAMPLES_ARB, 16);                        
-        }
-
-        const int ARNOLD = 0;
-        criteria.push_back(ARNOLD);
-
-        UINT num_matches = 0;
-        if (!wglChoosePixelFormat(fake->getDC(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
-            throw std::runtime_error("no matching framebuffer configuration available");
+    if (attrs.sampling != multisampling::none)
+    {
+        set_if(criteria, WGL_SAMPLE_BUFFERS_ARB, 1);
+        if (attrs.sampling == multisampling::msaa4)
+            set_if(criteria, WGL_SAMPLES_ARB, 4);
+        else if (attrs.sampling == multisampling::msaa8)
+            set_if(criteria, WGL_SAMPLES_ARB, 8);            
+        else if (attrs.sampling == multisampling::msaa16)
+            set_if(criteria, WGL_SAMPLES_ARB, 16);                        
     }
 
-    pimpl_->pixelformat = pixelformat;
+    const int ARNOLD = 0;
+    criteria.push_back(ARNOLD);
+
+    int pixelformat  = 0;
+    UINT num_matches = 0;
+    if (!wglChoosePixelFormat(fake->getDC(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
+        throw std::runtime_error("no matching framebuffer configuration available");
+
     pimpl_->srgb        = attrs.srgb_buffer;
     pimpl_->fake        = fake;
     DescribePixelFormat(fake->getDC(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
@@ -221,12 +214,14 @@ config::~config()
 
 uint_t config::visualid() const
 {
-    return pimpl_->pixelformat;
+    // this isn't useful on windows so we'll return just 0.
+    return 0;
 }
 
 uint_t config::configid() const
 {
-    return pimpl_->pixelformat;
+    // this isn't available.
+    return 0; 
 }
 
 

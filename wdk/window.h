@@ -137,11 +137,6 @@ namespace wdk
         // get native window handle
         native_window_t handle() const;
 
-        // get the visual id that identifies the 
-        // window's underlying operating/window system specific
-        // configuration. 
-        uint_t visualid() const;
-
         std::pair<uint_t, uint_t> min_size() const;
         std::pair<uint_t, uint_t> max_size() const;
     private:

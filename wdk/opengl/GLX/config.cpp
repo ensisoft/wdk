@@ -46,8 +46,8 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, 0, true, false, {true, false, false}, multisampling::none};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, true, false, {true, false, false}, multisampling::none};
 
 struct config::impl {
     GLXFBConfig* configs;
@@ -72,7 +72,6 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, GLX_DEPTH_SIZE,   attrs.depth_size);
     set_if(criteria, GLX_STENCIL_SIZE, attrs.stencil_size);    
     set_if(criteria, GLX_FBCONFIG_ID,  attrs.configid);
-    set_if(criteria, GLX_VISUAL_ID,    attrs.visualid);
 
     int drawable_bits = 0;
     if (attrs.surfaces.window)
@@ -116,27 +115,6 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     // choose a configuration from the list of matching configurations.
     // todo: sort matches?
-
-
-    // hmmm.. it seems that the GLX_VISUAL_ID option is not really considered properly
-    // so we check here. 
-    if (attrs.visualid)
-    {
-        bool found = false;
-        for (; best_index < num_matches; ++best_index)
-        {
-            const auto conf = configs[best_index];
-            const auto visu = make_unique_ptr(glXGetVisualFromFBConfig(dpy, conf), XFree);
-            if (attrs.visualid == visu->visualid)
-            {
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-            throw std::runtime_error("no matching framebuffer configuration available");
-    }
-
     GLXFBConfig best = configs[best_index];
 
     auto visual = make_unique_ptr(glXGetVisualFromFBConfig(dpy, best), XFree);

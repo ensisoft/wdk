@@ -641,19 +641,6 @@ native_window_t window::handle() const
     return pimpl_->window;
 }
 
-uint_t window::visualid() const
-{
-    assert(exists());
-
-    HDC hdc = GetDC(pimpl_->window);
-
-    int pixelformat = GetPixelFormat(hdc);
-
-    ReleaseDC(pimpl_->window,hdc);
-
-    return pixelformat;
-}
-
 std::pair<uint_t, uint_t> window::min_size() const
 {
     assert(exists());

@@ -49,8 +49,8 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, 0, true, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 8, 0, 0, true, false, {true, false, false}, multisampling::none};
+config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, true, false, {true, false, false}, multisampling::none};
+config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 8, 0, true, false, {true, false, false}, multisampling::none};
 
 struct config::impl {
     EGLDisplay   display;
@@ -73,7 +73,6 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, EGL_DEPTH_SIZE, attrs.depth_size);
     set_if(criteria, EGL_STENCIL_SIZE, attrs.stencil_size);
     set_if(criteria, EGL_CONFIG_ID, attrs.configid);
-    set_if(criteria, EGL_NATIVE_VISUAL_ID, attrs.visualid);
 
     // it's possible to create Big GL rendering context through EGL.
     // this then requires the use of eglBindAPI to select the correct API
@@ -131,13 +130,12 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     pimpl_->configid = 0;
     pimpl_->srgb     = attrs.srgb_buffer;
 
+    // Note that the visual id may or may not be zero. On windows there's no single
+    // integer value that maps to a visual id, but the "visualid" is more like PIXELFORMATDESCRIPTOR.
+    // So therefore at least on Imgtech GLES implementation the visualid is simply 0
+    // and the driver does the pixelformat matching in the call to eglCreateWindowSurface
     eglGetConfigAttrib(pimpl_->display, config, EGL_NATIVE_VISUAL_ID, (EGLint*)&pimpl_->visualid);
     eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
-
-    // should there always be visualid? one would think that this is the case even on windows
-    // (pixelformatdescriptor??) but at least with imgtech gles2/2 there's no visualid!
-    // assert(pimpl_->visualid);
-    // assert(pimpl_->configid);
 }
 
 config::~config()
