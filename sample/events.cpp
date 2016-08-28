@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -32,6 +32,8 @@
 #include <cassert>
 #include <cstring>
 
+
+
 void handle_window_keydown(const wdk::window_event_keydown& key, wdk::window& win)
 {
     printf("Keydown event: ");
@@ -50,6 +52,22 @@ void handle_window_keydown(const wdk::window_event_keydown& key, wdk::window& wi
         win.destroy();
     else if (key.symbol == wdk::keysym::space)
         win.set_fullscreen(!win.is_fullscreen());
+}
+
+void handle_window_keyup(const wdk::window_event_keyup& key, wdk::window& win)
+{
+    printf("keyup event: ");
+
+    if (key.modifiers.test(wdk::keymod::shift))
+        printf("Shift+");
+    if (key.modifiers.test(wdk::keymod::control))
+        printf("Ctrl+");
+    if (key.modifiers.test(wdk::keymod::alt))
+        printf("Alt+");
+
+    const auto& str = wdk::name(key.symbol);
+    printf("%s\n", str.c_str());
+
 }
 
 void handle_window_create(const wdk::window_event_create& create)
@@ -97,7 +115,7 @@ void handle_window_char(const wdk::window_event_char& uchar, wdk::window& win)
 void handle_window_mouse_move(const wdk::window_event_mouse_move& mickey)
 {
     printf("Mouse move (win) %d,%d (root) %d,%d\n",
-        mickey.window_x, mickey.window_y, 
+        mickey.window_x, mickey.window_y,
         mickey.global_x, mickey.global_x);
 }
 
@@ -115,7 +133,7 @@ void handle_window_mouse_press(const wdk::window_event_mouse_press& mickey)
     const auto& str = wdk::name(mickey.btn);
     printf(" '%s'", str.c_str());
 
-    printf(" (win) %d,%d (root) %d,%d\n", 
+    printf(" (win) %d,%d (root) %d,%d\n",
         mickey.window_x, mickey.window_y,
         mickey.global_x, mickey.global_y);
 }
@@ -206,16 +224,16 @@ int main(int argc, char* argv[])
     {
         std::cerr << "Incorrect command line\n";
         return 1;
-    }    
+    }
     else if (cmd.print_help)
     {
-        std::cout 
+        std::cout
         << "\n"
         << "--help\t\t\tPrint this help\n"
-        << "--fullscreen\t\tChange into fullscreen\n" 
+        << "--fullscreen\t\tChange into fullscreen\n"
         << "--list-modes\t\tList available video modes\n"
-        << "--wnd-no-border\t\tDisable window border\n" 
-        << "--wnd-no-resize\t\tDisable window resizing\n" 
+        << "--wnd-no-border\t\tDisable window border\n"
+        << "--wnd-no-resize\t\tDisable window resizing\n"
         << "--wnd-no-move\t\tDisable window moving\n"
         << "--wnd-width\t\tWindow width\n"
         << "--wnd-height\t\tWindow height\n"
@@ -229,14 +247,14 @@ int main(int argc, char* argv[])
 
         std::sort(modes.begin(), modes.end(), std::greater<wdk::videomode>());
         std::copy(modes.begin(), modes.end(), std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
-        return 0;        
+        return 0;
     }
 
     wdk::modechange vidmode;
 
     if (!cmd.mode.is_empty())
         vidmode.set(cmd.mode);
- 
+
     wdk::window win;
     win.on_create     = handle_window_create;
     win.on_lost_focus = handle_window_lost_focus;
@@ -248,11 +266,12 @@ int main(int argc, char* argv[])
     win.on_mouse_press = handle_window_mouse_press;
     win.on_char       = std::bind(handle_window_char, std::placeholders::_1, std::ref(win));
     win.on_keydown    = std::bind(handle_window_keydown, std::placeholders::_1, std::ref(win));
+    win.on_keyup      = std::bind(handle_window_keyup, std::placeholders::_1, std::ref(win));
 
-    win.create("Wdk", 
-        cmd.surface_width, 
+    win.create("Wdk",
+        cmd.surface_width,
         cmd.surface_height,
-        0, 
+        0,
         cmd.wnd_resize,
         cmd.wnd_border);
 
@@ -262,7 +281,9 @@ int main(int argc, char* argv[])
 
     while (win.exists())
     {
-        win.wait_one_event();
+        wdk::native_event_t event;
+        wdk::wait_event(event);
+        win.process_event(event);
     }
 
     return 0;

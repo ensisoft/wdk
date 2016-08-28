@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -32,7 +32,7 @@ namespace wdk
     // event dispatching routines. these events are represented
     // in temporal order. some of them occur only once during a lifetime
     // of a window while others might occur several times.
-    // mouse and keyboard events are low level events and thus limited 
+    // mouse and keyboard events are low level events and thus limited
     // use for the client to use directly. rather they need to be passed
     // to the mouse/keyboard objects for processing.
 
@@ -44,6 +44,9 @@ namespace wdk
     };
 
     // window has a dirty rectangle and needs to be repainted.
+    // when this message is sent depends on the implementation
+    // and it's understanding of when the contents of the window
+    // have become invalid and need repainting.
     struct window_event_paint {
         int x, y;                       // x, y origin of the dirty rectangle (top left corner within the window)
         int width;                      // width of the dirty rect
@@ -64,14 +67,14 @@ namespace wdk
     struct window_event_focus {};
     struct window_event_want_close {};
     struct window_event_destroy {};
-    
+
 
     // do not use directly, see the typedefs below
     struct window_event_keyup {
         keysym symbol;
         bitflag<keymod> modifiers;
     };
-    
+
     struct window_event_keydown {
         keysym symbol;
         bitflag<keymod> modifiers;
@@ -106,6 +109,6 @@ namespace wdk
         int global_x, global_y;
         button btn;
         bitflag<keymod> modifiers;
-    };    
+    };
 
 } // wdk

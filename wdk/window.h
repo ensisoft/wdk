@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -37,7 +37,7 @@ namespace wdk
     struct window_event_focus;
     struct window_event_want_close;
     struct window_event_keyup;
-    struct window_event_keydown;    
+    struct window_event_keydown;
     struct window_event_char;
     struct window_event_mouse_move;
     struct window_event_mouse_press;
@@ -50,19 +50,19 @@ namespace wdk
         enum class encoding {
             ascii, ucs2, utf8
         };
-        
+
         // event callbacks
-        std::function<void (const window_event_create&)>     on_create;
-        std::function<void (const window_event_paint&)>      on_paint;
-        std::function<void (const window_event_resize&)>     on_resize;
-        std::function<void (const window_event_focus&)>      on_lost_focus;
-        std::function<void (const window_event_focus&)>      on_gain_focus;
-        std::function<void (const window_event_want_close&)> on_want_close;
-        std::function<void (const window_event_keydown&)>    on_keydown;
-        std::function<void (const window_event_keyup&)>      on_keyup;
-        std::function<void (const window_event_char&)>       on_char;
-        std::function<void (const window_event_mouse_move&)> on_mouse_move;
-        std::function<void (const window_event_mouse_press&)> on_mouse_press;
+        std::function<void (const window_event_create&)>        on_create;
+        std::function<void (const window_event_paint&)>         on_paint;
+        std::function<void (const window_event_resize&)>        on_resize;
+        std::function<void (const window_event_focus&)>         on_lost_focus;
+        std::function<void (const window_event_focus&)>         on_gain_focus;
+        std::function<void (const window_event_want_close&)>    on_want_close;
+        std::function<void (const window_event_keydown&)>       on_keydown;
+        std::function<void (const window_event_keyup&)>         on_keyup;
+        std::function<void (const window_event_char&)>          on_char;
+        std::function<void (const window_event_mouse_move&)>    on_mouse_move;
+        std::function<void (const window_event_mouse_press&)>   on_mouse_press;
         std::function<void (const window_event_mouse_release&)> on_mouse_release;
 
         window();
@@ -75,17 +75,22 @@ namespace wdk
         // If you're planning on using this window for OpenGL drawing
         // you should pass in a visual id that identifies your OpenGL ćonfiguration.
         // If visualid is 0 the window may not be compatible with your opengl config.
-        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid, 
+        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
             bool can_resize = true, bool has_border = true, bool initially_visible = true);
 
         // hide the window if currently visible. (shown)
         void hide();
 
-        // show the window if currently hidden. 
+        // show the window if currently hidden.
         void show();
 
         // destroy the window. window must have been created before.
         void destroy();
+
+        // invalide the window contents.
+        // erases the window contents with the background brush and eventually
+        // generates a paint event.
+        void invalidate();
 
         // move window to x,y position with respect to it's parent. (desktop)
         // precondition: not fullscreen
@@ -104,21 +109,9 @@ namespace wdk
         // set new character encoding for character events
         void set_encoding(encoding e);
 
-        // check and process one event if available. if event is not for this window it's discarded.
-        void poll_one_event();
-
-        // wait and process one event. if event is not for this window it's discarded
-        void wait_one_event();
-
-        // get and process. events that are not for this window are simply discarded.
-        void process_all_events();
-
-        // process the given event. the event should be for this window.
-        void process_event(const native_event_t& ev);
-
-        // you don't really want to use this under normal operations. only when you must
-        // make sure that the cached state in Xlib reflects the state we're trying set.
-        void sync_all_events();
+        // process the given event.
+        // returns true if event was consumed otherwise false.
+        bool process_event(const native_event_t& ev);
 
         // get the current drawable window surface height
         uint_t surface_height() const;

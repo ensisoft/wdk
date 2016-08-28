@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -112,7 +112,7 @@ namespace {
         {keysym::escape,        VK_ESCAPE}
     };
     struct table_sorter {
-        table_sorter() 
+        table_sorter()
         {
             std::sort(std::begin(keymap), std::end(keymap));
         }
@@ -138,16 +138,16 @@ namespace wdk
 {
 native_display_t get_display_handle()
 {
-    class Display 
+    class Display
     {
     public:
-        Display() 
+        Display()
         {
             WNDCLASSEX cls    = {0};
             cls.cbSize        = sizeof(cls);
             cls.lpfnWndProc   = DefWindowProc;
             cls.lpszClassName = TEXT("WDK-SYSTEM-WINDOW");
-            RegisterClassEx(&cls);            
+            RegisterClassEx(&cls);
 
             // In order to detect the display change notification we need
             // to have a valid window. We don't know if the user has created
@@ -159,13 +159,13 @@ native_display_t get_display_handle()
             if (m_wnd_system == NULL)
                 throw std::runtime_error("create system window failed");
 
-            SetWindowLongPtr(m_wnd_system, GWLP_WNDPROC, 
+            SetWindowLongPtr(m_wnd_system, GWLP_WNDPROC,
                 (LONG_PTR)Display::WndProc);
 
             m_hdc_desktop = GetDC(NULL);
-            
+
         }
-       ~Display() 
+       ~Display()
         {
             BOOL ret = TRUE;
             ret = ReleaseDC(GetDesktopWindow(), m_hdc_desktop);
@@ -173,10 +173,10 @@ native_display_t get_display_handle()
             ret = DestroyWindow(m_wnd_system);
             (void*)ret;
         }
-        HDC getDesktopHDC() const 
+        HDC getDesktopHDC() const
         { return m_hdc_desktop; }
     private:
-        static 
+        static
         LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         {
             if (msg != WM_DISPLAYCHANGE)
@@ -187,7 +187,7 @@ native_display_t get_display_handle()
 
     private:
         HDC   m_hdc_desktop;
-        HWND  m_wnd_system;    
+        HWND  m_wnd_system;
     };
 
     static Display disp;
@@ -262,7 +262,7 @@ bool peek_event(native_event_t& ev)
 {
     MSG m;
 
-    if (!PeekMessage(&m, NULL, 0, 0, PM_NOREMOVE))
+    if (!PeekMessage(&m, NULL, 0, 0, PM_REMOVE))
         return false;
 
     ev = native_event_t(m);
@@ -270,14 +270,13 @@ bool peek_event(native_event_t& ev)
     return true;
 }
 
-native_event_t get_event()
+void wait_event(native_event_t& ev)
 {
     MSG m;
 
     GetMessage(&m, NULL, 0, 0);
 
-    return native_event_t(m);
-
+    ev = native_event_t(m);
 }
 
 std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
@@ -287,7 +286,7 @@ std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t&
 
     std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
 
-    const auto it = std::find_if(std::begin(keymap), std::end(keymap), 
+    const auto it = std::find_if(std::begin(keymap), std::end(keymap),
         [=](const key_mapping& map)
         {
             return map.win == native_keycode;

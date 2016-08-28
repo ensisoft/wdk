@@ -32,6 +32,7 @@
 #include <wdk/window_listener.h>
 #include <wdk/window_events.h>
 #include <wdk/window.h>
+#include <wdk/system.h>
 #include <wdk/opengl/context.h>
 #include <wdk/opengl/surface.h>
 #include <wdk/opengl/config.h>
@@ -277,7 +278,7 @@ public:
         GL_CHECK(glVertexAttribPointer(pos, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
         GL_CHECK(glEnableVertexAttribArray(pos));
         GL_CHECK(glUniform1f(rot, rotation));
-       
+
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
 
         stamp = now;
@@ -356,13 +357,16 @@ int launch(int argc, char* argv[])
 
     gl.attach(win);
 
+    wdk::native_event_t event;
+
     while (model.running())
     {
         model.render();
 
         gl.swap();
 
-        win.poll_one_event();
+        if (wdk::peek_event(event))
+            win.process_event(event);
     }
 
     gl.detach();

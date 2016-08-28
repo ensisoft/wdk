@@ -276,7 +276,6 @@ native_display_t get_display_handle()
             _MOTIF_WM_HINTS  = XInternAtom(d, "_MOTIF_WM_HINTS", True);
             _NET_WM_STATE    = XInternAtom(d, "_NET_WM_STATE", True);
             _NET_WM_STATE_FULLSCREEN = XInternAtom(d, "_NET_WM_STATE_FULLSCREEN", True);
-
         }
        ~open_display()
         {
@@ -367,91 +366,36 @@ std::vector<videomode> list_video_modes()
 
 }
 
-bool have_events()
-{
-    // XPending flushes the output queue
-    return (XPending(get_display_handle()) != 0);
-}
-
-bool sync_events()
-{
-    // X11 is an async protocol with cached state on the client side inside Xlib.
-    // hence we have the following problem that the following code can fail surprisingly.
-    // window w; ... w.set_size(x, y); assert(w.surface_width() == x)
-    // the reason why it might fail is that set_size will generate a request to the X server
-    // which then processes the change and sends back the response. Xlib will contain
-    // cached state for the window size untill it receives a response from the server
-    // for the size request.
-    // so this sync function tries to make sure that the event queue is fully processed and
-    // the Xlib state is synced with the latest state changes originating from the client.
-
-    Display* d = get_display_handle();
-
-    unsigned long next = XNextRequest(d);
-    if (last_event_received >= next -1)
-        return false;
-
-    XSync(d, False);
-
-    std::vector<XEvent> events;
-
-    while (true)
-    {
-        XEvent x;
-        XNextEvent(d, &x);
-
-        events.push_back(x);
-
-        // assuming a reasonable sequential operation here.
-        if (x.xany.serial >= next - 1)
-            break;
-    }
-
-    // in order not to mess with the actual event signaling semantics
-    // in other code, we put the events back into the queue in the same
-    // order that the're supposed to be there. (XPutBack puts in the front of the queue!)
-    for (auto it = events.rbegin(); it != events.rend(); ++it)
-        XPutBackEvent(d, &(*it));
-
-    // ho hum.. still doesn't work without this little hack here.
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    return true;
-}
-
-native_event_t get_event()
-{
-    XEvent event = {0};
-
-    // XNextEvent flushes the output queue
-    XNextEvent(get_display_handle(), &event);
-
-    last_event_received = event.xany.serial;
-
-    XRRUpdateConfiguration(&event);
-
-    return native_event_t(event);
-}
-
 bool peek_event(native_event_t& ev)
 {
-    if (!XPending(get_display_handle()))
+    Display* d = get_display_handle();
+
+    if (!XPending(d))
         return false;
 
     XEvent event = {0};
+    XNextEvent(d, &event);
 
-    // XPeekEvent flushes the output queue
-    XPeekEvent(get_display_handle(), &event);
-
-    last_event_received = event.xany.serial;
-
-    // update Xlib state when XrandR events are received
+    // Update Xlib state when XrandR events are received.
     XRRUpdateConfiguration(&event);
 
     ev = native_event_t(event);
-
     return true;
 }
+
+void wait_event(native_event_t& ev)
+{
+    Display* d = get_display_handle();
+
+    XEvent event = {0};
+    XNextEvent(d, &event);
+
+    // Update xlib state when XrandR events are received.
+    XRRUpdateConfiguration(&event);
+
+    ev = native_event_t(event);
+}
+
 
 std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
 {

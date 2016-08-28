@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -79,9 +79,9 @@ struct window::impl {
 
         window::impl* self = reinterpret_cast<window::impl*>(lptr);
 
-        switch (msg) 
+        switch (msg)
         {
-            // these messages can be forwarded directly 
+            // these messages can be forwarded directly
             case WM_CLOSE:
             case WM_KILLFOCUS:
             case WM_SETFOCUS:
@@ -107,7 +107,7 @@ struct window::impl {
             // so in case the window is being resized we just ignore these messages and notify once the resize is finished. (WM_EXITSIZEMOVE)
             // however these messages are also used when a window becomes unobscured or minimize/maximize buttons are hit.
             case WM_SIZE:
-            case WM_PAINT:              
+            case WM_PAINT:
                 if (self->resizing)
                     return 0;
                 PostMessage(hwnd, msg, wp, lp);
@@ -132,7 +132,7 @@ struct window::impl {
                         PostMessage(hwnd, WM_SIZE, 0, 0); // post only a notification that size has changed.
                 }
                 break;
-            
+
             default:
             break;
 
@@ -162,7 +162,10 @@ window::window() : pimpl_(new impl)
     cls.lpfnWndProc   = impl::window_startup_proc;
     cls.lpszClassName = TEXT("WDK-WINDOW");
     if (!RegisterClassEx(&cls))
-        throw std::runtime_error("registerclassex failed");
+    {
+        if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+            throw std::runtime_error("registerclassex failed");
+    }
 
 }
 
@@ -188,7 +191,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     // is placed into a OpenGL rendering context as a rendering surface
     // we actually lock down on the PixelFormat.
     //
-    // The other way around, i.e. creating the opengl context based 
+    // The other way around, i.e. creating the opengl context based
     // on the Window, we'd need to use the visualid and the HDC
     // to load the PIXELFORMATDESCRIPTOR and use that as the selection
     // criteria for choosing the config.
@@ -196,11 +199,11 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     // What this really means is that the visualid should really be a
     // a type other than just an uint.
     // In fact on windows it should be a PIXELFORMATDESCRIPTOR*
-    // 
-    // However this "abstraction" breaks down when used with EGL
-    // since it only has a concept of an EGLint for a visualid. 
     //
-    // So what this really means is that on Windows there's no way to 
+    // However this "abstraction" breaks down when used with EGL
+    // since it only has a concept of an EGLint for a visualid.
+    //
+    // So what this really means is that on Windows there's no way to
     // create an OpenGL rendering context based on a Window portably.
 
     DWORD new_style  = WS_EX_APPWINDOW;
@@ -219,10 +222,10 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     }
 
     auto win = make_unique_ptr(CreateWindowEx(
-        new_style, 
-        TEXT("WDK-WINDOW"), 
-        title.c_str(), 
-        old_style, 
+        new_style,
+        TEXT("WDK-WINDOW"),
+        title.c_str(),
+        old_style,
         CW_USEDEFAULT, CW_USEDEFAULT,
         width,
         height,
@@ -237,7 +240,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
 
     // resize window to match the drawable client area with the desired size
     // based on the difference by client and window size. note that this might
-    // not always work. for example if window is given width smaller than the 
+    // not always work. for example if window is given width smaller than the
     // minimum required width for a window with title bar it won't resize
     RECT client, window;
     GetClientRect(hwnd, &client);
@@ -251,7 +254,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     if (initially_visible)
     {
         // finally show window
-        ShowWindow(hwnd, SW_SHOW);    
+        ShowWindow(hwnd, SW_SHOW);
     }
 
     pimpl_->window     = win.release();
@@ -263,23 +266,36 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
 
 void window::hide()
 {
+    assert(exists());
+
     ShowWindow(pimpl_->window, SW_HIDE);
 }
 
 void window::show()
 {
+    assert(exists());
+
     ShowWindow(pimpl_->window, SW_SHOW);
 }
 
 void window::destroy()
 {
-    assert(handle());
+    assert(exists());
 
     const BOOL ret = DestroyWindow(pimpl_->window);
 
     assert(ret);
 
     pimpl_->window = NULL;
+}
+
+void window::invalidate()
+{
+    assert(exists());
+
+    RECT client;
+    GetClientRect(pimpl_->window, &client);
+    InvalidateRect(pimpl_->window, &client, TRUE);
 }
 
 void window::move(int x, int y)
@@ -304,7 +320,7 @@ void window::set_fullscreen(bool fullscreen)
         return;
 
     HWND hwnd = pimpl_->window;
-   
+
     SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
 
     if (fullscreen)
@@ -317,8 +333,8 @@ void window::set_fullscreen(bool fullscreen)
         pimpl_->exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         pimpl_->x = rc.left;
         pimpl_->y = rc.top;
-        pimpl_->w = surface_width(); //rc.right; 
-        pimpl_->h = surface_height(); //rc.bottom; 
+        pimpl_->w = surface_width(); //rc.right;
+        pimpl_->h = surface_height(); //rc.bottom;
 
         ShowWindow(hwnd, SW_HIDE);
         SetWindowLong(hwnd, GWL_STYLE,   WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
@@ -354,8 +370,8 @@ void window::set_fullscreen(bool fullscreen)
         // MSDN tells us for MoveWindow that width and height
         // should be the width and the height of the client area.
         // However if we restore to the window size when going into
-        // fullscreen the window *grows*, but if restoring to 
-        // *client* size then the window shrinks.  
+        // fullscreen the window *grows*, but if restoring to
+        // *client* size then the window shrinks.
         MoveWindow(hwnd, pimpl_->x, pimpl_->y, pimpl_->w, pimpl_->h, TRUE);
 
         RECT wnd, client;
@@ -387,7 +403,7 @@ void window::set_fullscreen(bool fullscreen)
     RECT rc;
     GetClientRect(hwnd, &rc);
     PostMessage(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(rc.right, rc.bottom));
-     
+
     pimpl_->fullscreen = fullscreen;
 }
 
@@ -407,6 +423,7 @@ void window::set_size(uint_t width, uint_t height)
     RECT wnd, client;
     GetWindowRect(hwnd, &wnd);
     GetClientRect(hwnd, &client);
+    
     // current x,y position remains the same
     const int x = wnd.left;
     const int y = wnd.right;
@@ -414,32 +431,27 @@ void window::set_size(uint_t width, uint_t height)
     // make sure our wndproc doesnt mess up with things, set to Default
     SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
 
-    const int dx = (wnd.right - wnd.left) - client.right;
-    const int dy = (wnd.bottom - wnd.top) - client.bottom;
-
-    // MoveWindow seems to have very strange semantics.
-    // If window is shrunk then new width and height will be considered
-    // the new client area size (surface size). Except that if a dimension
-    // is less than the minimum size in that dimension including the border/title bar
-    // then that extra has to included in that dimension.
-    // Otherwise if window is grown the new size will be the *window* size including
-    // borders and title bar. So if we want to grow to a certain *client* size
-    // we must include the borders and title bar in the actual new size. 
-    
-    if (width > (uint_t)client.right)
-        width += dx;
-    if (height > (uint_t)client.bottom)
-        height += dy;
-
-    if (width < dx)
-        width += dx;
-    if (height < dy)
-        height += dy;
-
-    MoveWindow(hwnd, x, y, width, height, TRUE);
+    // current window frame sizes.
+    // MoveWindow takes the size params to mean the size of the window
+    // we want them to mean the client area. Hence we're adding the current
+    // frame size to the dimensions.
+    const int frame_w = (wnd.right - wnd.left) - client.right;
+    const int frame_h = (wnd.bottom - wnd.top) - client.bottom;
+    MoveWindow(hwnd, x, y, width + frame_w, height + frame_h, TRUE);
 
     // restore our wndproc
     SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
+
+    // Since we swapped in the DefWindowProc we didn't get a chance to handle the
+    // resize message. Thus we're going to regenerate one so that the client is
+    // properly notified of the window size change.    
+    // note that we indeed do a GetClientRect here since it's possible that
+    // the size operation has failed. For example the sizes violate the minium/maximum sizes
+    // that the window system is able to support.
+    // our current api has no error provisions for this.
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    PostMessage(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(rc.right, rc.bottom));
 }
 
 void window::set_encoding(encoding enc)
@@ -447,41 +459,14 @@ void window::set_encoding(encoding enc)
     pimpl_->enc = enc;
 }
 
-void window::poll_one_event()
+bool window::process_event(const native_event_t& ev)
 {
-    if (!have_events())
-        return;
-
-    const auto& ev = get_event();
     if (ev.get_window_handle() != handle())
-        return;
-
-    process_event(ev);
-}
-
-void window::wait_one_event()
-{
-    const auto& ev = get_event();
-    if (ev.get_window_handle() != handle())
-        return;
-
-    process_event(ev);
-}
-
-void window::process_all_events()
-{
-    while (have_events())
-        wait_one_event();
-}
-
-void window::process_event(const native_event_t& ev)
-{
-    assert(ev.get_window_handle());    
-    assert(ev.get_window_handle() == handle());
+        return false;
 
     const MSG& m = ev;
 
-    // translate virtual key messages into unicode characters 
+    // translate virtual key messages into unicode characters
     // which are posted in WM_CHAR (UTF-16)
     // this works fine for BMP in the range 0x0000 - 0xD7FF, 0xE000 - 0xFFFF.
     // for values above 0xFFFF this is broken, but not an issue thus far.
@@ -504,6 +489,8 @@ void window::process_event(const native_event_t& ev)
             {
                 RECT rcPaint;
                 GetUpdateRect(m.hwnd, &rcPaint, FALSE);
+                if (rcPaint.bottom == 0 || rcPaint.right == 0)
+                    break;
 
                 window_event_paint paint = {0};
                 paint.x      = rcPaint.left;
@@ -525,10 +512,10 @@ void window::process_event(const native_event_t& ev)
                 resize.width  = rc.right;
                 resize.height = rc.bottom;
                 on_resize(resize);
-            }        
+            }
             break;
-        
-        case WM_CREATE:
+
+        case WM_APP + 1: // WM_CREATE
             {
                 const CREATESTRUCT* ptr = reinterpret_cast<const CREATESTRUCT*>(m.lParam);
                 window_event_create create = {0};
@@ -592,15 +579,12 @@ void window::process_event(const native_event_t& ev)
             break;
 
         default:
-            return;
+            return true;
     }
 
     ev.set_done();
-}
 
-void window::sync_all_events()
-{
-
+    return true;
 }
 
 uint_t window::surface_width() const
@@ -653,7 +637,7 @@ std::pair<uint_t, uint_t> window::min_size() const
 
     // using GetSystemMetrics with SM_CXMINTRACK can't be correct
     // because that's only a single value. however how small the window
-    // can be certainly depends on it's style. a borderless/captionless 
+    // can be certainly depends on it's style. a borderless/captionless
     // window can resize smaller than one with a title bar.
 
     // MINMAXINFO doesn't work either. it only has "ptMinTrackSize"
@@ -664,7 +648,7 @@ std::pair<uint_t, uint_t> window::min_size() const
     // min.right = 1;
     // min.bottom = 1;
     // AdjustWindowRectEx(&min, style_bits, FALSE, ex_style_bits);
-       
+
     const LONG ex_style_bits = GetWindowLong(hwnd, GWL_EXSTYLE);
 
     // create a window with matching style and see what the actual size will be.

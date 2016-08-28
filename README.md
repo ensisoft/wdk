@@ -51,13 +51,13 @@ Typical simple usage scenario:
     // 1. Decide on frame buffer configuration.
     wdk::config::attributes attrs = wdk::config::DEFAULT;
     attrs.red_size = 8;
-    attrs.stencil_size = 8; 
+    attrs.stencil_size = 8;
     // ...
-    
+
     // 2. select a configuration uusing the attributes
     wdk::config conf(attrs);
 
-    // 3. create opengl context with the config and opengl version  
+    // 3. create opengl context with the config and opengl version
     wdk::opengl gl(attrs, 3, 2, false);
 
     // The calling thread now has a OpenGL rendering context
@@ -78,13 +78,15 @@ Typical simple usage scenario:
     while (do_render)
     {
        render_frame();
-       
+
        // 6. display what was rendered into the buffer.
        gl.swap();
 
        // 7. you might want to process the window system
        // events every once in a while...
-       win.process_all_events()       
+       wdk::native_event_t event;
+       while (wdk::peek_event(event))
+          win.process_event(event)
     }
 
     // 8. detach the current rendering surface.
@@ -125,11 +127,11 @@ So in summary to create a OpenGL rendering context:
 - Decice on the OpenGL framebuffer properties and then select a config based on those properties.
   Then Use the config's visual id to create compatible window system objects such as windows.
 
-Implementation notes: 
-The visualid is not really used on Windows. In fact it will be 0 value. Pixelformat is set 
+Implementation notes:
+The visualid is not really used on Windows. In fact it will be 0 value. Pixelformat is set
 when the Window/Buffer is used as a surface object. But in order to keep the code portable
 you should pass the visulid value from the config to the window.
 
 Likewise the config id is not available on WGL and possibly not on Windows EGL implementations.
-Choosing a config based on configid will not work portably. 
+Choosing a config based on configid will not work portably.
 

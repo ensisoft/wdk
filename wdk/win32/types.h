@@ -52,6 +52,11 @@ namespace wdk
             other
         };
 
+        native_event_t()
+        {
+            msg_ = MSG{0};
+        }
+
         native_event_t(const MSG& m) : msg_(m), done_(false)
         {}
         native_event_t(native_event_t&& other) : msg_(other.msg_), done_(other.done_)

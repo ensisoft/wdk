@@ -95,7 +95,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
                                 FocusChangeMask; // lost, gain focus
 
     const unsigned long AttrMask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
-    
+
     factory<Window> win_factory(d);
 
     Window win = win_factory.create([&](Display* d)
@@ -180,6 +180,8 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
 
 void window::hide()
 {
+    assert(exists());
+
     Display* display = get_display_handle();
 
     XUnmapWindow(display, pimpl_->window);
@@ -187,6 +189,8 @@ void window::hide()
 
 void window::show()
 {
+    assert(exists());
+
     Display* display = get_display_handle();
 
     XMapWindow(display, pimpl_->window);
@@ -212,6 +216,19 @@ void window::destroy()
 
     pimpl_->window = 0;
 
+}
+
+void window::invalidate()
+{
+    assert(exists());
+
+    Display* d = get_display_handle();
+
+    XClearArea(d, pimpl_->window,
+        0, 0,
+        surface_width(),
+        surface_height(),
+        True);
 }
 
 void window::move(int x, int y)
@@ -287,6 +304,7 @@ void window::set_focus()
 
     Display* d = get_display_handle();
 
+    XRaiseWindow(d, pimpl_->window);
     XSetInputFocus(d, pimpl_->window, RevertToNone, CurrentTime);
 
     XFlush(d);
@@ -311,37 +329,10 @@ void window::set_encoding(encoding enc)
     pimpl_->enc = enc;
 }
 
-void window::poll_one_event()
+bool window::process_event(const native_event_t& ev)
 {
-    if (!have_events())
-        return;
-
-    const auto& ev = get_event();
     if (ev.get_window_handle() != handle())
-        return;
-
-    process_event(ev);
-}
-
-void window::wait_one_event()
-{
-    const auto& ev = get_event();
-    if (ev.get_window_handle() != handle())
-        return;
-
-    process_event(ev);
-}
-
-void window::process_all_events()
-{
-    while (have_events())
-        wait_one_event();
-}
-
-void window::process_event(const native_event_t& ev)
-{
-    assert(ev.get_window_handle());
-    assert(ev.get_window_handle() == handle());
+        return false;
 
     const XEvent& event = ev;
 
@@ -481,7 +472,12 @@ void window::process_event(const native_event_t& ev)
             break;
 
         case KeyRelease:
-            // todo:
+            if (on_keyup)
+            {
+                const auto& keys = translate_keydown_event(ev);
+                if (keys.second != keysym::none)
+                    on_keyup(window_event_keyup{keys.second, keys.first});
+            }
             break;
 
         case MapNotify:
@@ -505,13 +501,9 @@ void window::process_event(const native_event_t& ev)
                 on_char(c);
             }
             break;
-    }
-}
 
-void window::sync_all_events()
-{
-    sync_events();
-    process_all_events();
+    }
+    return true;
 }
 
 uint_t window::surface_width() const

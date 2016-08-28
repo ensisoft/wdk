@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -49,23 +49,17 @@ namespace wdk
     // get a list of available video modes.
     std::vector<videomode> list_video_modes();
 
-    // check if there are any pending events
-    bool have_events();
+    // Get the next event from the queue if any. returns true
+    // if event was available and assignes the event into ev.
+    // returns false if no event was available.
+    bool peek_event(native_event_t &ev);
 
-    bool sync_events();
+    void wait_event(native_event_t& ev);
 
-    // get the next event from the queue if any. this call will
-    // return immediately and returns true if event was retrieved
-    // otherwise it returns false.
-    bool peek_event(native_event_t& ev);
-        
-    // get the next event from the queue. this call will block
-    // the caller untill there's an event to retrieve from the queue.
-    native_event_t get_event();
 
     // translate keydown event
     std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key);
-    
+
     std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& bnt);
 
     bool test_key_down(keysym symbol);
@@ -76,3 +70,4 @@ namespace wdk
     uint_t keysym_to_keycode(keysym symbol);
 
 } // wdk
+
