@@ -91,9 +91,13 @@ namespace wdk
         };
     };
 
+    // todo: support multiple simultaneous mouse buttons.
+    // todo: support double clicks
+
     struct window_event_mouse_move {
         int window_x, window_y;
         int global_x, global_y;
+        button btn;
         bitflag<keymod> modifiers;
     };
 

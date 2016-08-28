@@ -331,6 +331,57 @@ std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t&
     return ret;
 }
 
+std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& btn)
+{
+    std::pair<bitflag<keymod>, button> ret = {keymod::none, button::none};    
+
+    const auto alt   = GetKeyState(VK_MENU);
+    const auto shift = GetKeyState(VK_SHIFT);
+    const auto ctrl  = GetKeyState(VK_CONTROL);
+    if (alt & KEY_DOWN)
+        ret.first |= keymod::alt;
+    if (shift & KEY_DOWN)
+        ret.first |= keymod::shift;
+    if (ctrl & KEY_DOWN)
+        ret.first |= keymod::control;
+
+    const auto wparam  = btn.get().wParam;
+    const auto message = btn.get().message;
+    if (message == WM_MOUSEWHEEL)
+    {
+        const auto hi = HIWORD(wparam);
+        if (hi > 0)
+            ret.second = button::wheel_up;
+        else ret.second = button::wheel_down;
+    }
+    else 
+    {
+        switch (message)
+        {
+            case WM_LBUTTONUP:
+            case WM_LBUTTONDOWN:
+                ret.second = button::left;
+                break;
+            case WM_MBUTTONUP:
+            case WM_MBUTTONDOWN:
+                ret.second = button::wheel;
+                break;
+            case WM_RBUTTONUP:
+            case WM_RBUTTONDOWN:
+                ret.second = button::right;
+                break;
+        }
+        // other buttons as bitflags
+        if (wparam & MK_LBUTTON)
+            ret.second = button::left;
+        else if (wparam & MK_MBUTTON)
+            ret.second = button::wheel;
+        else if (wparam & MK_RBUTTON)
+            ret.second = button::right;
+    }
+    return ret;
+}
+
 bool test_key_down(keysym symbol)
 {
     const UINT win    = find_keysym(symbol);

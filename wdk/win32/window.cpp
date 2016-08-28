@@ -22,6 +22,7 @@
 
 #define NOMINMAX
 #include <windows.h>
+#include <windowsx.h> // for GET_{X,Y}_LPARAM (mouse pointer)
 #include <stdexcept>
 #include <cassert>
 #include <limits>
@@ -423,7 +424,7 @@ void window::set_size(uint_t width, uint_t height)
     RECT wnd, client;
     GetWindowRect(hwnd, &wnd);
     GetClientRect(hwnd, &client);
-    
+
     // current x,y position remains the same
     const int x = wnd.left;
     const int y = wnd.right;
@@ -545,19 +546,72 @@ bool window::process_event(const native_event_t& ev)
             break;
 
         case WM_KEYUP:
-            // todo:
+            if (on_keyup)
+            {
+                const auto& keys = translate_keydown_event(ev);
+                if (keys.second != keysym::none)
+                    on_keyup(window_event_keyup{keys.second, keys.first});
+            }
             break;
 
+        case WM_MOUSEMOVE:
+            if (on_mouse_move)
+            {
+                const auto& button = translate_mouse_button_event(ev);
 
-            // todo:
+                POINT global;
+                GetCursorPos(&global);
+                window_event_mouse_move mickey = {};
+                mickey.window_x  = GET_X_LPARAM(m.lParam);
+                mickey.window_y  = GET_Y_LPARAM(m.lParam);
+                mickey.global_x  = global.x;
+                mickey.global_y  = global.y;
+                mickey.modifiers = button.first;
+                mickey.btn       = button.second;
+                on_mouse_move(mickey);
+
+            }
+            break;
+
+        case WM_MOUSEWHEEL:
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
+            if (on_mouse_press)
+            {
+                const auto& button = translate_mouse_button_event(ev);
+
+                POINT global;
+                GetCursorPos(&global);
+                window_event_mouse_press mickey= {};
+                mickey.window_x  = GET_X_LPARAM(m.lParam);
+                mickey.window_y  = GET_Y_LPARAM(m.lParam);
+                mickey.global_x  = global.x;
+                mickey.global_y  = global.y;
+                mickey.modifiers = button.first;
+                mickey.btn       = button.second;
+                on_mouse_press(mickey);
+            }
             break;
 
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
+            if (on_mouse_release)
+            {
+                const auto& button = translate_mouse_button_event(ev);
+                
+                POINT global;
+                GetCursorPos(&global);
+                window_event_mouse_release mickey = {};
+                mickey.window_x  = GET_X_LPARAM(m.lParam);
+                mickey.window_y  = GET_Y_LPARAM(m.lParam);
+                mickey.global_x  = global.x;
+                mickey.global_y  = global.y;
+                mickey.modifiers = button.first;
+                mickey.btn       = button.second;
+                on_mouse_release(mickey);
+            }
             break;
 
         case WM_CHAR:
