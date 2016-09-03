@@ -2,6 +2,19 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 PROJECT(wdk)
 
+message(STATUS "
+        ~~ Window Development Kit ~~
+
+    \\\\o Brought to you by Ensisoft o//
+        http://www.ensisoft.com
+    Copyright (c) 2016 Sami Väisänen
+              Ensisoft
+
+https://github.com/ensisoft/wdk
+
+")
+
+
 # Only enable release and debug builds
 IF(CMAKE_CONFIGURATION_TYPES)
   SET(CMAKE_CONFIGURATION_TYPES Debug Release)
