@@ -26,6 +26,7 @@
 #include <memory>  // for unique_ptr
 #include <utility> // for pair
 #include <string>
+#include "callback.h"
 #include "utility.h"
 #include "types.h"
 
@@ -52,6 +53,23 @@ namespace wdk
         };
 
         // event callbacks
+
+        // If this build time flag is enabled we can register
+        // multiple listeners per each callback.
+    #ifdef WDK_MULTIPLE_WINDOW_LISTENERS
+        callback<window_event_create>        on_create;
+        callback<window_event_paint>         on_paint;
+        callback<window_event_resize>        on_resize;
+        callback<window_event_focus>         on_lost_focus;
+        callback<window_event_focus>         on_gain_focus;
+        callback<window_event_want_close>    on_want_close;
+        callback<window_event_keydown>       on_keydown;
+        callback<window_event_keyup>         on_keyup;
+        callback<window_event_char>          on_char;
+        callback<window_event_mouse_move>    on_mouse_move;
+        callback<window_event_mouse_press>   on_mouse_press;
+        callback<window_event_mouse_release> on_mouse_release;
+    #else
         std::function<void (const window_event_create&)>        on_create;
         std::function<void (const window_event_paint&)>         on_paint;
         std::function<void (const window_event_resize&)>        on_resize;
@@ -64,6 +82,7 @@ namespace wdk
         std::function<void (const window_event_mouse_move&)>    on_mouse_move;
         std::function<void (const window_event_mouse_press&)>   on_mouse_press;
         std::function<void (const window_event_mouse_release&)> on_mouse_release;
+    #endif
 
         window();
 

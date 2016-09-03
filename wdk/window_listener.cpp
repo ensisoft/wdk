@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -32,19 +32,36 @@ void connect(wdk::window& window, wdk::window_listener& listener)
 {
     namespace args = std::placeholders;
 
-    window.on_create     = std::bind(&window_listener::on_create, &listener, args::_1);
-    window.on_paint      = std::bind(&window_listener::on_paint, &listener, args::_1);
-    window.on_resize     = std::bind(&window_listener::on_resize, &listener, args::_1);
-    window.on_lost_focus = std::bind(&window_listener::on_lost_focus, &listener, args::_1);
-    window.on_gain_focus = std::bind(&window_listener::on_gain_focus, &listener, args::_1);
-    window.on_want_close = std::bind(&window_listener::on_want_close, &listener, args::_1);
-    window.on_keydown    = std::bind(&window_listener::on_keydown, &listener, args::_1);
-    window.on_keyup      = std::bind(&window_listener::on_keyup, &listener, args::_1);
-    window.on_char       = std::bind(&window_listener::on_char, &listener, args::_1);
-    window.on_mouse_move = std::bind(&window_listener::on_mouse_move, &listener, args::_1);
-    window.on_mouse_press = std::bind(&window_listener::on_mouse_press, &listener, args::_1);
+#ifdef WDK_MULTIPLE_WINDOW_LISTENERS
+    window.on_create.listen(std::bind(&window_listener::on_create, &listener, args::_1));
+    window.on_paint.listen(std::bind(&window_listener::on_paint, &listener, args::_1));
+    window.on_resize.listen(std::bind(&window_listener::on_resize, &listener, args::_1));
+    window.on_lost_focus.listen(std::bind(&window_listener::on_lost_focus, &listener, args::_1));
+    window.on_gain_focus.listen(std::bind(&window_listener::on_gain_focus, &listener, args::_1));
+    window.on_want_close.listen(std::bind(&window_listener::on_want_close, &listener, args::_1));
+    window.on_keydown.listen(std::bind(&window_listener::on_keydown, &listener, args::_1));
+    window.on_keyup.listen(std::bind(&window_listener::on_keyup, &listener, args::_1));
+    window.on_char.listen(std::bind(&window_listener::on_char, &listener, args::_1));
+    window.on_mouse_move.listen(std::bind(&window_listener::on_mouse_move, &listener, args::_1));
+    window.on_mouse_press.listen(std::bind(&window_listener::on_mouse_press, &listener, args::_1));
+    window.on_mouse_release.listen(std::bind(&window_listener::on_mouse_release, &listener, args::_1));
+#else
+    window.on_create        = std::bind(&window_listener::on_create, &listener, args::_1);
+    window.on_paint         = std::bind(&window_listener::on_paint, &listener, args::_1);
+    window.on_resize        = std::bind(&window_listener::on_resize, &listener, args::_1);
+    window.on_lost_focus    = std::bind(&window_listener::on_lost_focus, &listener, args::_1);
+    window.on_gain_focus    = std::bind(&window_listener::on_gain_focus, &listener, args::_1);
+    window.on_want_close    = std::bind(&window_listener::on_want_close, &listener, args::_1);
+    window.on_keydown       = std::bind(&window_listener::on_keydown, &listener, args::_1);
+    window.on_keyup         = std::bind(&window_listener::on_keyup, &listener, args::_1);
+    window.on_char          = std::bind(&window_listener::on_char, &listener, args::_1);
+    window.on_mouse_move    = std::bind(&window_listener::on_mouse_move, &listener, args::_1);
+    window.on_mouse_press   = std::bind(&window_listener::on_mouse_press, &listener, args::_1);
     window.on_mouse_release = std::bind(&window_listener::on_mouse_release, &listener, args::_1);
+#endif
+
 }
+
 
 } // wdk
 
