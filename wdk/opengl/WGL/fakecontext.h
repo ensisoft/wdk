@@ -50,7 +50,7 @@ namespace wgl
             assert(ret == TRUE);
             ret = DestroyWindow(m_hwnd);
             assert(ret == TRUE);
-            (void*)ret;
+            (void)ret;
         }
 
         void* resolve(const char* function) const

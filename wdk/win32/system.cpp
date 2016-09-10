@@ -171,7 +171,7 @@ native_display_t get_display_handle()
             ret = ReleaseDC(GetDesktopWindow(), m_hdc_desktop);
             assert(ret == TRUE);
             ret = DestroyWindow(m_wnd_system);
-            (void*)ret;
+            (void)ret;
         }
         HDC getDesktopHDC() const
         { return m_hdc_desktop; }
@@ -281,8 +281,8 @@ void wait_event(native_event_t& ev)
 
 std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
 {
-    const MSG& m = key;
-    const uint_t native_keycode = m.wParam;
+	const MSG& m = key;
+    const uint_t native_keycode = (uint_t)m.wParam;
 
     std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
 
@@ -387,7 +387,7 @@ bool test_key_down(keysym symbol)
     const UINT win    = find_keysym(symbol);
     const SHORT state = GetAsyncKeyState(win);
 
-    return bool(state & KEY_DOWN);
+	return (state & KEY_DOWN) == KEY_DOWN;
 
 }
 
@@ -397,7 +397,7 @@ bool test_key_down(uint_t keycode)
 
     const SHORT state = GetAsyncKeyState(keycode);
 
-    return bool(state & KEY_DOWN);
+	return (state & KEY_DOWN) == KEY_DOWN;
 }
 
 uint_t keysym_to_keycode(keysym symbol)

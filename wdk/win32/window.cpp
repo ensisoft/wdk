@@ -382,9 +382,9 @@ void window::set_fullscreen(bool fullscreen)
         const int dy = (wnd.bottom - wnd.top) - client.bottom;
         auto width  = pimpl_->w;
         auto height = pimpl_->h;
-        if (width > (uint_t)client.right)
+        if (width > client.right)
             width += dx;
-        if (height > (uint_t)client.bottom)
+        if (height > client.bottom)
             height += dy;
         if (width < dx)
             width += dx;
@@ -623,7 +623,7 @@ bool window::process_event(const native_event_t& ev)
                 if (pimpl_->enc == encoding::ascii)
                     c.ascii = utf16 & 0x7f;
                 else if (pimpl_->enc == encoding::ucs2)
-                    c.ucs2 = utf16;
+                    c.ucs2 = (std::uint16_t)(utf16 & 0xFFFF); 
                 else if (pimpl_->enc == encoding::utf8)
                     enc::utf8_encode(&utf16, &utf16 + 1, &c.utf8[0]);
 
