@@ -637,6 +637,7 @@ int test_main(int, char*[])
     unit_test_window_create_event();
     unit_test_window_paint_event();
     unit_test_window_resize_event();
+    unit_test_window_focus_event();
     unit_test_window_close_event();
     unit_test_window_key_event();
     unit_test_window_mouse_events();
