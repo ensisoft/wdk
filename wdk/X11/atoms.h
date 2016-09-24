@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -28,7 +28,7 @@ namespace wdk
 {
 
 // see the extended window manager hints here.
-// http://standards.freedesktop.org/wm-spec/wm-spec-latest.html    
+// http://standards.freedesktop.org/wm-spec/wm-spec-latest.html
 
 extern Atom _NET_WM_STATE;
 extern Atom _NET_WM_STATE_FULLSCREEN;
@@ -37,9 +37,15 @@ extern Atom _MOTIF_WM_HINTS;
 extern Atom WM_SIZE_HINTS;
 extern Atom WM_DELETE_WINDOW;
 
-extern const long _NET_WM_STATE_REMOVE;
-extern const long _NET_WM_STATE_ADD; 
-extern const long _NET_WM_STATE_TOGGLE;
+// if these are "extern long const" they appear as undefined references *and* defined references.
+// causing linker errors later. smells like an issue in the toolchain!?!
+//
+// bin/libwdk_systemd.a:system.cpp.o:0000000000000000 B wdk::_NET_WM_STATE
+// bin/libwdk_systemd.a:window.cpp.o:                 U wdk::_NET_WM_STATE
+//
+extern long _NET_WM_STATE_REMOVE;
+extern long _NET_WM_STATE_ADD;
+extern long _NET_WM_STATE_TOGGLE;
 
 extern int AltMask;
 extern int XRandREventBase;

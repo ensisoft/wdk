@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -29,7 +29,9 @@
 // the client namespace (wdk doesn't need or care about GL types directly)
 // the inclusion is removed.
 //#include <GL/glx.h>
-#include <X11/Xlib.h>
+
+// actually we'll want to remove this pollution as well.
+//#include <X11/Xlib.h>
 
 // GLX specific types.
 
@@ -39,10 +41,17 @@ struct __GLXcontextRec;
 typedef struct __GLXFBConfigRec *GLXFBConfig;
 typedef struct __GLXcontextRec *GLXContext;
 
-typedef XID GLXDrawable;
+//typedef XID GLXDrawable;
 
 namespace wdk
 {
+    namespace detail {
+
+        typedef unsigned long XID;
+        typedef XID GLXDrawable;
+
+    } // detail
+
     template<typename T, int discriminator>
     struct glx_t {
         T glx;
@@ -65,7 +74,7 @@ namespace wdk
         return rhs.xid != lhs.xid;
     }
 
-    typedef glx_t<GLXDrawable, 0> gl_surface_t;
+    typedef glx_t<detail::GLXDrawable, 0> gl_surface_t;
     typedef glx_t<GLXFBConfig, 1> gl_config_t;
 
 } // wdk

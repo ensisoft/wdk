@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -21,6 +21,8 @@
 //  THE SOFTWARE.
 
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
 #include <stdexcept>
 #include <functional>
 #include <cassert>
@@ -80,7 +82,7 @@ pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
     assert(w == width);
     assert(h == height);
     //assert(d == bit_depth);
-#endif  
+#endif
 }
 
 pixmap::~pixmap()

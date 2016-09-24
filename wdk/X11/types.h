@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -22,12 +22,27 @@
 
 #pragma once
 
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
-#include "atoms.h"
+// the X headers are ugly and pollute the global space badly with macros. (such as Status)
+// we do *not* want to include those.
+
+//#include <X11/Xlib.h>
+//#include <X11/extensions/Xrandr.h>
+
+#include <memory>
+
+struct _XDisplay;
+union  _XEvent;
 
 namespace wdk
 {
+    namespace detail {
+
+        typedef unsigned long XID;
+        typedef XID Window;
+        typedef XID Pixmap;
+
+    } // detail
+
     // wrapper structure to make XID objects separate handle types
     // so we can add more type safety and overload
     template<typename T, int discriminator>
@@ -52,12 +67,12 @@ namespace wdk
         return rhs.xid != lhs.xid;
     }
 
-    typedef xid_t<Window, 0> native_window_t;
-    typedef xid_t<Pixmap, 1> native_pixmap_t;
+    typedef xid_t<detail::Window, 0> native_window_t;
+    typedef xid_t<detail::Pixmap, 1> native_pixmap_t;
     typedef int              native_handle_t;
-    typedef Display*         native_display_t;
+    typedef _XDisplay*       native_display_t;
 
-    class native_event_t 
+    class native_event_t
     {
     public:
         enum class type {
@@ -77,60 +92,20 @@ namespace wdk
             other
         };
 
-        native_event_t() 
-        {
-            event_ = XEvent{0};
-        }
-        native_event_t(const XEvent& e) : event_(e)
-        {}
-        operator const XEvent& () const
-        {
-            return event_;
-        }
-        native_window_t get_window_handle() const
-        {
-            if  (event_.type == KeymapNotify)
-                return native_window_t { 0 };
-            else if (event_.type == CreateNotify)
-                return native_window_t { event_.xcreatewindow.window };
-            else if (event_.type == MapNotify)
-                return native_window_t { event_.xmap.window };
+        native_event_t();
+        native_event_t(const _XEvent& e);
 
-            return native_window_t  {event_.xany.window};
-        }
-        const XEvent& get() const
-        {
-            return event_;
-        }
-        
-        type identity() const
-        {
-            if ((event_.type - XRandREventBase) == RRScreenChangeNotify)
-                return type::system_resolution_change;
+        operator const _XEvent& () const;
 
-            switch (event_.type)
-            {
-                case FocusIn:         return type::window_gain_focus;
-                case FocusOut:        return type::window_lost_focus;
-                case ConfigureNotify: return type::window_resize;
-                case CreateNotify:    return type::window_create;
-                case DestroyNotify:   return type::window_destroy;
-                case KeyPress:        return type::window_keydown;
-                case KeyRelease:      return type::window_keyup;
-                case MotionNotify:    return type::window_mouse_move;
-                case ButtonPress:     return type::window_mouse_press;
-                case ButtonRelease:   return type::window_mouse_release;
-                case MapNotify:
-                    if (event_.xany.send_event)
-                        return type::window_char;
+        native_window_t get_window_handle() const;
 
-                default:
-                    break;
-            }
-            return type::other;
-        }
+        const _XEvent& get() const;
+
+        type identity() const;
+
     private:
-        XEvent event_;        
+        std::shared_ptr<_XEvent> event_;
+
     };
 
     const native_window_t  NULL_WINDOW  {0};

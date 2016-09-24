@@ -104,6 +104,7 @@ ELSEIF(UNIX)
         wdk/window_listener.cpp
         wdk/keys.cpp
         wdk/X11/keysym2ucs.cpp
+        wdk/X11/types.cpp
         wdk/X11/pixmap.cpp
         wdk/X11/system.cpp
         wdk/X11/window.cpp)

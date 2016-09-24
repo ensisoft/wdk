@@ -195,9 +195,11 @@ Atom _MOTIF_WM_HINTS;
 Atom WM_SIZE_HINTS;
 Atom WM_DELETE_WINDOW;
 
-const long _NET_WM_STATE_REMOVE = 0;
-const long _NET_WM_STATE_ADD    = 1;
-const long _NET_WM_STATE_TOGGLE = 2;
+// see comments about the constness in the atoms.h
+long _NET_WM_STATE_REMOVE = 0;
+long _NET_WM_STATE_ADD    = 1;
+long _NET_WM_STATE_TOGGLE = 2;
+
 
 int AltMask;
 int XRandREventBase;
