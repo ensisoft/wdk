@@ -820,6 +820,9 @@ struct codepair {
 
 } // namespace
 
+// g++ -std=gnu++14 defines linux (doh)
+#undef linux
+
 namespace linux {
 
 long keysym2ucs(KeySym keysym)
