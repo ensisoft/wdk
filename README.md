@@ -93,14 +93,7 @@ Typical simple usage scenario:
     gl.detach();
 ```
 
-
-3. Todo
----------------------------------
-
-- mouse input for win32
-
-
-4. Quick Intro to OpenGL Context Creation
+3. Quick Intro to OpenGL Context Creation
 -----------------------------------------
 
 Each OpenGL implementation comes with a something referred to as configuration.
