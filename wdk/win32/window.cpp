@@ -36,7 +36,7 @@
 namespace wdk
 {
 
-struct window::impl {
+struct Window::impl {
     HWND window;
     encoding enc;
     bool fullscreen;
@@ -78,7 +78,7 @@ struct window::impl {
 
         assert(lptr);
 
-        window::impl* self = reinterpret_cast<window::impl*>(lptr);
+        Window::impl* self = reinterpret_cast<Window::impl*>(lptr);
 
         switch (msg)
         {
@@ -143,7 +143,7 @@ struct window::impl {
 
 };
 
-window::window() : pimpl_(new impl)
+Window::Window() : pimpl_(new impl)
 {
     pimpl_->window     = NULL;
     pimpl_->enc        = encoding::utf8;
@@ -170,19 +170,19 @@ window::window() : pimpl_(new impl)
 
 }
 
-window::~window()
+Window::~Window()
 {
-    if (exists())
-        destroy();
+    if (DoesExist())
+        Destroy();
 }
 
-void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+void Window::Create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
     bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
     assert(height);
     assert(!title.empty());
-    assert(!exists());
+    assert(!DoesExist());
 
     // notes about the visualid.
     // on Windows the visualid (i.e. pixelformat id) is specific to a HDC.
@@ -265,23 +265,23 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     pimpl_->y          = 0;
 }
 
-void window::hide()
+void Window::Hide()
 {
-    assert(exists());
+    assert(DoesExist());
 
     ShowWindow(pimpl_->window, SW_HIDE);
 }
 
-void window::show()
+void Window::Show()
 {
-    assert(exists());
+    assert(DoesExist());
 
     ShowWindow(pimpl_->window, SW_SHOW);
 }
 
-void window::destroy()
+void Window::Destroy()
 {
-    assert(exists());
+    assert(DoesExist());
 
     const BOOL ret = DestroyWindow(pimpl_->window);
 
@@ -290,18 +290,18 @@ void window::destroy()
     pimpl_->window = NULL;
 }
 
-void window::invalidate()
+void Window::Invalidate()
 {
-    assert(exists());
+    assert(DoesExist());
 
     RECT client;
     GetClientRect(pimpl_->window, &client);
     InvalidateRect(pimpl_->window, &client, TRUE);
 }
 
-void window::move(int x, int y)
+void Window::MoveToDesktopLocation(int x, int y)
 {
-    assert(handle());
+    assert(GetNativeHandle());
 
     RECT rc;
     GetWindowRect(pimpl_->window, &rc);
@@ -313,9 +313,9 @@ void window::move(int x, int y)
     SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
 }
 
-void window::set_fullscreen(bool fullscreen)
+void Window::SetToFullscreen(bool fullscreen)
 {
-    assert(exists());
+    assert(DoesExist());
 
     if (fullscreen == pimpl_->fullscreen)
         return;
@@ -334,8 +334,8 @@ void window::set_fullscreen(bool fullscreen)
         pimpl_->exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         pimpl_->x = rc.left;
         pimpl_->y = rc.top;
-        pimpl_->w = surface_width(); //rc.right;
-        pimpl_->h = surface_height(); //rc.bottom;
+        pimpl_->w = GetSurfaceWidth(); //rc.right;
+        pimpl_->h = GetSurfaceHeight(); //rc.bottom;
 
         ShowWindow(hwnd, SW_HIDE);
         SetWindowLong(hwnd, GWL_STYLE,   WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
@@ -408,16 +408,16 @@ void window::set_fullscreen(bool fullscreen)
     pimpl_->fullscreen = fullscreen;
 }
 
-void window::set_focus()
+void Window::SetInputFocus()
 {
-    assert(exists());
+    assert(DoesExist());
 
     SetFocus(pimpl_->window);
 }
 
-void window::set_size(uint_t width, uint_t height)
+void Window::Resize(uint_t width, uint_t height)
 {
-    assert(exists());
+    assert(DoesExist());
 
     HWND hwnd = pimpl_->window;
 
@@ -455,14 +455,14 @@ void window::set_size(uint_t width, uint_t height)
     PostMessage(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(rc.right, rc.bottom));
 }
 
-void window::set_encoding(encoding enc)
+void Window::SetCharacterEncoding(encoding enc)
 {
     pimpl_->enc = enc;
 }
 
-bool window::process_event(const native_event_t& ev)
+bool Window::ProcessWindowEvent(const native_event_t& ev)
 {
-    if (ev.get_window_handle() != handle())
+    if (ev.get_window_handle() != GetNativeHandle())
         return false;
 
     const MSG& m = ev;
@@ -540,7 +540,7 @@ bool window::process_event(const native_event_t& ev)
             if (on_keydown)
             {
                 const auto& keys = translate_keydown_event(ev);
-                if (keys.second != keysym::none)
+                if (keys.second != KeySymbol::None)
                     on_keydown(window_event_keydown{keys.second, keys.first});
             }
             break;
@@ -549,7 +549,7 @@ bool window::process_event(const native_event_t& ev)
             if (on_keyup)
             {
                 const auto& keys = translate_keydown_event(ev);
-                if (keys.second != keysym::none)
+                if (keys.second != KeySymbol::None)
                     on_keyup(window_event_keyup{keys.second, keys.first});
             }
             break;
@@ -641,53 +641,53 @@ bool window::process_event(const native_event_t& ev)
     return true;
 }
 
-uint_t window::surface_width() const
+uint_t Window::GetSurfaceWidth() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     RECT rc = {0};
     GetClientRect(pimpl_->window, &rc);
     return rc.right;
 }
 
-uint_t window::surface_height() const
+uint_t Window::GetSurfaceHeight() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     RECT rc = {0};
     GetClientRect(pimpl_->window, &rc);
     return rc.bottom;
 }
 
-bool window::exists() const
+bool Window::DoesExist() const
 {
     return pimpl_->window != NULL;
 }
 
-bool window::is_fullscreen() const
+bool Window::IsFullscreen() const
 {
     return pimpl_->fullscreen;
 }
 
-window::encoding window::get_encoding() const
+Window::encoding Window::GetCharcterEncoding() const
 {
     return pimpl_->enc;
 }
 
-native_window_t window::handle() const
+native_window_t Window::GetNativeHandle() const
 {
     return pimpl_->window;
 }
 
-std::pair<uint_t, uint_t> window::min_size() const
+std::pair<uint_t, uint_t> Window::min_size() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     HWND hwnd = pimpl_->window;
 
     const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
     if (!(style_bits & WS_SIZEBOX))
-        return std::make_pair(surface_width(), surface_height());
+        return std::make_pair(GetSurfaceWidth(), GetSurfaceHeight());
 
     // using GetSystemMetrics with SM_CXMINTRACK can't be correct
     // because that's only a single value. however how small the window
@@ -728,15 +728,15 @@ std::pair<uint_t, uint_t> window::min_size() const
 
 }
 
-std::pair<uint_t, uint_t> window::max_size() const
+std::pair<uint_t, uint_t> Window::max_size() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     HWND hwnd = pimpl_->window;
 
     const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
     if (!(style_bits & WS_SIZEBOX))
-        return std::make_pair(surface_width(), surface_height());
+        return std::make_pair(GetSurfaceWidth(), GetSurfaceHeight());
 
     // a window can maximize to the size of the largest monitor
     // see info about WM_GETMINMAXINFO

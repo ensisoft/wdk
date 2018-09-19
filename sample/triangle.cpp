@@ -128,10 +128,10 @@ void resolve(const wdk::opengl& opengl)
 void resolve(const wdk::opengl&) {}
 #endif
 
-class triangle : public wdk::window_listener
+class triangle : public wdk::WindowListener
 {
 public:
-    triangle(wdk::window& win) : program_(0), run_(true), win_(win)
+    triangle(wdk::Window& win) : program_(0), run_(true), win_(win)
     {
         program_ = glCreateProgram();
 
@@ -295,10 +295,10 @@ public:
     }
     void on_keydown(const wdk::window_event_keydown& key)
     {
-        if (key.symbol == wdk::keysym::escape)
+        if (key.symbol == wdk::KeySymbol::Escape)
             run_ = false;
-        else if (key.symbol == wdk::keysym::space)
-            win_.set_fullscreen(!win_.is_fullscreen());
+        else if (key.symbol == wdk::KeySymbol::Space)
+            win_.SetToFullscreen(!win_.IsFullscreen());
     }
 
     bool running() const
@@ -308,7 +308,7 @@ public:
 private:
     GLint program_;
     bool run_;
-    wdk::window& win_;
+    wdk::Window& win_;
 
 };
 
@@ -344,15 +344,15 @@ int launch(int argc, char* argv[])
     printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
 
     // rendering window
-    wdk::window win;
+    wdk::Window win;
 
     // model and event listener
     triangle model(win);
 
     // listen to the events
-    connect(win, model);
+    ConnectWindowListener(win, model);
 
-    win.create("Triangle", 600, 600, gl.visualid(),
+    win.Create("Triangle", 600, 600, gl.visualid(),
       true, true, true);
 
     gl.attach(win);
@@ -365,8 +365,8 @@ int launch(int argc, char* argv[])
 
         gl.swap();
 
-        if (wdk::peek_event(event))
-            win.process_event(event);
+        if (wdk::PeekEvent(event))
+            win.ProcessWindowEvent(event);
     }
 
     gl.detach();

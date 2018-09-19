@@ -44,7 +44,7 @@ namespace wdk
     struct window_event_mouse_press;
     struct window_event_mouse_release;
 
-    class window : noncopyable
+    class Window : noncopyable
     {
     public:
         // character encoding for char events. defaults to utf8
@@ -84,9 +84,9 @@ namespace wdk
         std::function<void (const window_event_mouse_release&)> on_mouse_release;
     #endif
 
-        window();
+        Window();
 
-       ~window();
+       ~Window();
 
         // create the window with the given dimension and flags.
         // window must not exist before.
@@ -94,60 +94,65 @@ namespace wdk
         // If you're planning on using this window for OpenGL drawing
         // you should pass in a visual id that identifies your OpenGL ćonfiguration.
         // If visualid is 0 the window may not be compatible with your opengl config.
-        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+        void Create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
             bool can_resize = true, bool has_border = true, bool initially_visible = true);
 
-        // hide the window if currently visible. (shown)
-        void hide();
+        // hide the window if currently visible (shown).
+        void Hide();
 
         // show the window if currently hidden.
-        void show();
+        void Show();
 
         // destroy the window. window must have been created before.
-        void destroy();
+        void Destroy();
 
         // invalide the window contents.
         // erases the window contents with the background brush and eventually
         // generates a paint event.
-        void invalidate();
+        void Invalidate();
 
         // move window to x,y position with respect to it's parent. (desktop)
         // precondition: not fullscreen
         // precondition: window has been created
-        void move(int x, int y);
+        void MoveToDesktopLocation(int x, int y);
 
         // toggle between fullscreen/windowed mode.
-        void set_fullscreen(bool fullscreen);
+        void SetToFullscreen(bool fullscreen);
 
         // set input focus to this window
-        void set_focus();
+        void SetInputFocus();
 
         // set new drawable surface size
-        void set_size(uint_t width, uint_t height);
+        void Resize(uint_t width, uint_t height);
 
         // set new character encoding for character events
-        void set_encoding(encoding e);
+        void SetCharacterEncoding(encoding e);
 
         // process the given event.
         // returns true if event was consumed otherwise false.
-        bool process_event(const native_event_t& ev);
+        bool ProcessWindowEvent(const native_event_t& ev);
 
-        // get the current drawable window surface height
-        uint_t surface_height() const;
+        // get the current drawable window surface height.
+		// A window wich has a border and title bars etc. decorations
+		// can have bigger dimensions than the actual drawable surface.
+        uint_t GetSurfaceHeight() const;
 
         // get the current drawable window surface width
-        uint_t surface_width() const;
+		// A window wich has a border and title bars etc. decorations
+		// can have bigger dimensions than the actual drawable surface.
+        uint_t GetSurfaceWidth() const;
 
         // returns true if window currently exists. otherwise false.
-        bool exists() const;
+        bool DoesExist() const;
 
-        bool is_fullscreen() const;
+		// returns true if window is currently in fullscreen mode, otherwise false.
+        bool IsFullscreen() const;
 
         // get the current character encoding. the default is utf8
-        encoding get_encoding() const;
+        encoding GetCharcterEncoding() const;
 
         // get native window handle
-        native_window_t handle() const;
+        native_window_t GetNativeHandle() const;
 
         std::pair<uint_t, uint_t> min_size() const;
         std::pair<uint_t, uint_t> max_size() const;

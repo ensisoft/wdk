@@ -28,7 +28,7 @@
 namespace wdk
 {
 
-void connect(wdk::window& window, wdk::window_listener& listener)
+void ConnectWindowListener(wdk::Window& window, wdk::WindowListener& listener)
 {
     namespace args = std::placeholders;
 
@@ -46,18 +46,18 @@ void connect(wdk::window& window, wdk::window_listener& listener)
     window.on_mouse_press.listen(std::bind(&window_listener::on_mouse_press, &listener, args::_1));
     window.on_mouse_release.listen(std::bind(&window_listener::on_mouse_release, &listener, args::_1));
 #else
-    window.on_create        = std::bind(&window_listener::on_create, &listener, args::_1);
-    window.on_paint         = std::bind(&window_listener::on_paint, &listener, args::_1);
-    window.on_resize        = std::bind(&window_listener::on_resize, &listener, args::_1);
-    window.on_lost_focus    = std::bind(&window_listener::on_lost_focus, &listener, args::_1);
-    window.on_gain_focus    = std::bind(&window_listener::on_gain_focus, &listener, args::_1);
-    window.on_want_close    = std::bind(&window_listener::on_want_close, &listener, args::_1);
-    window.on_keydown       = std::bind(&window_listener::on_keydown, &listener, args::_1);
-    window.on_keyup         = std::bind(&window_listener::on_keyup, &listener, args::_1);
-    window.on_char          = std::bind(&window_listener::on_char, &listener, args::_1);
-    window.on_mouse_move    = std::bind(&window_listener::on_mouse_move, &listener, args::_1);
-    window.on_mouse_press   = std::bind(&window_listener::on_mouse_press, &listener, args::_1);
-    window.on_mouse_release = std::bind(&window_listener::on_mouse_release, &listener, args::_1);
+    window.on_create        = std::bind(&WindowListener::OnCreate, &listener, args::_1);
+    window.on_paint         = std::bind(&WindowListener::OnPaint, &listener, args::_1);
+    window.on_resize        = std::bind(&WindowListener::OnResize, &listener, args::_1);
+    window.on_lost_focus    = std::bind(&WindowListener::OnLostFocus, &listener, args::_1);
+    window.on_gain_focus    = std::bind(&WindowListener::OnGainFocus, &listener, args::_1);
+    window.on_want_close    = std::bind(&WindowListener::OnWantClose, &listener, args::_1);
+    window.on_keydown       = std::bind(&WindowListener::OnKeyDown, &listener, args::_1);
+    window.on_keyup         = std::bind(&WindowListener::OnKeyUp, &listener, args::_1);
+    window.on_char          = std::bind(&WindowListener::OnCharacter, &listener, args::_1);
+    window.on_mouse_move    = std::bind(&WindowListener::OnMouseMove, &listener, args::_1);
+    window.on_mouse_press   = std::bind(&WindowListener::OnMousePress, &listener, args::_1);
+    window.on_mouse_release = std::bind(&WindowListener::OnMouseRelease, &listener, args::_1);
 #endif
 
 }

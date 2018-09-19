@@ -67,7 +67,7 @@ struct context::impl {
     impl(const wdk::config& conf, int major_version, int minor_version, bool debug) :
         display(nullptr), surface(nullptr), context(nullptr)
     {
-        display = egl_init(get_display_handle());
+        display = egl_init(GetNativeDisplayHandle());
 
         const EGLint FLAGS = debug ?
             EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR : 0;

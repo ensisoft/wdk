@@ -27,44 +27,45 @@
 
 namespace wdk
 {
-    struct videomode {
-        uint_t xres;
-        uint_t yres;
-        videomode() : xres(0), yres(0)
+    struct VideoMode {
+		uint_t xres = 0;
+		uint_t yres = 0;
+
+        VideoMode()
         {}
-        videomode(uint_t width, uint_t height) : xres(width), yres(height)
+        VideoMode(uint_t width, uint_t height) : xres(width), yres(height)
         {}        
-        bool is_empty() const
+        bool IsNull() const
         {
             return xres == 0 && yres == 0;
         }
     };
 
-    inline bool operator < (const videomode& lhs, const videomode& rhs)
+    inline bool operator < (const VideoMode& lhs, const VideoMode& rhs)
     {
         return (lhs.xres * lhs.yres) < (rhs.xres * rhs.yres);
     }
 
     inline
-    bool operator > (const videomode& lhs, const videomode& rhs)
+    bool operator > (const VideoMode& lhs, const VideoMode& rhs)
     {
         return (rhs < lhs);
     }
 
     inline
-    bool operator == (const videomode& lhs, const videomode& rhs)
+    bool operator == (const VideoMode& lhs, const VideoMode& rhs)
     {
         return !(lhs < rhs) && !(rhs < lhs);
     }
 
     inline
-    bool operator != (const videomode& lhs, const videomode& rhs)
+    bool operator != (const VideoMode& lhs, const VideoMode& rhs)
     {
         return !(lhs == rhs);
     }
 
     inline
-    std::ostream& operator << (std::ostream& o, const videomode& vm)
+    std::ostream& operator << (std::ostream& o, const VideoMode& vm)
     {
         o << "VideoMode: " << vm.xres << "x" << vm.yres;
         return o;

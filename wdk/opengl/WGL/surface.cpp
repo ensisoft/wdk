@@ -41,10 +41,10 @@ struct surface::impl {
     uint_t height;
 };
 
-surface::surface(const config& conf, const window& win)
+surface::surface(const config& conf, const Window& win)
 {
     pimpl_.reset(new impl);
-    pimpl_->hdc    = GetDC(win.handle());
+    pimpl_->hdc    = GetDC(win.GetNativeHandle());
     pimpl_->width  = 0;
     pimpl_->height = 0;
     pimpl_->type   = surface_type::window;
@@ -66,12 +66,12 @@ surface::surface(const config& conf, const window& win)
     // Windows allows us to do this only once!
     if (!SetPixelFormat(pimpl_->hdc, PixelFormat, desc))
     {
-        ReleaseDC(win.handle(), pimpl_->hdc);
+        ReleaseDC(win.GetNativeHandle(), pimpl_->hdc);
         throw std::runtime_error("set pixelformat failed");
     }
 }
 
-surface::surface(const config& conf, const pixmap& px)
+surface::surface(const config& conf, const Pixmap& px)
 {
     assert(!"not supported");
 }

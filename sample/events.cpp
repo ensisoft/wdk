@@ -34,38 +34,38 @@
 
 
 
-void handle_window_keydown(const wdk::window_event_keydown& key, wdk::window& win)
+void handle_window_keydown(const wdk::window_event_keydown& key, wdk::Window& win)
 {
     printf("Keydown event: ");
 
-    if (key.modifiers.test(wdk::keymod::shift))
+    if (key.modifiers.test(wdk::KeyModifier::Shift))
         printf("Shift+");
-    if (key.modifiers.test(wdk::keymod::control))
+    if (key.modifiers.test(wdk::KeyModifier::Control))
         printf("Ctrl+");
-    if (key.modifiers.test(wdk::keymod::alt))
+    if (key.modifiers.test(wdk::KeyModifier::Alt))
         printf("Alt+");
 
-    const auto& str = wdk::name(key.symbol);
+    const auto& str = wdk::GetKeySymbolName(key.symbol);
     printf("%s\n", str.c_str());
 
-    if (key.symbol == wdk::keysym::escape)
-        win.destroy();
-    else if (key.symbol == wdk::keysym::space)
-        win.set_fullscreen(!win.is_fullscreen());
+    if (key.symbol == wdk::KeySymbol::Escape)
+        win.Destroy();
+    else if (key.symbol == wdk::KeySymbol::Space)
+        win.SetToFullscreen(!win.IsFullscreen());
 }
 
-void handle_window_keyup(const wdk::window_event_keyup& key, wdk::window& win)
+void handle_window_keyup(const wdk::window_event_keyup& key, wdk::Window& win)
 {
     printf("keyup event: ");
 
-    if (key.modifiers.test(wdk::keymod::shift))
+    if (key.modifiers.test(wdk::KeyModifier::Shift))
         printf("Shift+");
-    if (key.modifiers.test(wdk::keymod::control))
+    if (key.modifiers.test(wdk::KeyModifier::Control))
         printf("Ctrl+");
-    if (key.modifiers.test(wdk::keymod::alt))
+    if (key.modifiers.test(wdk::KeyModifier::Alt))
         printf("Alt+");
 
-    const auto& str = wdk::name(key.symbol);
+    const auto& str = wdk::GetKeySymbolName(key.symbol);
     printf("%s\n", str.c_str());
 
 }
@@ -101,13 +101,13 @@ void handle_window_lost_focus(const wdk::window_event_focus& focus)
     printf("Window lost focus\n");
 }
 
-void handle_window_char(const wdk::window_event_char& uchar, wdk::window& win)
+void handle_window_char(const wdk::window_event_char& uchar, wdk::Window& win)
 {
-    const auto e = win.get_encoding();
+    const auto e = win.GetCharcterEncoding();
 
-    if (e == wdk::window::encoding::ascii)
+    if (e == wdk::Window::encoding::ascii)
         printf("ASCII char event: %c\n", uchar.ascii);
-    else if (e == wdk::window::encoding::utf8)
+    else if (e == wdk::Window::encoding::utf8)
        printf("UTF8 char event: \"%s\"\n", uchar.utf8);
 
 }
@@ -123,14 +123,14 @@ void handle_window_mouse_press(const wdk::window_event_mouse_press& mickey)
 {
     printf("Mouse press: ");
 
-    if (mickey.modifiers.test(wdk::keymod::shift))
+    if (mickey.modifiers.test(wdk::KeyModifier::Shift))
         printf("Shift+");
-    if (mickey.modifiers.test(wdk::keymod::control))
+    if (mickey.modifiers.test(wdk::KeyModifier::Control))
         printf("Ctrl+");
-    if (mickey.modifiers.test(wdk::keymod::alt))
+    if (mickey.modifiers.test(wdk::KeyModifier::Alt))
         printf("Alt+");
 
-    const auto& str = wdk::name(mickey.btn);
+    const auto& str = wdk::GetMouseButtonName(mickey.btn);
     printf(" '%s'", str.c_str());
 
     printf(" (win) %d,%d (root) %d,%d\n",
@@ -146,8 +146,8 @@ struct cmdline {
     bool   wnd_resize;
     int    surface_width;
     int    surface_height;
-    wdk::window::encoding encoding;
-    wdk::videomode mode;
+    wdk::Window::encoding encoding;
+    wdk::VideoMode mode;
 };
 
 bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
@@ -175,11 +175,11 @@ bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
             {
                 const char* value = argv[++i];
                 if (!strcmp(value, "ascii"))
-                    cmd.encoding = wdk::window::encoding::ascii;
+                    cmd.encoding = wdk::Window::encoding::ascii;
                 else if (!strcmp(value, "utf8"))
-                    cmd.encoding = wdk::window::encoding::utf8;
+                    cmd.encoding = wdk::Window::encoding::utf8;
                 else if (!strcmp(value, "ucs2"))
-                    cmd.encoding = wdk::window::encoding::ucs2;
+                    cmd.encoding = wdk::Window::encoding::ucs2;
             }
             else if (!strcmp(name, "--videomode"))
             {
@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
     cmd.wnd_resize     = true;
     cmd.surface_width  = 640;
     cmd.surface_height = 480;
-    cmd.encoding       = wdk::window::encoding::ascii;
+    cmd.encoding       = wdk::Window::encoding::ascii;
 
     if (!parse_cmdline(argc, argv, cmd))
     {
@@ -243,19 +243,19 @@ int main(int argc, char* argv[])
 
     if (cmd.listmodes)
     {
-        auto modes = wdk::list_video_modes();
+        auto modes = wdk::ListAvailableVideoModes();
 
-        std::sort(modes.begin(), modes.end(), std::greater<wdk::videomode>());
-        std::copy(modes.begin(), modes.end(), std::ostream_iterator<wdk::videomode>(std::cout, "\n"));
+        std::sort(modes.begin(), modes.end(), std::greater<wdk::VideoMode>());
+        std::copy(modes.begin(), modes.end(), std::ostream_iterator<wdk::VideoMode>(std::cout, "\n"));
         return 0;
     }
 
     wdk::modechange vidmode;
 
-    if (!cmd.mode.is_empty())
+    if (!cmd.mode.IsNull())
         vidmode.set(cmd.mode);
 
-    wdk::window win;
+    wdk::Window win;
     win.on_create     = handle_window_create;
     win.on_lost_focus = handle_window_lost_focus;
     win.on_gain_focus = handle_window_gain_focus;
@@ -268,22 +268,22 @@ int main(int argc, char* argv[])
     win.on_keydown    = std::bind(handle_window_keydown, std::placeholders::_1, std::ref(win));
     win.on_keyup      = std::bind(handle_window_keyup, std::placeholders::_1, std::ref(win));
 
-    win.create("Wdk",
+    win.Create("Wdk",
         cmd.surface_width,
         cmd.surface_height,
         0,
         cmd.wnd_resize,
         cmd.wnd_border);
 
-    win.set_encoding(cmd.encoding);
-    win.set_fullscreen(cmd.fullscreen);
+    win.SetCharacterEncoding(cmd.encoding);
+    win.SetToFullscreen(cmd.fullscreen);
 
 
-    while (win.exists())
+    while (win.DoesExist())
     {
         wdk::native_event_t event;
-        wdk::wait_event(event);
-        win.process_event(event);
+        wdk::WaitEvent(event);
+        win.ProcessWindowEvent(event);
     }
 
     return 0;

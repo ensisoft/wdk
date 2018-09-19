@@ -55,9 +55,9 @@ struct surface::impl {
     EGLSurface surface;
 };
 
-surface::surface(const config& conf, const window& win) : pimpl_(new impl)
+surface::surface(const config& conf, const Window& win) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<EGLint> attribs;
     if (conf.srgb_buffer())
@@ -67,14 +67,14 @@ surface::surface(const config& conf, const window& win) : pimpl_(new impl)
     }
     attribs.push_back(EGL_NONE);
 
-    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), &attribs[0]);
+    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.GetNativeHandle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create window surface failed");
 }
 
-surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
+surface::surface(const config& conf, const Pixmap& px) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<EGLint> attribs;
     if (conf.srgb_buffer())
@@ -84,14 +84,14 @@ surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
     }
     attribs.push_back(EGL_NONE);
 
-    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), &attribs[0]);
+    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.GetNativeHandle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create pixmap surface failed");
 }
 
 surface::surface(const config& conf, uint_t width, uint_t height) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<EGLint> attribs {
         EGL_HEIGHT, (EGLint)height,

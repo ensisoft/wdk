@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2018 Sami Väisänen, Ensisoft 
 //
 // http://www.ensisoft.com
 //
@@ -36,9 +36,18 @@ namespace wdk
     // left and right buttons and a mouse wheel. 
     // some mice also have more buttons in "non-standard" locations
     // these are named thumbN buttons here.
-    enum class button {
-        none, left, right, wheel, wheel_up, wheel_down, 
-        thumb1, thumb2, thumb3, thumb4
+    enum class MouseButton 
+	{
+        None, 
+		Left, 
+		Right, 
+		Wheel, 
+		WheelScrollUp, 
+		WheelScrollDown, 
+        Thumb1, 
+		Thumb2, 
+		Thumb3, 
+		Thumb4
     };
 
     // keyboard event processing has 3 potential levels of operation available to applications.
@@ -57,8 +66,12 @@ namespace wdk
     // Unicode characters for cooked character based input.
 
     // possible modifiers, used as a bitwise OR flag
-    enum class keymod {
-        none, shift, control, alt
+    enum class KeyModifier 
+	{
+        None, 
+		Shift,
+		Control,
+		Alt
     };
 
     // primitive key symbols. this list represents a physical keys available
@@ -69,86 +82,88 @@ namespace wdk
     // FI layout user needs to press Shift+2.
     // therefore this list does not contain any keys that are layout specific but maps
     // directly to physical keys on the keyboard
-    enum class keysym 
-    {
-        none,                   // no known key
-        backspace,
-        tab,
-        enter,
-        space,
-        key_0, 
-        key_1, 
-        key_2, 
-        key_3, 
-        key_4, 
-        key_5, 
-        key_6,
-        key_7, 
-        key_8, 
-        key_9,
-        key_A, 
-        key_B, 
-        key_C, 
-        key_D, 
-        key_E, 
-        key_F, 
-        key_G, 
-        key_H, 
-        key_I, 
-        key_J, 
-        key_K, 
-        key_L, 
-        key_M, 
-        key_N, 
-        key_O, 
-        key_P, 
-        key_Q, 
-        key_R, 
-        key_S, 
-        key_T, 
-        key_U, 
-        key_V, 
-        key_W, 
-        key_X, 
-        key_Y,
-        key_Z,
-        f1, 
-        f2, 
-        f3, 
-        f4, 
-        f5, 
-        f6, 
-        f7, 
-        f8, 
-        f9,
-        f10, 
-        f11, 
-        f12,
-        control_R,
-        control_L,
-        shift_R,
-        shift_L,
-        alt_L,
-        capslock,
-        insert,
-        del,
-        home,
-        end,
-        pageup,
-        pagedown,
-        left,
-        up,
-        down,
-        right,
-        escape
+	enum class KeySymbol
+	{
+		None,                   // no known key
+		Backspace,
+		Tab,
+		Enter,
+		Space,
+		Key_0,
+		Key_1,
+		Key_2,
+		Key_3,
+		Key_4,
+		Key_5,
+		Key_6,
+		Key_7,
+		Key_8,
+		Key_9,
+		Key_A,
+		Key_B,
+		Key_C,
+		Key_D,
+		Key_E,
+		Key_F,
+		Key_G,
+		Key_H,
+		Key_I,
+		Key_J,
+		Key_K,
+        Key_L, 
+        Key_M, 
+        Key_N, 
+        Key_O, 
+        Key_P, 
+        Key_Q, 
+        Key_R, 
+        Key_S, 
+        Key_T, 
+        Key_U, 
+        Key_V, 
+        Key_W, 
+        Key_X, 
+        Key_Y,
+        Key_Z,
+        F1, 
+        F2, 
+        F3, 
+        F4, 
+        F5, 
+        F6, 
+        F7, 
+        F8, 
+        F9,
+        F10, 
+        F11, 
+        F12,
+        Control_R,
+        Control_L,
+        Shift_R,
+        Shift_L,
+        Alt_L,
+        CapsLock,
+        Insert,
+        Delete,
+        Home,
+        End,
+        PageUp,
+        PageDown,
+        ArrowLeft,
+        ArrowUp,
+        ArrowDown,
+        ArrowRight,
+        Escape
     }; 
 
-    std::string name(keymod mod);
+	// return the English modifier key name. 
+    std::string GetModifierName(KeyModifier mod);
 
-    std::string name(keysym sym);
+	// return the English key symbol name.
+    std::string GetKeySymbolName(KeySymbol sym);
 
-
-    std::string name(button btn);
+	// return the English mouse button name.
+    std::string GetMouseButtonName(MouseButton btn);
 
 } // wdk
 

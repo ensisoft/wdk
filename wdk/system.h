@@ -30,44 +30,45 @@
 
 namespace wdk
 {
-    struct videomode;
+    struct VideoMode;
 
-    enum class keymod;
-    enum class keysym;
+    enum class KeyModifier;
+    enum class KeySymbol;
 
     // get native display handle
-    native_display_t get_display_handle();
+    native_display_t GetNativeDisplayHandle();
 
      // get current videomode setting
-    videomode get_current_video_mode();
+    VideoMode GetCurrentVideoMode();
 
     // change the current display server video mode to the mode
     // identified by the given id. throws an exception if this fails.
     // videomode should be one of the modes available in the list of modes
-    void set_video_mode(const videomode& m);
+    void SetVideoMode(const VideoMode& m);
 
     // get a list of available video modes.
-    std::vector<videomode> list_video_modes();
+    std::vector<VideoMode> ListAvailableVideoModes();
 
-    // Get the next event from the queue if any. returns true
+    // Get the next event from the application's event queue if any. returns true
     // if event was available and assignes the event into ev.
     // returns false if no event was available.
-    bool peek_event(native_event_t &ev);
+    bool PeekEvent(native_event_t &ev);
 
-    void wait_event(native_event_t& ev);
+	// Wait for an event in the application's event queue. 
+    void WaitEvent(native_event_t& ev);
 
 
     // translate keydown event
-    std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key);
+    std::pair<bitflag<KeyModifier>, KeySymbol> translate_keydown_event(const native_event_t& key);
 
-    std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& bnt);
+    std::pair<bitflag<KeyModifier>, MouseButton> translate_mouse_button_event(const native_event_t& bnt);
 
-    bool test_key_down(keysym symbol);
+    bool test_key_down(KeySymbol symbol);
 
     bool test_key_down(uint_t keycode);
 
     // get native platform depedant keycode for a key
-    uint_t keysym_to_keycode(keysym symbol);
+    uint_t keysym_to_keycode(KeySymbol symbol);
 
 } // wdk
 

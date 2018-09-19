@@ -71,13 +71,13 @@ namespace wdk
 
     // do not use directly, see the typedefs below
     struct window_event_keyup {
-        keysym symbol;
-        bitflag<keymod> modifiers;
+        KeySymbol symbol;
+        bitflag<KeyModifier> modifiers;
     };
 
     struct window_event_keydown {
-        keysym symbol;
-        bitflag<keymod> modifiers;
+        KeySymbol symbol;
+        bitflag<KeyModifier> modifiers;
     };
 
     // input character. the meaning of value depends
@@ -97,22 +97,22 @@ namespace wdk
     struct window_event_mouse_move {
         int window_x, window_y;
         int global_x, global_y;
-        button btn;
-        bitflag<keymod> modifiers;
+        MouseButton btn;
+        bitflag<KeyModifier> modifiers;
     };
 
     struct window_event_mouse_press {
         int window_x, window_y;
         int global_x, global_y;
-        button btn;
-        bitflag<keymod> modifiers;
+        MouseButton btn;
+        bitflag<KeyModifier> modifiers;
     };
 
     struct window_event_mouse_release {
         int window_x, window_y;
         int global_x, global_y;
-        button btn;
-        bitflag<keymod> modifiers;
+        MouseButton btn;
+        bitflag<KeyModifier> modifiers;
     };
 
 } // wdk

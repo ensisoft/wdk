@@ -33,31 +33,31 @@ namespace wdk
     struct window_event_mouse_move;
     struct window_event_mouse_press;
     struct window_event_mouse_release;
-    class  window;
+    class  Window;
 
     // interface for listening for window events
-    class window_listener
+    class WindowListener
     {
     public:
-        virtual ~window_listener() {}
-        virtual void on_create(const window_event_create&) {}
-        virtual void on_paint(const window_event_paint&) {}
-        virtual void on_resize(const window_event_resize&) {}
-        virtual void on_lost_focus(const window_event_focus&) {}
-        virtual void on_gain_focus(const window_event_focus&) {}
-        virtual void on_want_close(const window_event_want_close&) {}
-        virtual void on_keydown(const window_event_keydown&) {}
-        virtual void on_keyup(const window_event_keyup&) {}
-        virtual void on_char(const window_event_char&) {}
-        virtual void on_mouse_move(const window_event_mouse_move&) {}
-        virtual void on_mouse_press(const window_event_mouse_press&) {}
-        virtual void on_mouse_release(const window_event_mouse_release&) {}
+		virtual ~WindowListener() = default;
+        virtual void OnCreate(const window_event_create&) {}
+        virtual void OnPaint(const window_event_paint&) {}
+        virtual void OnResize(const window_event_resize&) {}
+        virtual void OnLostFocus(const window_event_focus&) {}
+        virtual void OnGainFocus(const window_event_focus&) {}
+        virtual void OnWantClose(const window_event_want_close&) {}
+        virtual void OnKeyDown(const window_event_keydown&) {}
+        virtual void OnKeyUp(const window_event_keyup&) {}
+        virtual void OnCharacter(const window_event_char&) {}
+        virtual void OnMouseMove(const window_event_mouse_move&) {}
+        virtual void OnMousePress(const window_event_mouse_press&) {}
+        virtual void OnMouseRelease(const window_event_mouse_release&) {}
     protected:
     private:
     };
 
     // connect all events in the window to the listener
-    void connect(wdk::window& window, wdk::window_listener& listener);
+    void ConnectWindowListener(wdk::Window& window, wdk::WindowListener& listener);
 
 } // wdk
 

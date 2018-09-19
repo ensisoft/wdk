@@ -29,18 +29,20 @@
 namespace wdk
 {
     // window system provided bitmap
-    class pixmap : noncopyable
+    class Pixmap 
     {
     public:
-        pixmap(uint_t width, uint_t height, uint_t visualid);
+		// create a new pixmap with the given width and height. 
+        Pixmap(uint_t width, uint_t height, uint_t visualid);
 
-       ~pixmap();
+       ~Pixmap();
 
-        native_pixmap_t handle() const;
+	    // return the underlying native operating system handle.
+        native_pixmap_t GetNativeHandle() const;
 
-        uint_t width() const;
-        uint_t height() const;
-        uint_t depth() const;
+        uint_t GetWidth() const;
+        uint_t GetHeight() const;
+        uint_t GetDepth() const;
     private:
         struct impl;
 

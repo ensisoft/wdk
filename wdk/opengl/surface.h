@@ -23,14 +23,15 @@
 #pragma once
 
 #include <memory>
-#include <wdk/utility.h>
-#include <wdk/types.h>
+
+#include "wdk/utility.h"
+#include "wdk/types.h"
 #include "types.h"
 
 namespace wdk
 {
-    class window;
-    class pixmap;
+    class Window;
+    class Pixmap;
     class config;
 
     // rendering surface.
@@ -38,10 +39,10 @@ namespace wdk
     {
     public:
         // create a rendering surface that renders to the given window.
-        surface(const config& conf, const window& win);
+        surface(const config& conf, const Window& win);
 
         // create a rendering surface that renders to the given pixmap.
-        surface(const config& conf, const pixmap& px);
+        surface(const config& conf, const Pixmap& px);
 
         // create an offscreen width x height px rendering surface.
         surface(const config& conf, uint_t width, uint_t height);

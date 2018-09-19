@@ -29,19 +29,19 @@
 
 namespace wdk
 {
-struct pixmap::impl {
-    HBITMAP bmp;
-    uint_t  width;
-    uint_t  height;
-    uint_t  depth;
+struct Pixmap::impl {
+	HBITMAP bmp = HBITMAP(0);
+	uint_t  width  = 0;
+	uint_t  height = 0;
+	uint_t  depth = 0;
 };
 
-pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
+Pixmap::Pixmap(uint_t width, uint_t height, uint_t visualid)
 {
     assert(width && height);
     assert(visualid);
 
-    HDC dpy = get_display_handle();
+    HDC dpy = GetNativeDisplayHandle();
 
     auto hdc = make_unique_ptr(CreateCompatibleDC(dpy), DeleteDC);
     if (!hdc.get())
@@ -63,27 +63,27 @@ pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
     pimpl_->depth  = desc.cColorBits;
 }
 
-pixmap::~pixmap()
+Pixmap::~Pixmap()
 {
     DeleteObject(pimpl_->bmp);
 }
 
-native_pixmap_t pixmap::handle() const
+native_pixmap_t Pixmap::GetNativeHandle() const
 {
     return pimpl_->bmp;
 }
 
-uint_t pixmap::width() const
+uint_t Pixmap::GetWidth() const
 {
     return pimpl_->width;
 }
 
-uint_t pixmap::height() const
+uint_t Pixmap::GetHeight() const
 {
     return pimpl_->height;
 }
 
-uint_t pixmap::depth() const
+uint_t Pixmap::GetDepth() const
 {
     return pimpl_->depth;
 }

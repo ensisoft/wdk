@@ -30,34 +30,34 @@ namespace wdk
     class modechange : noncopyable
     {
     public:
-        modechange(const videomode& mode = videomode())
+        modechange(const VideoMode& mode = VideoMode())
         {
-            original_mode_ = get_current_video_mode();
-            if (!mode.is_empty())
+            original_mode_ = GetCurrentVideoMode();
+            if (!mode.IsNull())
                 set(mode);
         }
        ~modechange()
         {
             restore();
         }
-        void set(const videomode& mode)
+        void set(const VideoMode& mode)
         {
-            assert(!mode.is_empty());
+            assert(!mode.IsNull());
 
-            const videomode& cur_mode = get_current_video_mode();
+            const VideoMode& cur_mode = GetCurrentVideoMode();
             if (cur_mode != mode)
-                set_video_mode(mode);
+                SetVideoMode(mode);
         }
         void restore()
         {
-            assert(!original_mode_.is_empty());
+            assert(!original_mode_.IsNull());
 
-            const videomode& cur_mode = get_current_video_mode();
+            const VideoMode& cur_mode = GetCurrentVideoMode();
             if (cur_mode != original_mode_)
-                set_video_mode(original_mode_);
+                SetVideoMode(original_mode_);
         }
     private:
-        videomode original_mode_;
+        VideoMode original_mode_;
     };
 
 } // wdk
