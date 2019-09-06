@@ -24,12 +24,38 @@
 #include <GL/glx.h>     // for GLX
 #include <cassert>
 #include <stdexcept>
+#include <sstream>
+#include <string>
 #include <wdk/system.h>
 #include <wdk/X11/errorhandler.h>
 #include "../context.h"
 #include "../config.h"
 #include "../surface.h"
 
+// GLX_ARB_create_context         
+// Accepted as an attribute name in <*attrib_list>:
+#define GLX_CONTEXT_MAJOR_VERSION_ARB           0x2091
+#define GLX_CONTEXT_MINOR_VERSION_ARB           0x2092
+#define GLX_CONTEXT_FLAGS_ARB                   0x2094
+#define GLX_CONTEXT_PROFILE_MASK_ARB            0x9126
+
+// Accepted as bits in the attribute value for GLX_CONTEXT_FLAGS_ARB in
+// <*attrib_list>:
+#define GLX_CONTEXT_DEBUG_BIT_ARB               0x0001
+#define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB  0x0002
+
+// Accepted as bits in the attribute value for
+// GLX_CONTEXT_PROFILE_MASK_ARB in <*attrib_list>:
+#define GLX_CONTEXT_CORE_PROFILE_BIT_ARB        0x00000001
+#define GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+
+
+// GLX_EXT_create_context_es2_profile
+// Accepted as a bit in the attribute value for
+// GLX_CONTEXT_PROFILE_MASK_ARB in <*attrib_list>:
+#define GLX_CONTEXT_ES_PROFILE_BIT_EXT		0x00000004
+#define GLX_CONTEXT_ES2_PROFILE_BIT_EXT		0x00000004
+        
 namespace wdk
 {
 
@@ -39,7 +65,7 @@ struct context::impl {
     GLXDrawable      surface; // current surface
     GLXContext       context;
 
-    impl(const config& conf, int major_version, int minor_version, bool debug) :
+    impl(const config& conf, int major_version, int minor_version, bool debug, context::type type) :
         temp_window(0), temp_surface(0), surface(0), context(0)
     {
         // Context creation requires GLX_ARB_create_context extension.
@@ -50,9 +76,27 @@ struct context::impl {
         if (!glXCreateContextAttribs)
            throw std::runtime_error("cannot create context");
 
-
         Display* dpy    = get_display_handle();
         GLXFBConfig fbc = conf.handle();
+
+        if (type == context::type::mobile)
+        {
+            // todo: what's the screen number ? 
+            const char* extensions_string = glXQueryExtensionsString(dpy, 0); 
+            bool GLX_EXT_create_context_es2_profile_supported = false;
+            std::stringstream ss(extensions_string);
+            std::string extension;
+            while (std::getline(ss, extension, ' '))
+            {
+                if (extension == "GLX_EXT_create_context_es2_profile")
+                {
+                    GLX_EXT_create_context_es2_profile_supported = true;
+                    break;
+                }
+            }
+            if (!GLX_EXT_create_context_es2_profile_supported)
+                throw std::runtime_error("cannot create GL ES context. No GLX_EXT_create_context_es2_profile");
+        }
 
         factory<GLXContext> context_factory(dpy);
 
@@ -60,11 +104,14 @@ struct context::impl {
         {
             const int FLAGS = debug ?
                GLX_CONTEXT_DEBUG_BIT_ARB : 0;
+            const int PROFILE = (type == context::type::mobile) 
+                ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
 
             const int attrs[] = {
                 GLX_CONTEXT_MAJOR_VERSION_ARB, major_version,
                 GLX_CONTEXT_MINOR_VERSION_ARB, minor_version,
                 GLX_CONTEXT_FLAGS_ARB, FLAGS,
+                GLX_CONTEXT_PROFILE_MASK_ARB, PROFILE,
                 None
             };
 
@@ -119,20 +166,17 @@ struct context::impl {
 
 context::context(const config& conf)
 {
-    pimpl_.reset(new impl(conf, 3, 0, false));
+    pimpl_.reset(new impl(conf, 3, 0, false, type::desktop));
 }
 
 context::context(const config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug, type::desktop));
 }
 
 context::context(const config& conf, int major_version, int minor_version, bool debug, type requested_type) 
 {
-    // currently not supported.
-    if (requested_type == context::type::mobile)
-        throw std::runtime_error("not supported");
-    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug, requested_type));
 }
 
 context::~context()
