@@ -43,6 +43,22 @@ namespace wdk
         // if debug is true the context is created as a debug context if possible.
         context(const config& conf, int major_version, int minor_version, bool debug);
 
+        enum type {
+            desktop, // Open GL
+            mobile, // OpenGL ES
+        };
+        // create a rendering context compatible with the given
+        // configuration and with a specific GL version. 
+        // if debug is true the context is created as a debug context if possible.
+        // Using the ContextType one can ask the backend to create a "non native" 
+        // context. By default WGL and GLX will create a OpenGL context, 
+        // and EGL will create a OpenGL ES context. Some platforms provide support 
+        // through extensions such as WGL_EXT_create_context_es2 to create a 
+        // another type of context. 
+        // Currently only supported on WGL if the driver supports WGL_EXT_create_context_es2. 
+        context(const config& conf, int major_version, int minor_version, bool debug, 
+            type requested_type);
+
         // dtor
        ~context();
 

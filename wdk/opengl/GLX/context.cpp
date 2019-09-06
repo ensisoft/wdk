@@ -127,6 +127,14 @@ context::context(const config& conf, int major_version, int minor_version, bool 
     pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
+context::context(const config& conf, int major_version, int minor_version, bool debug, type requested_type) 
+{
+    // currently not supported.
+    if (requested_type == context::type::mobile)
+        throw std::runtime_error("not supported");
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
+}
+
 context::~context()
 {
     Display* d = get_display_handle();

@@ -26,6 +26,8 @@
 #include <stdexcept>
 #include <functional>
 #include <vector>
+#include <string>
+#include <sstream>
 #include <wdk/utility.h>
 #include "../context.h"
 #include "../config.h"
@@ -56,8 +58,16 @@
 #define ERROR_INVALID_VERSION_ARB               0x2095
 #define ERROR_INVALID_PROFILE_ARB               0x2096
 
+// WGL_EXT_create_context_es2_profile
+// Accepted as a bit in the attribute value for
+// WGL_CONTEXT_PROFILE_MASK_ARB in <*attribList>:
+#define WGL_CONTEXT_ES_PROFILE_BIT_EXT		0x00000004
+#define WGL_CONTEXT_ES2_PROFILE_BIT_EXT		0x00000004
+
 namespace {
     typedef HGLRC (APIENTRY *wglCreateContextAttribsARBProc)(HDC, HGLRC, const int*);
+    // WGL_ARB_extensions_string
+    typedef const char* (APIENTRY *wglGetExtensionsStringARBProc)(HDC);
 } // namespace
 
 namespace wdk
@@ -68,7 +78,7 @@ struct context::impl {
     HGLRC    context;
     HDC      surface;    
 
-    impl(const config& conf, int major, int minor, bool debug)
+    impl(const config& conf, int major, int minor, bool debug, context::type type)
     {
         // when config was created it has created a fake gl context.
         // we'll need to retrive that context now to query for the "real" 
@@ -82,20 +92,47 @@ struct context::impl {
         if (!wglCreateContextAttribsARB)
             throw std::runtime_error("unable to create context. no wglCreateContextAttribs");
 
+        // in order to know if the driver supports WGL_EXT_create_context_es2_profile
+        // we need to query the extensions strings. 
+        // but because it's a WGL extension it's not part of the GL_EXTENSIONS string.
+        // so we need WGL_ARB_extensions_string to query the extensions.. uh.. string
+        if (type == context::type::mobile) 
+        {   
+            auto wglGetExtensionsStringARB = fake->resolve<wglGetExtensionsStringARBProc>("wglGetExtensionsStringARB");
+            if (!wglGetExtensionsStringARB)
+                throw std::runtime_error("unable to create context. no wglGetExtensionsString"); 
+            const char* extensions_string = wglGetExtensionsStringARB(fake->getDC());
+            bool WGL_EXT_create_context_es2_profile_support = false;
+            std::stringstream ss(extensions_string);
+            std::string extension;
+            while (std::getline(ss, extension, ' ')) 
+            {
+                if (extension == "WGL_EXT_create_context_es2_profile")
+                {
+                    WGL_EXT_create_context_es2_profile_support = true;
+                    break;
+                }
+            }
+            if (!WGL_EXT_create_context_es2_profile_support)
+                throw std::runtime_error("cannot create GL ES context. No WGL_EXT_create_context_es2_profile");
+        }
+
         const int ARNOLD = 0; // attr list terminator
 
-        const int FLAGS = debug ? 
-            WGL_CONTEXT_DEBUG_BIT_ARB : 0;
-            // todo: the context profile bit
-        const int PROFILE =  0; // WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
-            //WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+        const int FLAGS = debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
+
+        // todo: the desktop context profile bit
+        // WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+        //WGL_CONTEXT_CORE_PROFILE_BIT_ARB;            
+        const int PROFILE = (type == context::type::mobile) 
+            ? WGL_CONTEXT_ES_PROFILE_BIT_EXT : WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;   
 
         const int attrs[] = 
         {
             WGL_CONTEXT_MAJOR_VERSION_ARB, major,
             WGL_CONTEXT_MINOR_VERSION_ARB, minor,
             WGL_CONTEXT_FLAGS_ARB, FLAGS,
-            //WGL_CONTEXT_PROFILE_MASK_ARB, PROFILE, 
+            WGL_CONTEXT_PROFILE_MASK_ARB, PROFILE, 
             ARNOLD
         };
         auto ctx = make_unique_ptr(wglCreateContextAttribsARB(fake->getDC(), nullptr, attrs), wglDeleteContext);
@@ -112,12 +149,17 @@ struct context::impl {
 
 context::context(const config& conf)
 {
-    pimpl_.reset(new impl(conf, 3, 0, false));
+    pimpl_.reset(new impl(conf, 3, 0, false, type::desktop));
 }
 
 context::context(const config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version, debug));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug, type::desktop));
+}
+
+context::context(const config& conf, int major_version, int minor_version, bool debug, type requested_type)
+{
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug, requested_type));
 }
 
 context::~context()
