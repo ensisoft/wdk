@@ -98,7 +98,7 @@ IF (WIN32)
         libGLESv2 libEGL wdk_system)
 
 ELSEIF(UNIX)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
     ADD_LIBRARY(wdk_system STATIC
         wdk/window_listener.cpp
@@ -151,6 +151,10 @@ ADD_EXECUTABLE(MobileGLSample sample/triangle.cpp)
 TARGET_COMPILE_DEFINITIONS(MobileGLSample PRIVATE "SAMPLE_GLES")
 TARGET_LINK_LIBRARIES(MobileGLSample
     wdk_system wdk_mobile_gl)
+
+ADD_EXECUTABLE(QueryTool sample/query_tool.cpp)
+TARGET_LINK_LIBRARIES(QueryTool 
+    wdk_system wdk_desktop_gl)
 
 # Build unit tests
 ADD_EXECUTABLE(UnitTestSystem wdk/unit_test/unit_test_wdk.cpp)
