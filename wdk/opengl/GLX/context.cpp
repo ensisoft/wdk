@@ -26,11 +26,15 @@
 #include <stdexcept>
 #include <sstream>
 #include <string>
-#include <wdk/system.h>
-#include <wdk/X11/errorhandler.h>
-#include "../context.h"
-#include "../config.h"
-#include "../surface.h"
+
+#include "wdk/system.h"
+#include "wdk/utility.h"
+#include "wdk/X11/errorhandler.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/surface.h"
+
+#define X11_None 0
 
 // GLX_ARB_create_context         
 // Accepted as an attribute name in <*attrib_list>:
@@ -59,13 +63,13 @@
 namespace wdk
 {
 
-struct context::impl {
-    Window           temp_window;
-    GLXWindow        temp_surface;
-    GLXDrawable      surface; // current surface
-    GLXContext       context;
+struct Context::impl {
+    ::Window           temp_window;
+    ::GLXWindow        temp_surface;
+    ::GLXDrawable      surface; // current surface
+    ::GLXContext       context;
 
-    impl(const config& conf, int major_version, int minor_version, bool debug, context::type type) :
+    impl(const Config& conf, int major_version, int minor_version, bool debug, Context::Type type) :
         temp_window(0), temp_surface(0), surface(0), context(0)
     {
         // Context creation requires GLX_ARB_create_context extension.
@@ -76,10 +80,10 @@ struct context::impl {
         if (!glXCreateContextAttribs)
            throw std::runtime_error("cannot create context");
 
-        Display* dpy    = get_display_handle();
-        GLXFBConfig fbc = conf.handle();
+        Display* dpy    = GetNativeDisplayHandle();
+        GLXFBConfig fbc = conf.GetNativeHandle();
 
-        if (type == context::type::mobile)
+        if (type == Context::Type::OpenGL_ES)
         {
             // todo: what's the screen number ? 
             const char* extensions_string = glXQueryExtensionsString(dpy, 0); 
@@ -104,7 +108,7 @@ struct context::impl {
         {
             const int FLAGS = debug ?
                GLX_CONTEXT_DEBUG_BIT_ARB : 0;
-            const int PROFILE = (type == context::type::mobile) 
+            const int PROFILE = (type == Context::Type::OpenGL_ES) 
                 ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
 
             const int attrs[] = {
@@ -112,7 +116,7 @@ struct context::impl {
                 GLX_CONTEXT_MINOR_VERSION_ARB, minor_version,
                 GLX_CONTEXT_FLAGS_ARB, FLAGS,
                 GLX_CONTEXT_PROFILE_MASK_ARB, PROFILE,
-                None
+                X11_None
             };
 
             GLXContext c = glXCreateContextAttribs(dpy, fbc, NULL, GL_TRUE, attrs);
@@ -121,7 +125,7 @@ struct context::impl {
         if (context_factory.has_error())
             throw std::runtime_error("create context failed");
 
-        auto visual = make_unique_ptr(glXGetVisualFromFBConfig(dpy, fbc), XFree);
+        auto visual = MakeUniqueHandle(glXGetVisualFromFBConfig(dpy, fbc), XFree);
         if (!visual.get())
             throw std::runtime_error("get visualinfo failed");
 
@@ -142,7 +146,7 @@ struct context::impl {
         // context current with that window. Once the client makes first call
         // to make_current with the real window handle we swap that in.
         // this is hack, and I'm proud. (;
-        Window tmp_window = XCreateWindow(
+        ::Window tmp_window = XCreateWindow(
             dpy,
             root,
             0, 0,
@@ -164,36 +168,34 @@ struct context::impl {
     }
 };
 
-context::context(const config& conf)
+Context::Context(const Config& conf)
 {
-    pimpl_.reset(new impl(conf, 3, 0, false, type::desktop));
+    pimpl_.reset(new impl(conf, 3, 0, false, Type::OpenGL));
 }
 
-context::context(const config& conf, int major_version, int minor_version, bool debug)
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version, debug, type::desktop));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug, Type::OpenGL));
 }
 
-context::context(const config& conf, int major_version, int minor_version, bool debug, type requested_type) 
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type) 
 {
     pimpl_.reset(new impl(conf, major_version, minor_version, debug, requested_type));
 }
 
-context::~context()
+Context::~Context()
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
-    glXMakeCurrent(d, None, NULL);
-
+    glXMakeCurrent(d, X11_None, NULL);
     glXDestroyContext(d, pimpl_->context);
-
     glXDestroyWindow(d, pimpl_->temp_surface);
     XDestroyWindow(d, pimpl_->temp_window);
 }
 
-void context::make_current(surface* surf)
+void Context::MakeCurrent(Surface* surf)
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     // glXMakeContextCurrent doesn't like None for surface. (mesa 9.2)
     // so instead of None we use the temporary window surface
@@ -204,33 +206,38 @@ void context::make_current(surface* surf)
     if (surf == nullptr)
         return;
 
-    if (!glXMakeCurrent(d, surf->handle(), pimpl_->context))
+    if (!glXMakeCurrent(d, surf->GetNativeHandle(), pimpl_->context))
         throw std::runtime_error("make current failed");
 
-    pimpl_->surface = surf->handle();
+    pimpl_->surface = surf->GetNativeHandle();
 }
 
-void context::swap_buffers()
+void Context::SwapBuffers()
 {
     assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     glXSwapBuffers(d, pimpl_->surface);
 }
 
-bool context::has_dri() const
+bool Context::HasDRI() const
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     return (glXIsDirect(d, pimpl_->context) == True);
 }
 
-void* context::resolve(const char* function) const
+void* Context::Resolve(const char* function) const
 {
     assert(function && "null function name");
 
     void* ret = (void*)glXGetProcAddress((GLubyte*)function);
+    // According to OpenGL wiki https://www.opengl.org/wiki/Load_OpenGL_Functions
+    // some implementations can also return 0x1, 0x2, 0x3 or -1 for "not found" instead
+    // of NULL
+    if (ret == (void*)0x1 || ret == (void*)0x2 || ret == (void*)0x3 || ret == (void*)-1)
+        return nullptr;
 
     return ret;
 }

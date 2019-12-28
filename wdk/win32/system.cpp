@@ -22,15 +22,16 @@
 
 #include <algorithm>
 #include <cassert>
-#include "../system.h"
-#include "../videomode.h"
-#include "../keys.h"
+
+#include "wdk/system.h"
+#include "wdk/videomode.h"
+#include "wdk/keys.h"
 
 namespace {
     using namespace wdk;
 
     struct key_mapping {
-        keysym wdk;
+        Keysym wdk;
         UINT   win;
     };
     bool operator<(const key_mapping& i, const key_mapping& j)
@@ -39,77 +40,77 @@ namespace {
     }
 
     static key_mapping keymap[] = {
-        {keysym::none,          0},
-        {keysym::backspace,     VK_BACK},
-        {keysym::tab,           VK_TAB},
-        {keysym::enter,         VK_RETURN},
-        {keysym::space,         VK_SPACE},
-        {keysym::key_0,         0x30},
-        {keysym::key_1,         0x31},
-        {keysym::key_2,         0x32},
-        {keysym::key_3,         0x33},
-        {keysym::key_4,         0x34},
-        {keysym::key_5,         0x35},
-        {keysym::key_6,         0x36},
-        {keysym::key_7,         0x37},
-        {keysym::key_8,         0x38},
-        {keysym::key_9,         0x39},
-        {keysym::key_A,         0x41},
-        {keysym::key_B,         0x42},
-        {keysym::key_C,         0x43},
-        {keysym::key_D,         0x44},
-        {keysym::key_E,         0x45},
-        {keysym::key_F,         0x46},
-        {keysym::key_G,         0x47},
-        {keysym::key_H,         0x48},
-        {keysym::key_I,         0x49},
-        {keysym::key_J,         0x4A},
-        {keysym::key_K,         0x4B},
-        {keysym::key_L,         0x4C},
-        {keysym::key_M,         0x4D},
-        {keysym::key_N,         0x4E},
-        {keysym::key_O,         0x4F},
-        {keysym::key_P,         0x50},
-        {keysym::key_Q,         0x51},
-        {keysym::key_R,         0x52},
-        {keysym::key_S,         0x53},
-        {keysym::key_T,         0x54},
-        {keysym::key_U,         0x55},
-        {keysym::key_V,         0x56},
-        {keysym::key_W,         0x57},
-        {keysym::key_X,         0x58},
-        {keysym::key_Y,         0x59},
-        {keysym::key_Z,         0x5A},
-        {keysym::f1,            VK_F1},
-        {keysym::f2,            VK_F2},
-        {keysym::f3,            VK_F3},
-        {keysym::f4,            VK_F4},
-        {keysym::f5,            VK_F5},
-        {keysym::f6,            VK_F6},
-        {keysym::f7,            VK_F7},
-        {keysym::f8,            VK_F8},
-        {keysym::f9,            VK_F9},
-        {keysym::f10,           VK_F10},
-        {keysym::f11,           VK_F11},
-        {keysym::f12,           VK_F12},
-        {keysym::control_R,     VK_RCONTROL},
-        {keysym::control_L,     VK_LCONTROL},
-        {keysym::alt_L,         VK_LMENU},
-        //{keysym::alt_R,         VK_RMENU},
-        {keysym::shift_L,       VK_LSHIFT},
-        {keysym::shift_R,       VK_RSHIFT},
-        {keysym::capslock,      VK_CAPITAL},
-        {keysym::insert,        VK_INSERT},
-        {keysym::del,           VK_DELETE},
-        {keysym::home,          VK_HOME},
-        {keysym::end,           VK_END},
-        {keysym::pageup,        VK_PRIOR},
-        {keysym::pagedown,      VK_NEXT},
-        {keysym::left,          VK_LEFT},
-        {keysym::up,            VK_UP},
-        {keysym::down,          VK_DOWN},
-        {keysym::right,         VK_RIGHT},
-        {keysym::escape,        VK_ESCAPE}
+        {Keysym::None,          0},
+        {Keysym::Backspace,     VK_BACK},
+        {Keysym::Tab,           VK_TAB},
+        {Keysym::Enter,         VK_RETURN},
+        {Keysym::Space,         VK_SPACE},
+        {Keysym::Key0,          0x30},
+        {Keysym::Key1,          0x31},
+        {Keysym::Key2,          0x32},
+        {Keysym::Key3,          0x33},
+        {Keysym::Key4,          0x34},
+        {Keysym::Key5,          0x35},
+        {Keysym::Key6,          0x36},
+        {Keysym::Key7,          0x37},
+        {Keysym::Key8,          0x38},
+        {Keysym::Key9,          0x39},
+        {Keysym::KeyA,          0x41},
+        {Keysym::KeyB,          0x42},
+        {Keysym::KeyC,          0x43},
+        {Keysym::KeyD,          0x44},
+        {Keysym::KeyE,          0x45},
+        {Keysym::KeyF,          0x46},
+        {Keysym::KeyG,          0x47},
+        {Keysym::KeyH,          0x48},
+        {Keysym::KeyI,          0x49},
+        {Keysym::KeyJ,          0x4A},
+        {Keysym::KeyK,          0x4B},
+        {Keysym::KeyL,          0x4C},
+        {Keysym::KeyM,          0x4D},
+        {Keysym::KeyN,          0x4E},
+        {Keysym::KeyO,          0x4F},
+        {Keysym::KeyP,          0x50},
+        {Keysym::KeyQ,          0x51},
+        {Keysym::KeyR,          0x52},
+        {Keysym::KeyS,          0x53},
+        {Keysym::KeyT,          0x54},
+        {Keysym::KeyU,          0x55},
+        {Keysym::KeyV,          0x56},
+        {Keysym::KeyW,          0x57},
+        {Keysym::KeyX,          0x58},
+        {Keysym::KeyY,          0x59},
+        {Keysym::KeyZ,          0x5A},
+        {Keysym::F1,            VK_F1},
+        {Keysym::F2,            VK_F2},
+        {Keysym::F3,            VK_F3},
+        {Keysym::F4,            VK_F4},
+        {Keysym::F5,            VK_F5},
+        {Keysym::F6,            VK_F6},
+        {Keysym::F7,            VK_F7},
+        {Keysym::F8,            VK_F8},
+        {Keysym::F9,            VK_F9},
+        {Keysym::F10,           VK_F10},
+        {Keysym::F11,           VK_F11},
+        {Keysym::F12,           VK_F12},
+        {Keysym::ControlR,      VK_RCONTROL},
+        {Keysym::ControlL,      VK_LCONTROL},
+        {Keysym::AltL,          VK_LMENU},
+        //{keysym::alt_R,       VK_RMENU},
+        {Keysym::ShiftL,        VK_LSHIFT},
+        {Keysym::ShiftR,        VK_RSHIFT},
+        {Keysym::CapsLock,      VK_CAPITAL},
+        {Keysym::Insert,        VK_INSERT},
+        {Keysym::Del,           VK_DELETE},
+        {Keysym::Home,          VK_HOME},
+        {Keysym::End,           VK_END},
+        {Keysym::PageUp,        VK_PRIOR},
+        {Keysym::PageDown,      VK_NEXT},
+        {Keysym::ArrowLeft,     VK_LEFT},
+        {Keysym::ArrowUp,       VK_UP},
+        {Keysym::ArrowDown,     VK_DOWN},
+        {Keysym::ArrowRight,    VK_RIGHT},
+        {Keysym::Escape,        VK_ESCAPE}
     };
     struct table_sorter {
         table_sorter()
@@ -118,9 +119,9 @@ namespace {
         }
     } sort_my_data_bitch;
 
-    UINT find_keysym(keysym sym)
+    UINT find_keysym(Keysym sym)
     {
-        assert(sym != keysym::none);
+        assert(sym != Keysym::None);
 
         const auto it = std::lower_bound(std::begin(keymap), std::end(keymap), key_mapping{sym, 0});
 
@@ -136,7 +137,7 @@ namespace {
 
 namespace wdk
 {
-native_display_t get_display_handle()
+native_display_t GetNativeDisplayHandle()
 {
     class Display
     {
@@ -195,21 +196,21 @@ native_display_t get_display_handle()
     return disp.getDesktopHDC();
 }
 
-videomode get_current_video_mode()
+VideoMode GetCurrentVideoMode()
 {
     DEVMODE cur_mode = {0};
 
     if (!EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &cur_mode))
         throw std::runtime_error("failed to current display settings");
 
-    videomode mode;
+    VideoMode mode;
     mode.xres = cur_mode.dmPelsWidth;
     mode.yres = cur_mode.dmPelsHeight;
     return mode;
 
 }
 
-void set_video_mode(const videomode& m)
+void SetVideoMode(const VideoMode& m)
 {
     DEVMODE mode = {0};
     mode.dmSize       = sizeof(mode);
@@ -221,23 +222,23 @@ void set_video_mode(const videomode& m)
     // our window to listen for the notification about display change.
     // todo: should we be able to receive this notification *always*
     // without having to initiate display change ourselves?
-    get_display_handle();
+    GetNativeDisplayHandle();
 
     if (ChangeDisplaySettings(&mode, 0) != DISP_CHANGE_SUCCESSFUL)
        throw std::runtime_error("display mode change failed");
 
 }
 
-std::vector<videomode> list_video_modes()
+std::vector<VideoMode> ListVideoModes()
 {
-    std::vector<videomode> modes;
+    std::vector<VideoMode> modes;
 
     DEVMODE dev;
     DWORD modeid = 0;
 
     while (EnumDisplaySettings(NULL, modeid++, &dev))
     {
-        videomode mode(dev.dmPelsWidth, dev.dmPelsHeight);
+        VideoMode mode(dev.dmPelsWidth, dev.dmPelsHeight);
 
         if (std::find(modes.begin(), modes.end(), mode) == modes.end())
             modes.push_back(mode);
@@ -246,19 +247,7 @@ std::vector<videomode> list_video_modes()
     return modes;
 }
 
-bool have_events()
-{
-    MSG m;
-
-    return (PeekMessage(&m, NULL, 0, 0, PM_NOREMOVE) == TRUE);
-}
-
-bool sync_events()
-{
-    return false;
-}
-
-bool peek_event(native_event_t& ev)
+bool PeekEvent(native_event_t& ev)
 {
     MSG m;
 
@@ -270,7 +259,7 @@ bool peek_event(native_event_t& ev)
     return true;
 }
 
-void wait_event(native_event_t& ev)
+void WaitEvent(native_event_t& ev)
 {
     MSG m;
 
@@ -279,12 +268,12 @@ void wait_event(native_event_t& ev)
     ev = native_event_t(m);
 }
 
-std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
+std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& key)
 {
 	const MSG& m = key;
     const uint_t native_keycode = (uint_t)m.wParam;
 
-    std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
+    std::pair<bitflag<Keymod>, Keysym> ret = {Keymod::None, Keysym::None};
 
     const auto it = std::find_if(std::begin(keymap), std::end(keymap),
         [=](const key_mapping& map)
@@ -299,51 +288,51 @@ std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t&
         const short ctrl_key  = GetKeyState(VK_CONTROL);
 
         if (native_keycode != VK_MENU && (alt_key & KEY_DOWN))
-            ret.first |= keymod::alt;
+            ret.first |= Keymod::Alt;
         if (native_keycode != VK_SHIFT && (shift_key & KEY_DOWN))
-            ret.first |= keymod::shift;
+            ret.first |= Keymod::Shift;
         if (native_keycode != VK_CONTROL && (ctrl_key & KEY_DOWN))
-            ret.first |= keymod::control;
+            ret.first |= Keymod::Control;
         ret.second = (*it).wdk;
     }
     else if (native_keycode == VK_CONTROL)
     {
         if (GetKeyState(VK_LCONTROL) & KEY_DOWN)
-            ret.second = keysym::control_L;
+            ret.second = Keysym::ControlL;
         else if (GetKeyState(VK_RCONTROL) & KEY_DOWN)
-            ret.second = keysym::control_R;
+            ret.second = Keysym::ControlR;
     }
     else if (native_keycode == VK_MENU)
     {
         if (GetKeyState(VK_LMENU) & KEY_DOWN)
-            ret.second = keysym::alt_L;
+            ret.second = Keysym::AltL;
       /*  else if (GetAsyncKeyState(VK_RMENU) & KEY_DOWN)
             sym = keysym::alt_R;*/
     }
     else if (native_keycode == VK_SHIFT)
     {
        if (GetKeyState(VK_LSHIFT) & KEY_DOWN)
-            ret.second = keysym::shift_L;
+            ret.second = Keysym::ShiftL;
        else if (GetKeyState(VK_RSHIFT) & KEY_DOWN)
-            ret.second = keysym::shift_R;
+            ret.second = Keysym::ShiftR;
     }
 
     return ret;
 }
 
-std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& btn)
+std::pair<bitflag<Keymod>, MouseButton> TranslateMouseButtonEvent(const native_event_t& btn)
 {
-    std::pair<bitflag<keymod>, button> ret = {keymod::none, button::none};    
+    std::pair<bitflag<Keymod>, MouseButton> ret = {Keymod::None, MouseButton::None};    
 
     const auto alt   = GetKeyState(VK_MENU);
     const auto shift = GetKeyState(VK_SHIFT);
     const auto ctrl  = GetKeyState(VK_CONTROL);
     if (alt & KEY_DOWN)
-        ret.first |= keymod::alt;
+        ret.first |= Keymod::Alt;
     if (shift & KEY_DOWN)
-        ret.first |= keymod::shift;
+        ret.first |= Keymod::Shift;
     if (ctrl & KEY_DOWN)
-        ret.first |= keymod::control;
+        ret.first |= Keymod::Control;
 
     const auto wparam  = btn.get().wParam;
     const auto message = btn.get().message;
@@ -351,8 +340,8 @@ std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_eve
     {
         const auto hi = HIWORD(wparam);
         if (hi > 0)
-            ret.second = button::wheel_up;
-        else ret.second = button::wheel_down;
+            ret.second = MouseButton::WheelScrollUp;
+        else ret.second = MouseButton::WheelScrollDown;
     }
     else 
     {
@@ -360,29 +349,29 @@ std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_eve
         {
             case WM_LBUTTONUP:
             case WM_LBUTTONDOWN:
-                ret.second = button::left;
+                ret.second = MouseButton::Left;
                 break;
             case WM_MBUTTONUP:
             case WM_MBUTTONDOWN:
-                ret.second = button::wheel;
+                ret.second = MouseButton::Wheel;
                 break;
             case WM_RBUTTONUP:
             case WM_RBUTTONDOWN:
-                ret.second = button::right;
+                ret.second = MouseButton::Right;
                 break;
         }
         // other buttons as bitflags
         if (wparam & MK_LBUTTON)
-            ret.second = button::left;
+            ret.second = MouseButton::Left;
         else if (wparam & MK_MBUTTON)
-            ret.second = button::wheel;
+            ret.second = MouseButton::Wheel;
         else if (wparam & MK_RBUTTON)
-            ret.second = button::right;
+            ret.second = MouseButton::Right;
     }
     return ret;
 }
 
-bool test_key_down(keysym symbol)
+bool TestKeyDown(Keysym symbol)
 {
     const UINT win    = find_keysym(symbol);
     const SHORT state = GetAsyncKeyState(win);
@@ -391,7 +380,7 @@ bool test_key_down(keysym symbol)
 
 }
 
-bool test_key_down(uint_t keycode)
+bool TestKeyDown(uint_t keycode)
 {
     assert(keycode);
 
@@ -400,7 +389,7 @@ bool test_key_down(uint_t keycode)
 	return (state & KEY_DOWN) == KEY_DOWN;
 }
 
-uint_t keysym_to_keycode(keysym symbol)
+uint_t MapKeysymToNativeKeycode(Keysym symbol)
 {
     const UINT win = find_keysym(symbol);
 

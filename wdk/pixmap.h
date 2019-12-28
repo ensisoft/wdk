@@ -23,24 +23,29 @@
 #pragma once
 
 #include <memory>
-#include "utility.h"
+
 #include "types.h"
 
 namespace wdk
 {
-    // window system provided bitmap
-    class pixmap : noncopyable
+    // Window system provided bitmap
+    class Pixmap
     {
     public:
-        pixmap(uint_t width, uint_t height, uint_t visualid);
+        // Create a new bitmap with the given width, height
+        // and visual id. 
+        Pixmap(uint_t width, uint_t height, uint_t visualid);
+       ~Pixmap();
+        // Get the pixmap's platform specific native handle.
+        // On X11 this is Pixmap, on Win32 this is HBITMAP
+        native_pixmap_t GetNativeHandle() const;
 
-       ~pixmap();
-
-        native_pixmap_t handle() const;
-
-        uint_t width() const;
-        uint_t height() const;
-        uint_t depth() const;
+        // Get bitmap width.
+        uint_t GetWidth() const;
+        // Get bitmap height.
+        uint_t GetHeight() const;
+        // Get bitmap depth in bits.
+        uint_t GetBitDepth() const;
     private:
         struct impl;
 

@@ -23,7 +23,7 @@
 #pragma once
 
 #include <memory>
-#include <wdk/utility.h>
+
 #include "context.h"
 #include "config.h"
 #include "surface.h"
@@ -38,89 +38,96 @@ namespace wdk
     // (since it depends on the surface), then dispose the surface
     // (since it depends on the buffer (window) handle) and then finally close the buffer (window)
 
-    class window;
-    class pixmap;
+    class Window;
+    class Pixmap;
 
-    // a wrapper to quickly setup opengl config, context and surface
-    class opengl : noncopyable
+    // Wrapper to quickly setup opengl config, context and surface
+    class OpenGL
     {
     public:
         // create default context version with specific attributes
-        opengl(const config::attributes& attrs) : config_(attrs), context_(config_)
+        OpenGL(const Config::Attributes& attrs) : config_(attrs), context_(config_)
         {}
 
         // create specific context version with specific attributes
-        opengl(const config::attributes& attrs, int major_version, int minor_version, bool debug) 
+        OpenGL(const Config::Attributes& attrs, int major_version, int minor_version, bool debug) 
             : config_(attrs), context_(config_, major_version, minor_version, debug)
         {}
 
         // create context with specific version and with default attributes
-        opengl(int major_version, int minor_version, bool debug) : context_(config_, major_version, minor_version, debug)
+        OpenGL(int major_version, int minor_version, bool debug) : context_(config_, major_version, minor_version, debug)
         {}
 
         // create default context version with default attributes
-        opengl() : context_(config_)
+        OpenGL() : context_(config_)
         {}
 
-       ~opengl() 
+       ~OpenGL() 
         {
             if (surface_)
-                detach();
+                Detach();
         }
 
-        // attach the given renderable as the new rendering target
-        template<typename Renderable>
-        void attach(Renderable& target)
+        // Create a new Surface for the given render target and then 
+        // attach the surface to the context.
+        template<typename RenderTarget>
+        void Attach(RenderTarget& target)
         {
-            context_.make_current(nullptr);
-            surface_.reset(new surface(config_, target));
-            context_.make_current(surface_.get());
+            context_.MakeCurrent(nullptr);
+            surface_.reset(new Surface(config_, target));
+            context_.MakeCurrent(surface_.get());
         }
 
-        void attach(surface& surf)
+        // Attach the given surface to the context as the render target.
+        void Attach(Surface& surf)
         {
-            context_.make_current(nullptr);
+            context_.MakeCurrent(nullptr);
             surface_.reset();
-            context_.make_current(&surf);
+            context_.MakeCurrent(&surf);
         }
 
-        // detach the currently set renderable from the rendering context.
-        void detach()
+        // Detach and dipose he currently set renderable from the rendering context.
+        // After having detached the rendering surface the context can no longer
+        // be used to render.
+        void Detach()
         {
-            context_.make_current(nullptr);
+            context_.MakeCurrent(nullptr);
             if (surface_)
-                surface_->dispose();
+                surface_->Dispose();
         }
 
-        void swap()
+        // Swap the back/fron buffers. See Context::SwapBuffers.
+        void SwapBuffers()
         {
-            context_.swap_buffers();
+            context_.SwapBuffers();
         }
-        uint_t visualid() const
+
+        // Get the Visual ID. See Config::GetVisualID
+        uint_t GetVisualID() const
         {
-            return config_.visualid();
+            return config_.GetVisualID();
         }
-        uint_t configid() const 
+        // Get the config ID. See Config::GetConfigID
+        uint_t GetConfigID() const 
         { 
-            return config_.configid(); 
+            return config_.GetConfigID(); 
         }
 
-        const config& get_config() const 
+        // Get config object.
+        const Config& GetConfig() const 
         { 
             return config_; 
         }
 
-        // resolve (an extension) function pointer.
-        // returns the address of the function if succesfully resolved,
-        // otherwise nullptr.
-        void* resolve(const char* function) const
+        // Resolve OpenGL entry point. See Context::Resolve
+        void* Resolve(const char* function) const
         {
-            return context_.resolve(function);
+            return context_.Resolve(function);
         }
     private:
-        config  config_;
-        context context_;
-        std::unique_ptr<surface> surface_;
+        Config  config_;
+        Context context_;
+        std::unique_ptr<Surface> surface_;
     };
 
 } // wdk

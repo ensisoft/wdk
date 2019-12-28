@@ -24,50 +24,76 @@
 
 #include <vector>
 #include <string>
+
 #include "keys.h"
 #include "types.h"
 #include "bitflag.h"
 
 namespace wdk
 {
-    struct videomode;
+    struct VideoMode;
+    enum class Keymod;
+    enum class Keysym;
 
-    enum class keymod;
-    enum class keysym;
+    // Get native display handle. 
+    // On X11 based system this is the Display object
+    // on Win32 this is the HDC to the desktop. 
+    // You should not mess with this unless you know what you're doing.
+    native_display_t GetNativeDisplayHandle();
 
-    // get native display handle
-    native_display_t get_display_handle();
+     // Get the current videomode setting.
+    VideoMode GetCurrentVideoMode();
 
-     // get current videomode setting
-    videomode get_current_video_mode();
+    // Request the system to change the current display video mode. 
+    // If the mode is not valid or the change is rejected by the display/driver
+    // an exception is thrown.
+    // Supported video modes can be listed with a call to ListVideoModes.
+    void SetVideoMode(const VideoMode& m);
 
-    // change the current display server video mode to the mode
-    // identified by the given id. throws an exception if this fails.
-    // videomode should be one of the modes available in the list of modes
-    void set_video_mode(const videomode& m);
+    // Get a list of available video modes.
+    std::vector<VideoMode> ListVideoModes();
 
-    // get a list of available video modes.
-    std::vector<videomode> list_video_modes();
+    // Get the next application event from the queue if any. 
+    // returns true if event was available and assignes the
+    // event into ev. Otherwise returns false and no event 
+    // was immediately available. If an event was available
+    // it is removed from the application's event queue.
+    bool PeekEvent(native_event_t &ev);
 
-    // Get the next event from the queue if any. returns true
-    // if event was available and assignes the event into ev.
-    // returns false if no event was available.
-    bool peek_event(native_event_t &ev);
+    // Get the next application event from the event queue. 
+    // Will block until an event is posted. 
+    void WaitEvent(native_event_t& ev);
 
-    void wait_event(native_event_t& ev);
+    // Event translation.
 
+    // Translate system keydown event to key modifier and key symbol.
+    std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& key);
 
-    // translate keydown event
-    std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key);
+    // Translate system mouse event to mouse button and key modifier.
+    std::pair<bitflag<Keymod>, MouseButton> TranslateMouseButtonEvent(const native_event_t& bnt);
 
-    std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& bnt);
+    // Test if the keyboard key identified by 'symbol' is currently down.
+    // Returns true if down, otherwise false.
+    bool TestKeyDown(Keysym symbol);
 
-    bool test_key_down(keysym symbol);
+    // Test if the keyboard key identified by the native keycode is 
+    // currently down. Returns true if down, otherwise false.
+    // Note that the keycodes are platform and keyboard specific. 
+    // In order to use this properly the application should not assume
+    // any particular keycodes but map each virtual key to the 
+    // keycode using MapKeysymToNativeKeycode.
+    // If an application wants to let the user rebind the keys, i.e. record
+    // their own action keys, the application should first ask the user to
+    // press a key for some action and then record the native key code that 
+    // is in the keyboard event and then later use this key code in a
+    // call to test whether the key is down or not.
+    bool TestKeyDown(uint_t keycode);
 
-    bool test_key_down(uint_t keycode);
-
-    // get native platform depedant keycode for a key
-    uint_t keysym_to_keycode(keysym symbol);
+    // Map virtual key symbol to a platform/keyboard specific keycode. 
+    // The keycodes are *NOT* portable between systems. It'd be wise
+    // for the application to stick to virtual key symbols as much possible
+    // as those are designed to be portable.
+    uint_t MapKeysymToNativeKeycode(Keysym symbol);
 
 } // wdk
 

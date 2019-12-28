@@ -2,7 +2,7 @@ WDK (Window Development Kit)
 ================================
 
 WDK is a minimalistic library to knock up a window for OpenGL rendering.
-It also provides simple input handling for mouse (TBD) and keyboard.
+It also provides simple input handling for mouse and keyboard, fullscreen windows and changing the system resolution. (Probably doesn't work in case of multiple monitors, patches welcome!)
 Code requires a C++11 compatible compiler and should compile with
 the following compilers:
 
@@ -11,6 +11,29 @@ the following compilers:
     * msvc  >= 2013 Express RC
 
 ![Screenshot](https://raw.githubusercontent.com/ensisoft/wdk/master/screens/triangle.png "Triangle demo")
+
+Supported Platforms and Features
+--------------------------------
+
+The following APIs are supported:
+* Windows: EGL, WGL
+* Linux:   EGL, GLX
+
+You can use the library to create both "big desktop" GL and "mobile" GL ES rendering contexts. 
+The default build will create two libraries one that links against the desktop windowing system library
+(GLX on Linux and WGL on Windows) and creates a "desktop" lib. The other library will link against EGL
+and will create a "mobile" lib.
+
+Both WGL and GLX can be used to also create GL ES context if the appropriate extensions are found:
+* GLX_EXT_create_context_es2_profile
+* WGL_EXT_create_context_es2_profile
+
+Currently the inverse is not possible, i.e it's not possible to use EGL to create "big desktop" GL contexts.
+
+The following rendering surfaces are supported:
+* GLX: window, pbuffer, pixmap
+* EGL: window, pbuffer, pixmap
+* WGL: window
 
 1. Building the library
 --------------------------------
@@ -49,16 +72,16 @@ Typical simple usage scenario:
 
 ```
     // 1. Decide on frame buffer configuration.
-    wdk::config::attributes attrs = wdk::config::DEFAULT;
+    wdk::Config::Attributes attrs = wdk::Config::DEFAULT;
     attrs.red_size = 8;
     attrs.stencil_size = 8;
     // ...
 
     // 2. select a configuration uusing the attributes
-    wdk::config conf(attrs);
+    wdk::Config conf(attrs);
 
-    // 3. create opengl context with the config and opengl version
-    wdk::opengl gl(attrs, 3, 2, false);
+    // 3. create OpenGL context with the config and opengl version
+    wdk::OpenGL gl(attrs, 3, 2, false);
 
     // The calling thread now has a OpenGL rendering context
     // and can proceed to make GL API calls, but it can't really
@@ -67,12 +90,12 @@ Typical simple usage scenario:
     // 4. create a window
     // Note that you'll need to pass the gl.visualid() to make sure that
     // the window will be usable as a rendering surface.
-    wdk::window win;
-    win.create("My Window", WIDTH, HEIGHT, gl.visualid());
+    wdk::Window win;
+    win.Create("My Window", WIDTH, HEIGHT, gl.GetVisualID());
 
     // 4. attach the window to opengl as the current rendering surface.
     // You can now draw!
-    gl.attach(win);
+    gl.Attach(win);
 
     // 5. run your rendering/game loop.
     while (do_render)
@@ -80,17 +103,17 @@ Typical simple usage scenario:
        render_frame();
 
        // 6. display what was rendered into the buffer.
-       gl.swap();
+       gl.SwapBuffers();
 
        // 7. you might want to process the window system
        // events every once in a while...
        wdk::native_event_t event;
-       while (wdk::peek_event(event))
-          win.process_event(event)
+       while (wdk::PeekEvent(event))
+          win.ProcessEvent(event)
     }
 
     // 8. detach the current rendering surface.
-    gl.detach();
+    gl.Detach();
 ```
 
 3. Quick Intro to OpenGL Context Creation

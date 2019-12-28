@@ -20,44 +20,53 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#pragma once
+
 #include <cassert>
+
 #include "videomode.h"
-#include "utility.h"
 #include "system.h"
 
 namespace wdk
 {
-    class modechange : noncopyable
+    // RAII type to (temporarily) change the current graphics/video mode
+    // i.e. the resolution. 
+    // Will try to restore the video mode to the current mode when the 
+    // object is being destructed.
+    class TemporaryVideoModeChange
     {
     public:
-        modechange(const videomode& mode = videomode())
-        {
-            original_mode_ = get_current_video_mode();
-            if (!mode.is_empty())
-                set(mode);
-        }
-       ~modechange()
-        {
-            restore();
-        }
-        void set(const videomode& mode)
-        {
-            assert(!mode.is_empty());
+        TemporaryVideoModeChange(const TemporaryVideoModeChange&) = delete;
 
-            const videomode& cur_mode = get_current_video_mode();
+        TemporaryVideoModeChange(const VideoMode& mode = VideoMode())
+        {
+            original_mode_ = GetCurrentVideoMode();
+            if (mode.IsValid())
+                SetVideoMode(mode);
+        }
+       ~TemporaryVideoModeChange()
+        {
+            RestoreVideoMode();
+        }
+        void SetVideoMode(const VideoMode& mode)
+        {
+            assert(mode.IsValid());
+
+            const VideoMode& cur_mode = GetCurrentVideoMode();
             if (cur_mode != mode)
-                set_video_mode(mode);
+                SetVideoMode(mode);
         }
-        void restore()
+        void RestoreVideoMode()
         {
-            assert(!original_mode_.is_empty());
+            assert(original_mode_.IsValid());
 
-            const videomode& cur_mode = get_current_video_mode();
+            const VideoMode& cur_mode = GetCurrentVideoMode();
             if (cur_mode != original_mode_)
-                set_video_mode(original_mode_);
+                SetVideoMode(original_mode_);
         }
+        TemporaryVideoModeChange& operator=(const TemporaryVideoModeChange&) = delete;
     private:
-        videomode original_mode_;
+        VideoMode original_mode_;
     };
 
 } // wdk

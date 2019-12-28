@@ -1,8 +1,9 @@
 #include <memory>
 #include <iostream>
 #include <cstring>
-#include <wdk/opengl/context.h>
-#include <wdk/opengl/config.h>
+
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/config.h"
 
 # define GL_GLEXT_PROTOTYPES
 #include "glcorearb.h"
@@ -38,14 +39,14 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        const wdk::context::type type = mobile ? 
-            wdk::context::type::mobile : wdk::context::type::desktop;
+        const wdk::Context::Type type = mobile ? 
+            wdk::Context::Type::OpenGL_ES : wdk::Context::Type::OpenGL;
         const auto minor_version = mobile ? 0 : 5;
         const auto major_version = mobile ? 2 : 4; 
 
-        wdk::config::attributes attr = wdk::config::DEFAULT;
-        wdk::config conf(attr);        
-        auto context = std::make_unique<wdk::context>(conf, major_version, minor_version, false, type); 
+        wdk::Config::Attributes attr = wdk::Config::DEFAULT;
+        wdk::Config conf(attr);        
+        auto context = std::make_unique<wdk::Context>(conf, major_version, minor_version, false, type); 
 
         std::printf("OpenGL initialized:\n%s\n%s\n%s\n\n", 
             glGetString(GL_VENDOR), 

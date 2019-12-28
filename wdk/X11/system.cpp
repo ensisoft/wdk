@@ -48,7 +48,7 @@ namespace {
     using namespace wdk;
 
     struct key_mapping {
-        keysym  wdk;
+        Keysym  wdk;
         KeySym  x11;
     };
     bool operator<(const key_mapping& i, const key_mapping& j)
@@ -57,103 +57,103 @@ namespace {
     }
 
     static key_mapping keymap[] = {
-        {keysym::none,                  NoSymbol},
-        {keysym::backspace,             XK_BackSpace},
-        {keysym::tab,                   XK_Tab},
-        {keysym::enter,                 XK_Return},
-        {keysym::space,                 XK_space},
-        {keysym::key_0,                 XK_0},
-        {keysym::key_1,                 XK_1},
-        {keysym::key_2,                 XK_2},
-        {keysym::key_3,                 XK_3},
-        {keysym::key_4,                 XK_4},
-        {keysym::key_5,                 XK_5},
-        {keysym::key_6,                 XK_6},
-        {keysym::key_7,                 XK_7},
-        {keysym::key_8,                 XK_8},
-        {keysym::key_9,                 XK_9},
-        {keysym::key_A,                 XK_a},
-        {keysym::key_B,                 XK_b},
-        {keysym::key_C,                 XK_c},
-        {keysym::key_D,                 XK_d},
-        {keysym::key_E,                 XK_e},
-        {keysym::key_F,                 XK_f},
-        {keysym::key_G,                 XK_g},
-        {keysym::key_H,                 XK_h},
-        {keysym::key_I,                 XK_i},
-        {keysym::key_J,                 XK_j},
-        {keysym::key_K,                 XK_k},
-        {keysym::key_L,                 XK_l},
-        {keysym::key_M,                 XK_m},
-        {keysym::key_N,                 XK_n},
-        {keysym::key_O,                 XK_o},
-        {keysym::key_P,                 XK_p},
-        {keysym::key_Q,                 XK_q},
-        {keysym::key_R,                 XK_r},
-        {keysym::key_S,                 XK_s},
-        {keysym::key_T,                 XK_t},
-        {keysym::key_U,                 XK_u},
-        {keysym::key_V,                 XK_v},
-        {keysym::key_W,                 XK_w},
-        {keysym::key_X,                 XK_x},
-        {keysym::key_Y,                 XK_y},
-        {keysym::key_Z,                 XK_z},
-        {keysym::key_A,                 XK_A},
-        {keysym::key_B,                 XK_B},
-        {keysym::key_C,                 XK_C},
-        {keysym::key_D,                 XK_D},
-        {keysym::key_E,                 XK_E},
-        {keysym::key_F,                 XK_F},
-        {keysym::key_G,                 XK_G},
-        {keysym::key_H,                 XK_H},
-        {keysym::key_I,                 XK_I},
-        {keysym::key_J,                 XK_J},
-        {keysym::key_K,                 XK_K},
-        {keysym::key_L,                 XK_L},
-        {keysym::key_M,                 XK_M},
-        {keysym::key_N,                 XK_N},
-        {keysym::key_O,                 XK_O},
-        {keysym::key_P,                 XK_P},
-        {keysym::key_Q,                 XK_Q},
-        {keysym::key_R,                 XK_R},
-        {keysym::key_S,                 XK_S},
-        {keysym::key_T,                 XK_T},
-        {keysym::key_U,                 XK_U},
-        {keysym::key_V,                 XK_V},
-        {keysym::key_W,                 XK_W},
-        {keysym::key_X,                 XK_X},
-        {keysym::key_Y,                 XK_Y},
-        {keysym::key_Z,                 XK_Z},
-        {keysym::f1,                    XK_F1},
-        {keysym::f2,                    XK_F2},
-        {keysym::f3,                    XK_F3},
-        {keysym::f4,                    XK_F4},
-        {keysym::f5,                    XK_F5},
-        {keysym::f6,                    XK_F6},
-        {keysym::f7,                    XK_F7},
-        {keysym::f8,                    XK_F8},
-        {keysym::f9,                    XK_F9},
-        {keysym::f10,                   XK_F10},
-        {keysym::f11,                   XK_F11},
-        {keysym::f12,                   XK_F12},
-        {keysym::control_L,             XK_Control_L},
-        {keysym::control_R,             XK_Control_R},
-        {keysym::alt_L,                 XK_Alt_L},
-        //{keysym::alt_R,                 XK_Alt_R},
-        {keysym::capslock,              XK_Caps_Lock},
-        {keysym::shift_L,               XK_Shift_L},
-        {keysym::shift_R,               XK_Shift_R},
-        {keysym::insert,                XK_Insert},
-        {keysym::del,                   XK_Delete},
-        {keysym::home,                  XK_Home},
-        {keysym::end,                   XK_End},
-        {keysym::pageup,                XK_Page_Up},
-        {keysym::pagedown,              XK_Page_Down},
-        {keysym::left,                  XK_Left},
-        {keysym::right,                 XK_Right},
-        {keysym::down,                  XK_Down},
-        {keysym::up,                    XK_Up},
-        {keysym::escape,                XK_Escape}
+        {Keysym::None,                 NoSymbol},
+        {Keysym::Backspace,            XK_BackSpace},
+        {Keysym::Tab,                  XK_Tab},
+        {Keysym::Enter,                XK_Return},
+        {Keysym::Space,                XK_space},
+        {Keysym::Key0,                 XK_0},
+        {Keysym::Key1,                 XK_1},
+        {Keysym::Key2,                 XK_2},
+        {Keysym::Key3,                 XK_3},
+        {Keysym::Key4,                 XK_4},
+        {Keysym::Key5,                 XK_5},
+        {Keysym::Key6,                 XK_6},
+        {Keysym::Key7,                 XK_7},
+        {Keysym::Key8,                 XK_8},
+        {Keysym::Key9,                 XK_9},
+        {Keysym::KeyA,                 XK_a},
+        {Keysym::KeyB,                 XK_b},
+        {Keysym::KeyC,                 XK_c},
+        {Keysym::KeyD,                 XK_d},
+        {Keysym::KeyE,                 XK_e},
+        {Keysym::KeyF,                 XK_f},
+        {Keysym::KeyG,                 XK_g},
+        {Keysym::KeyH,                 XK_h},
+        {Keysym::KeyI,                 XK_i},
+        {Keysym::KeyJ,                 XK_j},
+        {Keysym::KeyK,                 XK_k},
+        {Keysym::KeyL,                 XK_l},
+        {Keysym::KeyM,                 XK_m},
+        {Keysym::KeyN,                 XK_n},
+        {Keysym::KeyO,                 XK_o},
+        {Keysym::KeyP,                 XK_p},
+        {Keysym::KeyQ,                 XK_q},
+        {Keysym::KeyR,                 XK_r},
+        {Keysym::KeyS,                 XK_s},
+        {Keysym::KeyT,                 XK_t},
+        {Keysym::KeyU,                 XK_u},
+        {Keysym::KeyV,                 XK_v},
+        {Keysym::KeyW,                 XK_w},
+        {Keysym::KeyX,                 XK_x},
+        {Keysym::KeyY,                 XK_y},
+        {Keysym::KeyZ,                 XK_z},
+        {Keysym::KeyA,                 XK_A},
+        {Keysym::KeyB,                 XK_B},
+        {Keysym::KeyC,                 XK_C},
+        {Keysym::KeyD,                 XK_D},
+        {Keysym::KeyE,                 XK_E},
+        {Keysym::KeyF,                 XK_F},
+        {Keysym::KeyG,                 XK_G},
+        {Keysym::KeyH,                 XK_H},
+        {Keysym::KeyI,                 XK_I},
+        {Keysym::KeyJ,                 XK_J},
+        {Keysym::KeyK,                 XK_K},
+        {Keysym::KeyL,                 XK_L},
+        {Keysym::KeyM,                 XK_M},
+        {Keysym::KeyN,                 XK_N},
+        {Keysym::KeyO,                 XK_O},
+        {Keysym::KeyP,                 XK_P},
+        {Keysym::KeyQ,                 XK_Q},
+        {Keysym::KeyR,                 XK_R},
+        {Keysym::KeyS,                 XK_S},
+        {Keysym::KeyT,                 XK_T},
+        {Keysym::KeyU,                 XK_U},
+        {Keysym::KeyV,                 XK_V},
+        {Keysym::KeyW,                 XK_W},
+        {Keysym::KeyX,                 XK_X},
+        {Keysym::KeyY,                 XK_Y},
+        {Keysym::KeyZ,                 XK_Z},
+        {Keysym::F1,                   XK_F1},
+        {Keysym::F2,                   XK_F2},
+        {Keysym::F3,                   XK_F3},
+        {Keysym::F4,                   XK_F4},
+        {Keysym::F5,                   XK_F5},
+        {Keysym::F6,                   XK_F6},
+        {Keysym::F7,                   XK_F7},
+        {Keysym::F8,                   XK_F8},
+        {Keysym::F9,                   XK_F9},
+        {Keysym::F10,                  XK_F10},
+        {Keysym::F11,                  XK_F11},
+        {Keysym::F12,                  XK_F12},
+        {Keysym::ControlL,             XK_Control_L},
+        {Keysym::ControlR,             XK_Control_R},
+        {Keysym::AltL,                 XK_Alt_L},
+        //{keysym::alt_R,              XK_Alt_R},
+        {Keysym::CapsLock,             XK_Caps_Lock},
+        {Keysym::ShiftL,               XK_Shift_L},
+        {Keysym::ShiftR,               XK_Shift_R},
+        {Keysym::Insert,               XK_Insert},
+        {Keysym::Del,                  XK_Delete},
+        {Keysym::Home,                 XK_Home},
+        {Keysym::End,                  XK_End},
+        {Keysym::PageUp,               XK_Page_Up},
+        {Keysym::PageDown,             XK_Page_Down},
+        {Keysym::ArrowLeft,            XK_Left},
+        {Keysym::ArrowRight,           XK_Right},
+        {Keysym::ArrowDown,            XK_Down},
+        {Keysym::ArrowUp,              XK_Up},
+        {Keysym::Escape,               XK_Escape}
         // why does Right ALT Generate XK_ISO_Level3_Shift
         // instead of XK_Alt_R ?? -> XCK_ISO_Level3_Shift = AltGR
         //{keysym::alt_R,                 XK_ISO_Level3_Shift}
@@ -167,9 +167,9 @@ namespace {
         }
     } sort_my_data_bitch;
 
-    KeySym find_keysym(keysym sym)
+    KeySym find_keysym(Keysym sym)
     {
-        assert(sym != keysym::none);
+        assert(sym != Keysym::None);
 
         // binary search the table
         const auto it = std::lower_bound(std::begin(keymap), std::end(keymap), key_mapping{sym, 0});
@@ -204,7 +204,7 @@ long _NET_WM_STATE_TOGGLE = 2;
 int AltMask;
 int XRandREventBase;
 
-native_display_t get_display_handle()
+native_display_t GetNativeDisplayHandle()
 {
     struct open_display {
         Display* d;
@@ -289,12 +289,12 @@ native_display_t get_display_handle()
     return dpy.d;
 }
 
-videomode get_current_video_mode()
+VideoMode GetCurrentVideoMode()
 {
-    Display* dpy = get_display_handle();
+    Display* dpy = GetNativeDisplayHandle();
     int root = RootWindow(dpy, DefaultScreen(dpy));
 
-    auto config = make_unique_ptr(XRRGetScreenInfo(dpy, root), XRRFreeScreenConfigInfo);
+    auto config = MakeUniqueHandle(XRRGetScreenInfo(dpy, root), XRRFreeScreenConfigInfo);
     if (!config)
         throw std::runtime_error("Xrandr get config failed");
 
@@ -304,18 +304,18 @@ videomode get_current_video_mode()
     int size_count;
     XRRScreenSize* sizes = XRRConfigSizes(config.get(), &size_count);
 
-    videomode vm;
+    VideoMode vm;
     vm.xres = sizes[cur_mode_index].width;
     vm.yres = sizes[cur_mode_index].height;
     return vm;
 }
 
-void set_video_mode(const videomode& m)
+void SetVideoMode(const VideoMode& m)
 {
-    Display* dpy  = get_display_handle();
+    Display* dpy  = GetNativeDisplayHandle();
     int root = RootWindow(dpy, DefaultScreen(dpy));
 
-    auto config = make_unique_ptr(XRRGetScreenInfo(dpy, root), XRRFreeScreenConfigInfo);
+    auto config = MakeUniqueHandle(XRRGetScreenInfo(dpy, root), XRRFreeScreenConfigInfo);
     if (!config)
         throw std::runtime_error("Xrandr get config failed");
 
@@ -343,14 +343,14 @@ void set_video_mode(const videomode& m)
         throw std::runtime_error("Xrandr set video mode failed");
 }
 
-std::vector<videomode> list_video_modes()
+std::vector<VideoMode> ListVideoModes()
 {
-    std::vector<videomode> modes;
+    std::vector<VideoMode> modes;
 
-    Display* dpy  = get_display_handle();
+    Display* dpy  = GetNativeDisplayHandle();
     int root = RootWindow(dpy, DefaultScreen(dpy));
 
-    auto config = make_unique_ptr(XRRGetScreenInfo(dpy, root), XRRFreeScreenConfigInfo);
+    auto config = MakeUniqueHandle(XRRGetScreenInfo(dpy, root), XRRFreeScreenConfigInfo);
     if (!config)
         throw std::runtime_error("Xrandrd get config failed");
 
@@ -359,7 +359,7 @@ std::vector<videomode> list_video_modes()
 
     for (int i=0; i<size_count; ++i)
     {
-        videomode vm;
+        VideoMode vm;
         vm.xres = sizes[i].width;
         vm.yres = sizes[i].height;
         modes.push_back(vm);
@@ -368,9 +368,9 @@ std::vector<videomode> list_video_modes()
 
 }
 
-bool peek_event(native_event_t& ev)
+bool PeekEvent(native_event_t& ev)
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     if (!XPending(d))
         return false;
@@ -385,9 +385,9 @@ bool peek_event(native_event_t& ev)
     return true;
 }
 
-void wait_event(native_event_t& ev)
+void WaitEvent(native_event_t& ev)
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XEvent event = {0};
     XNextEvent(d, &event);
@@ -399,9 +399,9 @@ void wait_event(native_event_t& ev)
 }
 
 
-std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t& key)
+std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& key)
 {
-    std::pair<bitflag<keymod>, keysym> ret = {keymod::none, keysym::none};
+    std::pair<bitflag<Keymod>, Keysym> ret = {Keymod::None, Keysym::None};
 
     const XEvent& ev = key;
 
@@ -430,67 +430,67 @@ std::pair<bitflag<keymod>, keysym> translate_keydown_event(const native_event_t&
 
     ret.second = (*it).wdk;
     if (native_modifier & AltMask)
-        ret.first |= keymod::alt;
+        ret.first |= Keymod::Alt;
     if (native_modifier & ControlMask)
-        ret.first |= keymod::control;
+        ret.first |= Keymod::Control;
     if (native_modifier & ShiftMask)
-        ret.first |= keymod::shift;
+        ret.first |= Keymod::Shift;
 
     return ret;
 }
 
-std::pair<bitflag<keymod>, button> translate_mouse_button_event(const native_event_t& btn)
+std::pair<bitflag<Keymod>, MouseButton> TranslateMouseButtonEvent(const native_event_t& btn)
 {
-    button b = button::none;
-    bitflag<keymod> m { keymod::none };
+    MouseButton b = MouseButton::None;
+    bitflag<Keymod> m { Keymod::None };
 
     const auto button = btn.get().xbutton.button;
 
     if (button == Button1)
-        b = wdk::button::left;
+        b = wdk::MouseButton::Left;
     else if (button == Button2)
-        b = wdk::button::wheel;
+        b = wdk::MouseButton::Wheel;
     else if (button == Button3)
-        b = wdk::button::right;
+        b = wdk::MouseButton::Right;
     else if (button == Button4)
-        b = wdk::button::wheel_up;
+        b = wdk::MouseButton::WheelScrollUp;
     else if (button == Button5)
-        b = wdk::button::wheel_down;
+        b = wdk::MouseButton::WheelScrollDown;
     else if (button == Button5 + 1)
-        b = wdk::button::thumb1;
+        b = wdk::MouseButton::Thumb1;
     else if (button == Button5 + 2)
-        b = wdk::button::thumb2;
+        b = wdk::MouseButton::Thumb2;
     else if (button == Button5 + 3)
-        b = wdk::button::thumb3;
+        b = wdk::MouseButton::Thumb3;
     else if (button == Button5 + 4)
-        b = wdk::button::thumb4;
+        b = wdk::MouseButton::Thumb4;
 
     // todo: thumb1 and thumb2 buttons
     const auto state  = btn.get().xbutton.state;
 
     if (state & AltMask)
-        m.set(keymod::alt);
+        m.set(Keymod::Alt);
     if (state & ControlMask)
-        m.set(keymod::control);
+        m.set(Keymod::Control);
     if (state & ShiftMask)
-        m.set(keymod::shift);
+        m.set(Keymod::Shift);
 
     return { m, b };
 }
 
-bool test_key_down(keysym symbol)
+bool TestKeyDown(Keysym symbol)
 {
     const KeySym sym = find_keysym(symbol);
-    const KeyCode code = XKeysymToKeycode(get_display_handle(), sym);
+    const KeyCode code = XKeysymToKeycode(GetNativeDisplayHandle(), sym);
 
-    return test_key_down(code);
+    return TestKeyDown(code);
 }
 
-bool test_key_down(uint_t keycode)
+bool TestKeyDown(uint_t keycode)
 {
     assert(keycode);
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     uint8_t key_states[32];
     XQueryKeymap(d, (char*)key_states);
@@ -498,9 +498,9 @@ bool test_key_down(uint_t keycode)
     return bool(key_states[keycode / 8] & (1 << (keycode % 8)));
 }
 
-uint_t keysym_to_keycode(keysym symbol)
+uint_t MapKeysymToNativeKeycode(Keysym symbol)
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     const KeySym sym = find_keysym(symbol);
     const KeyCode code = XKeysymToKeycode(d, sym);

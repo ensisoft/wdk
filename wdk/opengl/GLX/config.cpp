@@ -23,9 +23,12 @@
 #include <GL/glx.h>
 #include <stdexcept>
 #include <vector>
-#include <wdk/system.h>
-#include <wdk/utility.h>
-#include "../config.h"
+
+#include "wdk/system.h"
+#include "wdk/utility.h"
+#include "wdk/opengl/config.h"
+
+#define X11_None 0
 
 // from EXT_framebuffer_sRGB.txt
 // Accepted by the <attribList> parameter of glXChooseVisual, and by
@@ -46,10 +49,10 @@ namespace {
 namespace wdk
 {
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, true, false, {true, false, false}, multisampling::none};
+Config::Attributes Config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, Multisampling::None};
+Config::Attributes Config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, true, false, {true, false, false}, Multisampling::None};
 
-struct config::impl {
+struct Config::impl {
     GLXFBConfig* configs;
     GLXFBConfig  config;
     uint_t       visualid;
@@ -57,7 +60,7 @@ struct config::impl {
     bool         srgb;
 };
 
-config::config(const attributes& attrs) : pimpl_(new impl)
+Config::Config(const Attributes& attrs) : pimpl_(new impl)
 {
     std::vector<uint_t> criteria = 
     {
@@ -89,23 +92,23 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     if (attrs.srgb_buffer)
         set_if(criteria, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, (uint_t)True);
 
-    if (attrs.sampling != multisampling::none)
+    if (attrs.sampling != Multisampling::None)
     {
         set_if(criteria, GLX_SAMPLE_BUFFERS, 1);
-        if (attrs.sampling == multisampling::msaa4)
+        if (attrs.sampling == Multisampling::MSAA4)
             set_if(criteria, GLX_SAMPLES, 4);
-        else if (attrs.sampling == multisampling::msaa8)
+        else if (attrs.sampling == Multisampling::MSAA8)
             set_if(criteria, GLX_SAMPLES, 8);
-        else if (attrs.sampling == multisampling::msaa16)
+        else if (attrs.sampling == Multisampling::MSAA16)
             set_if(criteria, GLX_SAMPLES, 16);
     }
 
-    criteria.push_back(None);
+    criteria.push_back(X11_None);
 
-    auto dpy = get_display_handle();
+    auto dpy = GetNativeDisplayHandle();
 
     int num_matches = 0;
-    auto matches = make_unique_ptr(glXChooseFBConfig(dpy, DefaultScreen(dpy), (const int*)&criteria[0], &num_matches), XFree);
+    auto matches = MakeUniqueHandle(glXChooseFBConfig(dpy, DefaultScreen(dpy), (const int*)&criteria[0], &num_matches), XFree);
     if (!matches.get() || !num_matches)
         throw std::runtime_error("no matching framebuffer configuration available");
 
@@ -117,7 +120,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     // todo: sort matches?
     GLXFBConfig best = configs[best_index];
 
-    auto visual = make_unique_ptr(glXGetVisualFromFBConfig(dpy, best), XFree);
+    auto visual = MakeUniqueHandle(glXGetVisualFromFBConfig(dpy, best), XFree);
 
     pimpl_->configs  = matches.release();
     pimpl_->config   = best;
@@ -128,27 +131,27 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     glXGetFBConfigAttrib(dpy, best, GLX_FBCONFIG_ID, (int*)&pimpl_->configid);
 }
 
-config::~config()
+Config::~Config()
 {
     XFree(pimpl_->configs);
 }
 
-uint_t config::visualid() const
+uint_t Config::GetVisualID() const
 {
     return pimpl_->visualid;
 }
 
-uint_t config::configid() const
+uint_t Config::GetConfigID() const
 {
     return pimpl_->configid;
 }
 
-gl_config_t config::handle() const
+gl_config_t Config::GetNativeHandle() const
 {
     return {pimpl_->config};
 }
 
-bool config::srgb_buffer() const 
+bool Config::sRGB() const 
 {
     return pimpl_->srgb;
 }

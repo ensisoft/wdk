@@ -22,42 +22,54 @@
 
 namespace wdk
 {
-    struct window_event_create;
-    struct window_event_paint;
-    struct window_event_resize;
-    struct window_event_focus;
-    struct window_event_want_close;
-    struct window_event_keyup;
-    struct window_event_keydown;    
-    struct window_event_char;
-    struct window_event_mouse_move;
-    struct window_event_mouse_press;
-    struct window_event_mouse_release;
-    class  window;
+    struct WindowEventCreate;
+    struct WindowEventPaint;
+    struct WindowEventResize;
+    struct WindowEventFocus;
+    struct WindowEventWantClose;
+    struct WindowEventKeyup;
+    struct WindowEventKeydown;    
+    struct WindowEventChar;
+    struct WindowEventMouseMove;
+    struct WindowEventMousePress;
+    struct WindowEventMouseRelease;
+    class  Window;
 
-    // interface for listening for window events
-    class window_listener
+    // Interface for listening to window events. 
+    class WindowListener
     {
     public:
-        virtual ~window_listener() {}
-        virtual void on_create(const window_event_create&) {}
-        virtual void on_paint(const window_event_paint&) {}
-        virtual void on_resize(const window_event_resize&) {}
-        virtual void on_lost_focus(const window_event_focus&) {}
-        virtual void on_gain_focus(const window_event_focus&) {}
-        virtual void on_want_close(const window_event_want_close&) {}
-        virtual void on_keydown(const window_event_keydown&) {}
-        virtual void on_keyup(const window_event_keyup&) {}
-        virtual void on_char(const window_event_char&) {}
-        virtual void on_mouse_move(const window_event_mouse_move&) {}
-        virtual void on_mouse_press(const window_event_mouse_press&) {}
-        virtual void on_mouse_release(const window_event_mouse_release&) {}
+        virtual ~WindowListener() = default;
+        // Invoked on WindowEventCreate message.
+        virtual void OnCreate(const WindowEventCreate&) {}
+        // Invoked on WindowEventPaint message.
+        virtual void OnPaint(const WindowEventPaint&) {}
+        // Invoked on WindowEventResize message.
+        virtual void OnResize(const WindowEventResize&) {}
+        // Invoked on WindowEventFocus message when window lost input focus.
+        virtual void OnLostFocus(const WindowEventFocus&) {}
+        // Invoked on WindowEventFocus message when window gained input focus.
+        virtual void OnGainFocus(const WindowEventFocus&) {}
+        // Invoked on WindowEventWantClose when user wants to close the window.
+        virtual void OnWantClose(const WindowEventWantClose&) {}
+        // Invoked on WindowEventKeydown message. 
+        virtual void OnKeydown(const WindowEventKeydown&) {}
+        // Invoked on WindowEventKeyp message.
+        virtual void OnKeyup(const WindowEventKeyup&) {}
+        // Invoked on WindowEventChar message.
+        virtual void OnChar(const WindowEventChar&) {}
+        // Invoked on WindowEventMouseMove message.
+        virtual void OnMouseMove(const WindowEventMouseMove&) {}
+        // Invoked on WindowEventMousePress message.
+        virtual void OnMousePress(const WindowEventMousePress&) {}
+        // Invoked on WindowEventMouseRelease message.
+        virtual void OnMouseRelease(const WindowEventMouseRelease&) {}
     protected:
     private:
     };
 
     // connect all events in the window to the listener
-    void connect(wdk::window& window, wdk::window_listener& listener);
+    void Connect(wdk::Window& window, wdk::WindowListener& listener);
 
 } // wdk
 

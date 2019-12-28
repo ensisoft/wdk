@@ -23,22 +23,24 @@
 #define NOMINMAX
 #include <windows.h>
 #include <windowsx.h> // for GET_{X,Y}_LPARAM (mouse pointer)
+
 #include <stdexcept>
 #include <cassert>
 #include <limits>
-#include "../window_events.h"
-#include "../window.h"
-#include "../system.h"
-#include "../utf8.h"
+
+#include "wdk/events.h"
+#include "wdk/window.h"
+#include "wdk/system.h"
+#include "wdk/utf8.h"
 
 #pragma comment(lib, "User32.lib")
 
 namespace wdk
 {
 
-struct window::impl {
+struct Window::impl {
     HWND window;
-    encoding enc;
+    Encoding enc;
     bool fullscreen;
     bool resizing;
     int x, y;
@@ -78,7 +80,7 @@ struct window::impl {
 
         assert(lptr);
 
-        window::impl* self = reinterpret_cast<window::impl*>(lptr);
+        Window::impl* self = reinterpret_cast<Window::impl*>(lptr);
 
         switch (msg)
         {
@@ -143,10 +145,10 @@ struct window::impl {
 
 };
 
-window::window() : pimpl_(new impl)
+Window::Window() : pimpl_(new impl)
 {
     pimpl_->window     = NULL;
-    pimpl_->enc        = encoding::utf8;
+    pimpl_->enc        = Encoding::UTF8;
     pimpl_->fullscreen = false;
     pimpl_->resizing   = false;
     pimpl_->x          = 0;
@@ -170,19 +172,19 @@ window::window() : pimpl_(new impl)
 
 }
 
-window::~window()
+Window::~Window()
 {
-    if (exists())
-        destroy();
+    if (DoesExist())
+        Destroy();
 }
 
-void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+void Window::Create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
     bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
     assert(height);
     assert(!title.empty());
-    assert(!exists());
+    assert(!DoesExist());
 
     // notes about the visualid.
     // on Windows the visualid (i.e. pixelformat id) is specific to a HDC.
@@ -222,7 +224,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
         old_style |= WS_SIZEBOX;
     }
 
-    auto win = make_unique_ptr(CreateWindowEx(
+    auto win = MakeUniqueHandle(CreateWindowEx(
         new_style,
         TEXT("WDK-WINDOW"),
         title.c_str(),
@@ -265,23 +267,23 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     pimpl_->y          = 0;
 }
 
-void window::hide()
+void Window::Hide()
 {
-    assert(exists());
+    assert(DoesExist());
 
     ShowWindow(pimpl_->window, SW_HIDE);
 }
 
-void window::show()
+void Window::Show()
 {
-    assert(exists());
+    assert(DoesExist());
 
     ShowWindow(pimpl_->window, SW_SHOW);
 }
 
-void window::destroy()
+void Window::Destroy()
 {
-    assert(exists());
+    assert(DoesExist());
 
     const BOOL ret = DestroyWindow(pimpl_->window);
 
@@ -290,32 +292,29 @@ void window::destroy()
     pimpl_->window = NULL;
 }
 
-void window::invalidate()
+void Window::Invalidate()
 {
-    assert(exists());
+    assert(DoesExist());
 
     RECT client;
     GetClientRect(pimpl_->window, &client);
     InvalidateRect(pimpl_->window, &client, TRUE);
 }
 
-void window::move(int x, int y)
+void Window::Move(int x, int y)
 {
-    assert(handle());
+    assert(DoesExist());
 
     RECT rc;
     GetWindowRect(pimpl_->window, &rc);
-
     SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
-
     MoveWindow(pimpl_->window, x, y, rc.right - rc.left, rc.bottom - rc.top, FALSE);
-
     SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
 }
 
-void window::set_fullscreen(bool fullscreen)
+void Window::SetFullscreen(bool fullscreen)
 {
-    assert(exists());
+    assert(DoesExist());
 
     if (fullscreen == pimpl_->fullscreen)
         return;
@@ -334,8 +333,8 @@ void window::set_fullscreen(bool fullscreen)
         pimpl_->exstyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         pimpl_->x = rc.left;
         pimpl_->y = rc.top;
-        pimpl_->w = surface_width(); //rc.right;
-        pimpl_->h = surface_height(); //rc.bottom;
+        pimpl_->w = GetSurfaceWidth(); //rc.right;
+        pimpl_->h = GetSurfaceHeight(); //rc.bottom;
 
         ShowWindow(hwnd, SW_HIDE);
         SetWindowLong(hwnd, GWL_STYLE,   WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
@@ -352,13 +351,13 @@ void window::set_fullscreen(bool fullscreen)
             throw std::runtime_error("videomode change failed");
 
         // Resize the window to occupy the whole screen dimensions
-        MoveWindow(hwnd, 0, 0, mode.dmPelsWidth, mode.dmPelsHeight, TRUE);
-        ShowWindow(hwnd, SW_SHOW);
-        SetFocus(hwnd);
+        ::MoveWindow(hwnd, 0, 0, mode.dmPelsWidth, mode.dmPelsHeight, TRUE);
+        ::ShowWindow(hwnd, SW_SHOW);
+        ::SetFocus(hwnd);
     }
     else
     {
-        ShowWindow(hwnd, SW_HIDE);
+        ::ShowWindow(hwnd, SW_HIDE);
 
         // restore start bar and restore to the "default mode".
         // Todo: what if've changed the display mode manually through system
@@ -390,10 +389,9 @@ void window::set_fullscreen(bool fullscreen)
             width += dx;
         if (height < dy)
             height += dy;
-        MoveWindow(hwnd, pimpl_->x, pimpl_->y, width, height, TRUE);
-
-        ShowWindow(hwnd, SW_SHOW);
-        SetFocus(hwnd);
+        ::MoveWindow(hwnd, pimpl_->x, pimpl_->y, width, height, TRUE);
+        ::ShowWindow(hwnd, SW_SHOW);
+        ::SetFocus(hwnd);
     }
 
     SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
@@ -408,16 +406,16 @@ void window::set_fullscreen(bool fullscreen)
     pimpl_->fullscreen = fullscreen;
 }
 
-void window::set_focus()
+void Window::SetFocus()
 {
-    assert(exists());
+    assert(DoesExist());
 
-    SetFocus(pimpl_->window);
+    ::SetFocus(pimpl_->window);
 }
 
-void window::set_size(uint_t width, uint_t height)
+void Window::SetSize(uint_t width, uint_t height)
 {
-    assert(exists());
+    assert(DoesExist());
 
     HWND hwnd = pimpl_->window;
 
@@ -455,14 +453,14 @@ void window::set_size(uint_t width, uint_t height)
     PostMessage(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(rc.right, rc.bottom));
 }
 
-void window::set_encoding(encoding enc)
+void Window::SetEncoding(Encoding enc)
 {
     pimpl_->enc = enc;
 }
 
-bool window::process_event(const native_event_t& ev)
+bool Window::ProcessEvent(const native_event_t& ev)
 {
-    if (ev.get_window_handle() != handle())
+    if (ev.get_window_handle() != GetNativeHandle())
         return false;
 
     const MSG& m = ev;
@@ -477,12 +475,12 @@ bool window::process_event(const native_event_t& ev)
     {
         case WM_SETFOCUS:
             if (on_gain_focus)
-                on_gain_focus(window_event_focus{});
+                on_gain_focus(WindowEventFocus{});
             break;
 
         case WM_KILLFOCUS:
             if (on_lost_focus)
-                on_lost_focus(window_event_focus{});
+                on_lost_focus(WindowEventFocus{});
             break;
 
         case WM_PAINT:
@@ -493,7 +491,7 @@ bool window::process_event(const native_event_t& ev)
                 if (rcPaint.bottom == 0 || rcPaint.right == 0)
                     break;
 
-                window_event_paint paint = {0};
+                WindowEventPaint paint;
                 paint.x      = rcPaint.left;
                 paint.y      = rcPaint.top;
                 paint.width  = rcPaint.right - rcPaint.left;
@@ -509,7 +507,7 @@ bool window::process_event(const native_event_t& ev)
                 RECT rc;
                 GetClientRect(m.hwnd, &rc);
 
-                window_event_resize resize = {0};
+                WindowEventResize resize;
                 resize.width  = rc.right;
                 resize.height = rc.bottom;
                 on_resize(resize);
@@ -519,7 +517,7 @@ bool window::process_event(const native_event_t& ev)
         case WM_APP + 1: // WM_CREATE
             {
                 const CREATESTRUCT* ptr = reinterpret_cast<const CREATESTRUCT*>(m.lParam);
-                window_event_create create = {0};
+                WindowEventCreate create;
                 create.x          = ptr->x;
                 create.y          = ptr->y;
                 create.width      = ptr->cx;
@@ -532,36 +530,44 @@ bool window::process_event(const native_event_t& ev)
 
         case WM_CLOSE:
             if (on_want_close)
-                on_want_close(window_event_want_close{});
+                on_want_close(WindowEventWantClose{});
             break;
 
 
         case WM_KEYDOWN:
             if (on_keydown)
             {
-                const auto& keys = translate_keydown_event(ev);
-                if (keys.second != keysym::none)
-                    on_keydown(window_event_keydown{keys.second, keys.first});
+                const auto& keys = TranslateKeydownEvent(ev);
+                if (keys.second != Keysym::None) {
+                    WindowEventKeydown key;
+                    key.modifiers = keys.first;
+                    key.symbol = keys.second;
+                    on_keydown(key);
+                }
             }
             break;
 
         case WM_KEYUP:
             if (on_keyup)
             {
-                const auto& keys = translate_keydown_event(ev);
-                if (keys.second != keysym::none)
-                    on_keyup(window_event_keyup{keys.second, keys.first});
+                const auto& keys = TranslateKeydownEvent(ev);
+                if (keys.second != Keysym::None) {
+                    WindowEventKeyup key;
+                    key.modifiers = keys.first;
+                    key.symbol = keys.second;
+                    on_keyup(key);
+                }
             }
             break;
 
         case WM_MOUSEMOVE:
             if (on_mouse_move)
             {
-                const auto& button = translate_mouse_button_event(ev);
+                const auto& button = TranslateMouseButtonEvent(ev);
 
                 POINT global;
                 GetCursorPos(&global);
-                window_event_mouse_move mickey = {};
+                WindowEventMouseMove mickey = {};
                 mickey.window_x  = GET_X_LPARAM(m.lParam);
                 mickey.window_y  = GET_Y_LPARAM(m.lParam);
                 mickey.global_x  = global.x;
@@ -579,11 +585,11 @@ bool window::process_event(const native_event_t& ev)
         case WM_MBUTTONDOWN:
             if (on_mouse_press)
             {
-                const auto& button = translate_mouse_button_event(ev);
+                const auto& button = TranslateMouseButtonEvent(ev);
 
                 POINT global;
                 GetCursorPos(&global);
-                window_event_mouse_press mickey= {};
+                WindowEventMousePress mickey= {};
                 mickey.window_x  = GET_X_LPARAM(m.lParam);
                 mickey.window_y  = GET_Y_LPARAM(m.lParam);
                 mickey.global_x  = global.x;
@@ -599,11 +605,11 @@ bool window::process_event(const native_event_t& ev)
         case WM_MBUTTONUP:
             if (on_mouse_release)
             {
-                const auto& button = translate_mouse_button_event(ev);
+                const auto& button = TranslateMouseButtonEvent(ev);
                 
                 POINT global;
                 GetCursorPos(&global);
-                window_event_mouse_release mickey = {};
+                WindowEventMouseRelease mickey = {};
                 mickey.window_x  = GET_X_LPARAM(m.lParam);
                 mickey.window_y  = GET_Y_LPARAM(m.lParam);
                 mickey.global_x  = global.x;
@@ -619,12 +625,12 @@ bool window::process_event(const native_event_t& ev)
             {
                 const WPARAM utf16 = m.wParam;
 
-                window_event_char c = {0};
-                if (pimpl_->enc == encoding::ascii)
+                WindowEventChar c = {0};
+                if (pimpl_->enc == Encoding::ASCII)
                     c.ascii = utf16 & 0x7f;
-                else if (pimpl_->enc == encoding::ucs2)
+                else if (pimpl_->enc == Encoding::UCS2)
                     c.ucs2 = (std::uint16_t)(utf16 & 0xFFFF); 
-                else if (pimpl_->enc == encoding::utf8)
+                else if (pimpl_->enc == Encoding::UTF8)
                     enc::utf8_encode(&utf16, &utf16 + 1, &c.utf8[0]);
 
                 on_char(c);
@@ -641,53 +647,53 @@ bool window::process_event(const native_event_t& ev)
     return true;
 }
 
-uint_t window::surface_width() const
+uint_t Window::GetSurfaceWidth() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     RECT rc = {0};
     GetClientRect(pimpl_->window, &rc);
     return rc.right;
 }
 
-uint_t window::surface_height() const
+uint_t Window::GetSurfaceHeight() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     RECT rc = {0};
     GetClientRect(pimpl_->window, &rc);
     return rc.bottom;
 }
 
-bool window::exists() const
+bool Window::DoesExist() const
 {
     return pimpl_->window != NULL;
 }
 
-bool window::is_fullscreen() const
+bool Window::IsFullscreen() const
 {
     return pimpl_->fullscreen;
 }
 
-window::encoding window::get_encoding() const
+Window::Encoding Window::GetEncoding() const
 {
     return pimpl_->enc;
 }
 
-native_window_t window::handle() const
+native_window_t Window::GetNativeHandle() const
 {
     return pimpl_->window;
 }
 
-std::pair<uint_t, uint_t> window::min_size() const
+std::pair<uint_t, uint_t> Window::GetMinSize() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     HWND hwnd = pimpl_->window;
 
     const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
     if (!(style_bits & WS_SIZEBOX))
-        return std::make_pair(surface_width(), surface_height());
+        return std::make_pair(GetSurfaceWidth(), GetSurfaceHeight());
 
     // using GetSystemMetrics with SM_CXMINTRACK can't be correct
     // because that's only a single value. however how small the window
@@ -706,7 +712,7 @@ std::pair<uint_t, uint_t> window::min_size() const
     const LONG ex_style_bits = GetWindowLong(hwnd, GWL_EXSTYLE);
 
     // create a window with matching style and see what the actual size will be.
-    auto win = make_unique_ptr(CreateWindowEx(
+    auto win = MakeUniqueHandle(CreateWindowEx(
         ex_style_bits,
         TEXT("WDK-WINDOW"),
         TEXT(""),
@@ -728,15 +734,15 @@ std::pair<uint_t, uint_t> window::min_size() const
 
 }
 
-std::pair<uint_t, uint_t> window::max_size() const
+std::pair<uint_t, uint_t> Window::GetMaxSize() const
 {
-    assert(exists());
+    assert(DoesExist());
 
     HWND hwnd = pimpl_->window;
 
     const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
     if (!(style_bits & WS_SIZEBOX))
-        return std::make_pair(surface_width(), surface_height());
+        return std::make_pair(GetSurfaceWidth(), GetSurfaceHeight());
 
     // a window can maximize to the size of the largest monitor
     // see info about WM_GETMINMAXINFO
@@ -748,7 +754,7 @@ std::pair<uint_t, uint_t> window::max_size() const
 
     const LONG ex_style_bits = GetWindowLong(hwnd, GWL_EXSTYLE);
 
-    auto win = make_unique_ptr(CreateWindowEx(
+    auto win = MakeUniqueHandle(CreateWindowEx(
         ex_style_bits,
         TEXT("WDK-WINDOW"),
         TEXT(""),

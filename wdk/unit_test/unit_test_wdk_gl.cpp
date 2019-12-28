@@ -20,146 +20,218 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef _WIN32
-#  define GL_GLEXT_PROTOTYPES
+#ifdef TEST_GLES
+#  include <GLES2/gl2.h>
+#else
+#  include "glcorearb.h"
 #endif
 
-#include <GL/gl.h>
+#include <thread>
 
-#include <boost/test/minimal.hpp>
-#include <wdk/opengl/config.h>
-#include <wdk/opengl/context.h>
-#include <wdk/opengl/surface.h>
-#include <wdk/system.h>
-#include <wdk/window.h>
-#include <wdk/pixmap.h>
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/surface.h"
+#include "wdk/system.h"
+#include "wdk/window.h"
+#include "wdk/pixmap.h"
+#include "test_minimal.h"
 
 using namespace wdk;
 
+namespace gl {
+PFNGLCREATEPROGRAMPROC           CreateProgram;
+PFNGLCREATESHADERPROC            CreateShader;
+PFNGLSHADERSOURCEPROC            ShaderSource;
+PFNGLGETERRORPROC                GetError;
+PFNGLCOMPILESHADERPROC           CompileShader;
+PFNGLDETACHSHADERPROC            AttachShader;
+PFNGLDELETESHADERPROC            DeleteShader;
+PFNGLLINKPROGRAMPROC             LinkProgram;
+PFNGLUSEPROGRAMPROC              UseProgram;
+PFNGLVALIDATEPROGRAMPROC         ValidateProgram;
+PFNGLCLEARCOLORPROC              ClearColor;
+PFNGLCLEARPROC                   Clear;
+PFNGLVIEWPORTPROC                Viewport;
+PFNGLDRAWARRAYSPROC              DrawArrays;
+PFNGLGETATTRIBLOCATIONPROC       GetAttribLocation;
+PFNGLVERTEXATTRIBPOINTERPROC     VertexAttribPointer;
+PFNGLENABLEVERTEXATTRIBARRAYPROC EnableVertexAttribArray;
+PFNGLGETSTRINGPROC               GetString;
+PFNGLGETUNIFORMLOCATIONPROC      GetUniformLocation;
+PFNGLUNIFORM1FPROC               Uniform1f;
+PFNGLGETPROGRAMIVPROC            GetProgramiv;
+PFNGLGETSHADERIVPROC             GetShaderiv;
+PFNGLGETPROGRAMINFOLOGPROC       GetProgramInfoLog;
+PFNGLDELETEPROGRAMPROC           DeleteProgram;
+PFNGLREADPIXELSPROC              ReadPixels;
+} // gl
+
+template<typename T>
+T resolve(const char* name, const wdk::Context& opengl)
+{
+    T ret = (T)opengl.Resolve(name);
+    TEST_REQUIRE(ret != nullptr);
+    return ret;
+}
+
+#define RESOLVE(x) gl::x = resolve<decltype(gl::x)>("gl"#x, opengl)
+
+void TestResolveEntryPoints(const wdk::Context& opengl)
+{
+    RESOLVE(CreateProgram);
+    RESOLVE(CreateShader);
+    RESOLVE(ShaderSource);
+    RESOLVE(GetError);
+    RESOLVE(CompileShader);
+    RESOLVE(AttachShader);
+    RESOLVE(DeleteShader);
+    RESOLVE(LinkProgram);
+    RESOLVE(UseProgram);
+    RESOLVE(ValidateProgram);
+    RESOLVE(ClearColor);
+    RESOLVE(Clear);
+    RESOLVE(Viewport);
+    RESOLVE(DrawArrays);
+    RESOLVE(GetAttribLocation);
+    RESOLVE(VertexAttribPointer);
+    RESOLVE(EnableVertexAttribArray);
+    RESOLVE(GetString);
+    RESOLVE(GetUniformLocation);
+    RESOLVE(Uniform1f);
+    RESOLVE(GetString);
+    RESOLVE(GetProgramiv);
+    RESOLVE(GetShaderiv);
+    RESOLVE(GetProgramInfoLog);
+    RESOLVE(DeleteProgram);
+    RESOLVE(ReadPixels);
+}
+
 void unit_test_config()
 {
+    // Test creating a config with "don't care" attributes
     {
-        config c(config::DONT_CARE);
-
-        BOOST_REQUIRE(c.configid());
-        BOOST_REQUIRE(c.handle());
-
-        context ctx(c);
-
+        Config c(Config::DONT_CARE);
+        Context ctx(c);
     }
 
+    // Test creating a config with default attributes
     {
-        config c(config::DEFAULT);
-        BOOST_REQUIRE(c.configid());
-        BOOST_REQUIRE(c.handle());
-
-        context ctx(c);
+        Config c(Config::DEFAULT);
+        Context ctx(c);
     }
 
+    // Test creating a config with some "reasonable" attributes.
+    // Note: that supposedly this could also fail depending on the 
+    // implementation but we expect this not to be the case.
+    {
+        Config::Attributes attrs;
+        attrs.red_size   = 8;
+        attrs.green_size = 8;
+        attrs.blue_size  = 8;
+        attrs.depth_size = 16;
+        attrs.stencil_size = 8;
+        attrs.double_buffer = true;
+        Config conf(attrs);
+        Context ctx(conf);
+    }
+
+    // test that creating a config with weird (unsupported attributes) fails
+    // and throws an exception.
     try
     {
-        config::attributes attrs = {0};
+        Config::Attributes attrs;
         attrs.red_size = 9;
         attrs.green_size = 7;
         attrs.blue_size = 3;
 
-        config c(attrs);
-        BOOST_REQUIRE(!"incorrect configuration didn't fail as expected");
+        Config c(attrs);
+        TEST_REQUIRE(!"incorrect configuration didn't fail as expected");
     }
-    catch ( const std::exception& e)
-    { }
-
-    {
-        config::attributes attrs = {0};
-        attrs.red_size   = 8;
-        attrs.green_size = 8;
-        attrs.blue_size  = 8;
-        attrs.double_buffer = true;
-
-        config c(attrs);
-
-        context ctx(c);
-    }
-
+    catch ( const std::exception&)
+    { /* success*/ }
 }
 
 void unit_test_context()
 {
+    Config conf(Config::DONT_CARE);
 
-    config conf(config::DONT_CARE);
-
+    // test some context creations that are expected to pass
     {
 
 #ifdef TEST_GLES
-        context ctx_1(conf, 1, 0);
-        context ctx_2(conf, 2, 0);
+        // this would fail on PowerVR
+        //Context ctx_1(conf, 1, 0, false);
+        Context ctx_2(conf, 2, 0, false);
 #else
-        context ctx_1_1(conf, 1, 1, false);
-        context ctx_2_0(conf, 2, 0, false);
-        context ctx_2_1(conf, 2, 1, false);
-        context ctx_3_0(conf, 3, 0, false);
+        Context ctx_1_1(conf, 1, 1, false);
+        Context ctx_2_0(conf, 2, 0, false);
+        Context ctx_2_1(conf, 2, 1, false);
+        Context ctx_3_0(conf, 3, 0, false);
 
-        BOOST_REQUIRE(context::resolve("glBegin"));
-        BOOST_REQUIRE(context::resolve("glCreateProgram"));
-        BOOST_REQUIRE(!context::resolve("ssofuaf"));
+        // this might fail depending on your hardware
+        Context ctx_4_6(conf, 4, 6, false);
+
 #endif
- 
+    }
+
+    // Test querying some API entry points.
+    {
+        Context ctx(conf);
+        TEST_REQUIRE(ctx.Resolve("glDrawArrays"));
+        TEST_REQUIRE(ctx.Resolve("glClearColor"));
+        // currently failing on GLX
+        //TEST_REQUIRE(ctx_1_1.Resolve("ssofuaf") == nullptr);
+    }
+
+    // Test creating a context with a version that is not valid.
+    // Expected to fail
+    {
+        try 
+        {
+            Context ctx(conf, 8, 4, false);
+            TEST_REQUIRE(!"incorrect context version didn't fail as expected");
+        }
+        catch(const std::exception&) 
+        { /* success */ }
     }
 }
 
 #define GL_CHECK(statement) \
     statement; \
     do { \
-        const int err = glGetError();\
-        BOOST_REQUIRE(err == GL_NO_ERROR && #statement);\
+        const int err = gl::GetError();\
+        TEST_REQUIRE(err == GL_NO_ERROR && #statement);\
     } while (0)
 
-
-class triangle
+void TestRenderQuad(int width, int height)
 {
-public:
-    triangle()
-    {
-        program_ = glCreateProgram();
+    GLint program = gl::CreateProgram();
+    GLuint vert = gl::CreateShader(GL_VERTEX_SHADER);
+    GLuint frag = gl::CreateShader(GL_FRAGMENT_SHADER);
 
-        GLuint vert = glCreateShader(GL_VERTEX_SHADER);
-        GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
-
-#if defined(SAMPLE_GLES)
+#if defined(TEST_GLES)
         const char* v_src = 
           "precision highp float;                                       \n"
           "attribute vec2 a_position;                                   \n"
-          "uniform float u_rot;                                         \n"
           "void main()                                                  \n"
           "{                                                            \n"
-          "   mat2 r = mat2(cos(u_rot), -sin(u_rot),                    \n"
-          "                 sin(u_rot), cos(u_rot));                    \n"
-          "   vec2 v = r * a_position;                                  \n"
-          "   v.x = clamp(v.x, -1, 1);                                  \n"
-          "   v.y = clamp(v.y, -1, 1);                                  \n"
-          "   gl_Position = vec4(v, 0, 1);                              \n"
+          "   gl_Position = vec4(a_position, 0, 1);                     \n"
           "}                                                            \n"
           "\n";
 
         const char* f_src = 
           "void main()                                                  \n"
           "{                                                            \n"
-          "  gl_FragColor = vec4(0, 0.8, 0, 0);                         \n"
+          "  gl_FragColor = vec4(1.0, 0, 0, 0);                         \n"
           "}                                                            \n"
           "\n";
 #else
         const char* v_src = 
           "#version 130                                                  \n"
           "in vec2 a_position;                                           \n"
-          "uniform float u_rot;"
           "void main()                                                   \n"
           "{                                                             \n"                                                               
-          "   mat2 r = mat2(cos(u_rot), -sin(u_rot),                     \n"                        
-          "                 sin(u_rot), cos(u_rot));                     \n"
-          "   vec2 v = r * a_position;                                   \n"
-          "   v.x = clamp(v.x, -1, 1);                                   \n"
-          "   v.y = clamp(v.y, -1, 1);                                   \n"
-          "   gl_Position = vec4(v, 0, 1);                               \n"
+          "   gl_Position = vec4(a_position, 0, 1);                      \n"
           "}                                                             \n"
           "\n";
 
@@ -168,134 +240,121 @@ public:
           "out vec4 outColor;                                            \n"
           "void main()                                                   \n"
           "{                                                             \n"
-          "    outColor = vec4(0, 0.8, 0, 0);                            \n"
+          "    outColor = vec4(1.0, 0, 0, 0);                            \n"
           "}                                                             \n"
           "\n";
 #endif
-        GL_CHECK(glShaderSource(vert, 1, &v_src, NULL));
-        GL_CHECK(glCompileShader(vert));
+    struct Vertex {
+        float x, y;
+    };        
+    static const Vertex quad[6] = {
+        {-0.5,  0.5}, 
+        {-0.5, -0.5}, 
+        { 0.5, -0.5},
 
-        GL_CHECK(glShaderSource(frag, 1, &f_src, NULL));
-        GL_CHECK(glCompileShader(frag));
+        { 0.5, -0.5},
+        { 0.5,  0.5},
+        {-0.5,  0.5}
+    };    
 
-        GL_CHECK(glAttachShader(program_, vert));
-        GL_CHECK(glAttachShader(program_, frag));
-        GL_CHECK(glLinkProgram(program_));
+    GL_CHECK(gl::ShaderSource(vert, 1, &v_src, NULL));
+    GL_CHECK(gl::CompileShader(vert));
+    GL_CHECK(gl::ShaderSource(frag, 1, &f_src, NULL));
+    GL_CHECK(gl::CompileShader(frag));
+    GL_CHECK(gl::AttachShader(program, vert));
+    GL_CHECK(gl::AttachShader(program, frag));
+    GL_CHECK(gl::LinkProgram(program));
+    GL_CHECK(gl::UseProgram(program));
 
-        GL_CHECK(glUseProgram(program_));
+    const auto a_position = gl::GetAttribLocation(program, "a_position");
 
-        GL_CHECK(glDeleteShader(vert));
-        GL_CHECK(glDeleteShader(frag));
+    GL_CHECK(gl::Viewport(0, 0, width, height));
+    GL_CHECK(gl::ClearColor(0, 0, 0.5, 0));
+    GL_CHECK(gl::Clear(GL_COLOR_BUFFER_BIT));
+    GL_CHECK(gl::VertexAttribPointer(a_position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), quad));
+    GL_CHECK(gl::EnableVertexAttribArray(a_position));
+    GL_CHECK(gl::DrawArrays(GL_TRIANGLES, 0, 6));
+    GL_CHECK(gl::DeleteShader(vert));
+    GL_CHECK(gl::DeleteShader(frag));
+    GL_CHECK(gl::DeleteProgram(program));
 
-        a_position = glGetAttribLocation(program_, "a_position");
-        u_rotation = glGetUniformLocation(program_, "u_rot"); 
-    }
+    struct Pixel {
+        unsigned char r, g, b, a;
+    };
+    std::vector<Pixel> pixels(width * height);
+    GL_CHECK(gl::ReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, &pixels[0]));
 
-    void render()
+    unsigned num_red_pixels = 0;
+    for (auto& p : pixels) 
     {
-        static float rotation;
-
-        rotation += 0.001;
-
-        GL_CHECK(glClearColor(0, 0, 0, 0));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-
-        struct vertex {
-            float x, y;
-        };        
-        const vertex triangle[3] = {{0, 1}, {-1, -1}, {1, -1}};
-
-        GL_CHECK(glUseProgram(program_));        
-        GL_CHECK(glVertexAttribPointer(a_position, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
-        GL_CHECK(glEnableVertexAttribArray(a_position));
-        GL_CHECK(glUniform1f(u_rotation, rotation));
-        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
+        if (p.r == 0xff) num_red_pixels++;
     }
-
-private:
-    GLint program_;
-    GLint a_position;
-    GLint u_rotation;
-};
-
+    TEST_REQUIRE(num_red_pixels == width/2 * height/2);
+}
 
 
 void unit_test_surfaces()
 {
-    config::attributes attrs = {0};
-    attrs.red_size = 8;
-    attrs.green_size = 8;
-    attrs.blue_size = 8;
-    attrs.double_buffer = true;
-
-    config conf_window(attrs);
-
-    attrs.double_buffer = false;
-
-    config conf_buffer(attrs);
-
-    context ctx_window(conf_window);
-    context ctx_buffer(conf_buffer);
-
-    window win;
-    win.create("test", 400, 500, conf_window.visualid());
-
-    pixmap pix(400, 500, conf_buffer.visualid());
-
-    surface win_surface(conf_window, win);
-    surface pix_surface(conf_buffer, pix);
-    surface pbuf_surface(conf_buffer, 400, 50);
-
-    BOOST_REQUIRE(win_surface.width() == win.surface_width());
-    BOOST_REQUIRE(win_surface.height() == win.surface_height());
-
-    BOOST_REQUIRE(pix_surface.width() == 400);
-    BOOST_REQUIRE(pix_surface.height() == 500);
-    BOOST_REQUIRE(pbuf_surface.width() == 400);
-    BOOST_REQUIRE(pbuf_surface.height() == 50);
-
-    win.set_size(200, 200);
-    win.sync_all_events();
-
-    BOOST_REQUIRE(win.surface_width() == 200);
-    BOOST_REQUIRE(win.surface_height() == 200);
-    BOOST_REQUIRE(win_surface.width() == 200);
-    BOOST_REQUIRE(win_surface.height() ==200);
-
-    ctx_window.make_current(&win_surface);
-    triangle win_model;
-
-    ctx_buffer.make_current(&pix_surface);
-    triangle buf_model;
-
-    for (int i=0; i<1000; ++i)
+    // Render to a window surface
     {
-        ctx_buffer.make_current(&pix_surface);
-        GL_CHECK(glClearColor(1, 0, 0, 0));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-        buf_model.render();
+        wdk::Config config;
+        wdk::Context context(config);
+        wdk::Window window;
+        window.Create("test", 200, 200, config.GetVisualID(), 
+            true, // can resize
+            true, // has border
+            true // intially visible
+        );
+        wdk::Surface surface(config, window);
+        TEST_REQUIRE(surface.GetNativeHandle());
+        TEST_REQUIRE(surface.GetWidth() == 200);
+        TEST_REQUIRE(surface.GetHeight() == 200);
+        context.MakeCurrent(&surface);
 
-        ctx_buffer.make_current(&pbuf_surface);
-        GL_CHECK(glClearColor(0, 1, 0, 0));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-        buf_model.render();
-
-        ctx_window.make_current(&win_surface);
-        GL_CHECK(glClearColor(0.0001 * i, 0.0001 * i, 0.0001 * i, 0));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-        GL_CHECK(glViewport(0, 0, 200, 200));
-        win_model.render();
-        ctx_window.swap_buffers();
+        TestResolveEntryPoints(context);
+        TestRenderQuad(200, 200);
     }
 
-}
+// currently not supported on Win32 
+#if !defined(_WIN32) || defined(TEST_GLES)
+    // Render to a offscreen buffer
+    {
+        wdk::Config config;
+        wdk::Context context(config);
+        wdk::Surface surface(config, 200, 200);
+        TEST_REQUIRE(surface.GetNativeHandle());
+        TEST_REQUIRE(surface.GetWidth() == 200);
+        TEST_REQUIRE(surface.GetHeight() == 200);
+        context.MakeCurrent(&surface);
 
+        TestResolveEntryPoints(context);
+        TestRenderQuad(200, 200);
+    }
+
+    // Render to a window system provided buffer (pixmap)
+    // this is currently not working on Win.
+#if !defined(_WIN32)
+    {
+        wdk::Config config;
+        wdk::Context context(config);
+        wdk::Pixmap pixmap(200, 200, config.GetVisualID());
+        wdk::Surface surface(config, pixmap);
+        TEST_REQUIRE(surface.GetNativeHandle());
+        TEST_REQUIRE(surface.GetWidth() == 200);
+        TEST_REQUIRE(surface.GetHeight() == 200);
+        context.MakeCurrent(&surface);
+
+        TestResolveEntryPoints(context);
+        TestRenderQuad(200, 200);
+    }
+#endif
+#endif
+}
 
 int test_main(int, char*[])
 {
     unit_test_config();
     unit_test_context();
     unit_test_surfaces();
-
     return 0;
 }

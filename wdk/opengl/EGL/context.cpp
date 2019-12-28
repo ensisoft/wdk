@@ -21,14 +21,16 @@
 //  THE SOFTWARE.
 
 #include <EGL/egl.h>
-#include <wdk/system.h>
+
 #include <cassert>
 #include <stdexcept>
 #include <vector>
-#include "../context.h"
-#include "../types.h"
-#include "../config.h"
-#include "../surface.h"
+
+#include "wdk/system.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/types.h"
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/surface.h"
 #include "egldisplay.h"
 
 // http://www.khronos.org/registry/egl/extensions/KHR/EGL_KHR_create_context.txt
@@ -59,15 +61,15 @@
 namespace wdk
 {
 
-struct context::impl {
+struct Context::impl {
     EGLDisplay display;
     EGLSurface surface;
     EGLContext context;
 
-    impl(const wdk::config& conf, int major_version, int minor_version, bool debug) :
+    impl(const wdk::Config& conf, int major_version, int minor_version, bool debug) :
         display(nullptr), surface(nullptr), context(nullptr)
     {
-        display = egl_init(get_display_handle());
+        display = egl_init(GetNativeDisplayHandle());
 
         const EGLint FLAGS = debug ?
             EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR : 0;
@@ -94,7 +96,7 @@ struct context::impl {
         // force switch
         eglBindAPI(EGL_OPENGL_ES_API);
 
-        context = eglCreateContext(display, conf.handle(), EGL_NO_CONTEXT, attrs);
+        context = eglCreateContext(display, conf.GetNativeHandle(), EGL_NO_CONTEXT, attrs);
         if (!context)
             throw std::runtime_error("create context failed");
 
@@ -104,32 +106,32 @@ struct context::impl {
     }
 };
 
-context::context(const config& conf)
+Context::Context(const Config& conf)
 {
     pimpl_.reset(new impl(conf, 2, 0, false));
 }
 
-context::context(const config& conf, int major_version, int minor_version, bool debug)
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug)
 {
     pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
-context::context(const config& conf, int major_version, int minor_version, bool debug, type requested_type) 
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type) 
 {
     // currently not supported.
-    if (requested_type == context::type::desktop)
+    if (requested_type == Context::Type::OpenGL)
         throw std::runtime_error("not supported");
     pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
-context::~context()
+Context::~Context()
 {
     eglMakeCurrent(pimpl_->display, EGL_NO_SURFACE, EGL_NO_SURFACE, pimpl_->context);
     eglMakeCurrent(pimpl_->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(pimpl_->display, pimpl_->context);
 }
 
-void context::make_current(surface* surf)
+void Context::MakeCurrent(Surface* surf)
 {
     // See comments about this BindAPI call in the context::impl constructor.
     eglBindAPI(EGL_OPENGL_ES_API);
@@ -141,13 +143,13 @@ void context::make_current(surface* surf)
     if (surf == nullptr)
         return;
 
-    if (!eglMakeCurrent(pimpl_->display, surf->handle(), surf->handle(), pimpl_->context))
+    if (!eglMakeCurrent(pimpl_->display, surf->GetNativeHandle(), surf->GetNativeHandle(), pimpl_->context))
         throw std::runtime_error("make current failed");
 
-    pimpl_->surface = surf->handle();
+    pimpl_->surface = surf->GetNativeHandle();
 }
 
-void context::swap_buffers()
+void Context::SwapBuffers()
 {
     assert((pimpl_->surface != EGL_NO_SURFACE) && "context has no valid surface. did you forget to call make_current?");
 
@@ -156,13 +158,13 @@ void context::swap_buffers()
     assert(ret);
 }
 
-bool context::has_dri() const
+bool Context::HasDRI() const
 {
     // todo ???
     return true;
 }
 
-void* context::resolve(const char* function) const
+void* Context::Resolve(const char* function) const
 {
     assert(function && "null function name");
 

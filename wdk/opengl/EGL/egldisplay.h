@@ -21,7 +21,8 @@
 //  THE SOFTWARE.
 
 #include <EGL/egl.h>
-#include <wdk/types.h>
+
+#include "wdk/types.h"
 #include "types.h"
 
 namespace wdk

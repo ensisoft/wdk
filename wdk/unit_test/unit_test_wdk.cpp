@@ -20,18 +20,18 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-
-#include <wdk/system.h>
-#include <wdk/videomode.h>
-#include <wdk/modechange.h>
-#include <wdk/window.h>
-#include <wdk/window_events.h>
-#include <wdk/window_listener.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <thread>
 #include <chrono>
+
+#include "wdk/system.h"
+#include "wdk/videomode.h"
+#include "wdk/modechange.h"
+#include "wdk/window.h"
+#include "wdk/events.h"
+#include "wdk/window_listener.h"
 
 #include "test_minimal.h"
 
@@ -41,35 +41,35 @@
     do { \
         std::this_thread::sleep_for(std::chrono::seconds(x)); \
         wdk::native_event_t event; \
-        while (wdk::peek_event(event)) \
-            w.process_event(event); \
+        while (wdk::PeekEvent(event)) \
+            w.ProcessEvent(event); \
     } while (0)
 
 void unit_test_video_modes()
 {
     {
-        const wdk::videomode& original_mode = wdk::get_current_video_mode();
+        const wdk::VideoMode& original_mode = wdk::GetCurrentVideoMode();
         TEST_REQUIRE(original_mode.xres);
         TEST_REQUIRE(original_mode.yres);
 
-        const std::vector<wdk::videomode> modes = wdk::list_video_modes();
+        const std::vector<wdk::VideoMode> modes = wdk::ListVideoModes();
 
         TEST_REQUIRE(find(modes.begin(), modes.end(), original_mode) != modes.end());
 
-        wdk::videomode curmode = original_mode;
+        wdk::VideoMode curmode = original_mode;
 
         for (auto& mode : modes)
         {
             if (mode == curmode)
                 continue;
             std::cout << "Testing: " << mode << std::endl;
-            wdk::set_video_mode(mode);
+            wdk::SetVideoMode(mode);
 
             // wait for a change event
             while (true)
             {
                 wdk::native_event_t event;
-                wdk::wait_event(event);
+                wdk::WaitEvent(event);
                 if (event.identity() == wdk::native_event_t::type::system_resolution_change)
                     break;
             }
@@ -80,13 +80,13 @@ void unit_test_video_modes()
         }
 
         // restore to current
-        set_video_mode(original_mode);
+        SetVideoMode(original_mode);
         if (curmode != original_mode)
         {
             while (true)
             {
                 wdk::native_event_t event;
-                wdk::wait_event(event);
+                wdk::WaitEvent(event);
                 if (event.identity() == wdk::native_event_t::type::system_resolution_change)
                     break;
             }
@@ -97,7 +97,7 @@ void unit_test_video_modes()
     {
         try
         {
-            wdk::set_video_mode(wdk::videomode(50, 50));
+            wdk::SetVideoMode(wdk::VideoMode(50, 50));
             TEST_REQUIRE(!"failed to detect invalid video mode setting");
         }
         catch (const std::exception& e)
@@ -108,25 +108,25 @@ void unit_test_video_modes()
 
     // try restoring the mode
     {
-        const wdk::videomode& curmode = wdk::get_current_video_mode();
+        const wdk::VideoMode& curmode = wdk::GetCurrentVideoMode();
         {
-            wdk::modechange vidmode;
-            vidmode.set(wdk::videomode(800, 600));
+            wdk::TemporaryVideoModeChange vidmode;
+            vidmode.SetVideoMode(wdk::VideoMode(800, 600));
             while  (true)
             {
                 wdk::native_event_t event;
-                wdk::wait_event(event);
+                wdk::WaitEvent(event);
                 if (event.identity() == wdk::native_event_t::type::system_resolution_change)
                     break;
             }
         }
 
-        const wdk::videomode& now = wdk::get_current_video_mode();
+        const wdk::VideoMode& now = wdk::GetCurrentVideoMode();
 
         while (true)
         {
             wdk::native_event_t event;
-            wdk::wait_event(event);
+            wdk::WaitEvent(event);
             if (event.identity() == wdk::native_event_t::type::system_resolution_change)
                 break;
         }
@@ -138,23 +138,23 @@ void unit_test_video_modes()
 
 void unit_test_keyboard()
 {
-    for (int i = (int)wdk::keysym::backspace; i <= (int)wdk::keysym::escape; ++i)
+    for (int i = (int)wdk::Keysym::Backspace; i <= (int)wdk::Keysym::Escape; ++i)
     {
-        const auto name = wdk::name((wdk::keysym)i);
+        const auto name = wdk::ToString((wdk::Keysym)i);
         TEST_REQUIRE(!name.empty());
 
-        const auto code = keysym_to_keycode((wdk::keysym)i);
+        const auto code = MapKeysymToNativeKeycode((wdk::Keysym)i);
         TEST_REQUIRE(code);
 
         std::cout << "\rpress: " << name << std::endl;
 
-        while (!wdk::test_key_down((wdk::keysym)i))
+        while (!wdk::TestKeyDown((wdk::Keysym)i))
         {}
 
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         std::cout << "\rpress: " << name << std::endl;
 
-        while (!wdk::test_key_down(code))
+        while (!wdk::TestKeyDown(code))
         {}
 
         std::cout << std::endl;
@@ -165,68 +165,68 @@ void unit_test_window_functions()
 {
     // test create/destroy/basic state
     {
-        wdk::window w;
-        TEST_REQUIRE(w.exists() == false);
+        wdk::Window w;
+        TEST_REQUIRE(w.DoesExist() == false);
 
-        w.create("window", 400, 400, 0);
-        TEST_REQUIRE(w.exists());
-        TEST_REQUIRE(w.surface_height() == 400);
-        TEST_REQUIRE(w.surface_width() == 400);
-        TEST_REQUIRE(w.get_encoding() == wdk::window::encoding::utf8);
-        TEST_REQUIRE(w.is_fullscreen() == false);
+        w.Create("window", 400, 400, 0);
+        TEST_REQUIRE(w.DoesExist());
+        TEST_REQUIRE(w.GetSurfaceHeight() == 400);
+        TEST_REQUIRE(w.GetSurfaceWidth() == 400);
+        TEST_REQUIRE(w.GetEncoding() == wdk::Window::Encoding::UTF8);
+        TEST_REQUIRE(w.IsFullscreen() == false);
 
-        w.set_size(400, 400);
+        w.SetSize(400, 400);
         SYNC_POINT_WIN(1, w);        
-        TEST_REQUIRE(w.surface_width() == 400);
-        TEST_REQUIRE(w.surface_height() == 400);
+        TEST_REQUIRE(w.GetSurfaceWidth() == 400);
+        TEST_REQUIRE(w.GetSurfaceHeight() == 400);
 
         // set width bigger
-        w.set_size(500, 400);
+        w.SetSize(500, 400);
         SYNC_POINT_WIN(1, w);
-        TEST_REQUIRE(w.surface_width() == 500);
-        TEST_REQUIRE(w.surface_height() == 400);
+        TEST_REQUIRE(w.GetSurfaceWidth() == 500);
+        TEST_REQUIRE(w.GetSurfaceHeight() == 400);
 
         // set width smaller
-        w.set_size(300, 400);
+        w.SetSize(300, 400);
         SYNC_POINT_WIN(1, w);
-        TEST_REQUIRE(w.surface_width() == 300);
-        TEST_REQUIRE(w.surface_height() == 400);
+        TEST_REQUIRE(w.GetSurfaceWidth() == 300);
+        TEST_REQUIRE(w.GetSurfaceHeight() == 400);
 
         // set height bigger
-        w.set_size(300, 500);
+        w.SetSize(300, 500);
         SYNC_POINT_WIN(1, w);
-        TEST_REQUIRE(w.surface_width() == 300);
-        TEST_REQUIRE(w.surface_height() == 500);
+        TEST_REQUIRE(w.GetSurfaceWidth() == 300);
+        TEST_REQUIRE(w.GetSurfaceHeight() == 500);
 
         // set width smaller
-        w.set_size(300, 300);
+        w.SetSize(300, 300);
         SYNC_POINT_WIN(1, w);
-        TEST_REQUIRE(w.surface_width() == 300);
-        TEST_REQUIRE(w.surface_height() == 300);
+        TEST_REQUIRE(w.GetSurfaceWidth() == 300);
+        TEST_REQUIRE(w.GetSurfaceHeight() == 300);
 
 
         // set min/max size
-        const auto& min_size = w.min_size();
-        const auto& max_size = w.max_size();
-        w.set_size(min_size.first, min_size.second);
+        const auto& min_size = w.GetMinSize();
+        const auto& max_size = w.GetMaxSize();
+        w.SetSize(min_size.first, min_size.second);
 
         SYNC_POINT_WIN(1, w);
-        TEST_REQUIRE(w.surface_width() == min_size.first);
-        TEST_REQUIRE(w.surface_height() == min_size.second);
+        TEST_REQUIRE(w.GetSurfaceWidth() == min_size.first);
+        TEST_REQUIRE(w.GetSurfaceHeight() == min_size.second);
 
-        w.set_size(max_size.first, max_size.second);
+        w.SetSize(max_size.first, max_size.second);
 
         SYNC_POINT_WIN(1, w);
-        TEST_REQUIRE(w.surface_width() == max_size.first);
-        TEST_REQUIRE(w.surface_height() == max_size.second);
+        TEST_REQUIRE(w.GetSurfaceWidth() == max_size.first);
+        TEST_REQUIRE(w.GetSurfaceHeight() == max_size.second);
 
-        w.destroy();
-        TEST_REQUIRE(w.exists() == false);
+        w.Destroy();
+        TEST_REQUIRE(w.DoesExist() == false);
     }
 
     // test different sizes
     {
-        wdk::window w;
+        wdk::Window w;
 
         // create windows of various sizes, these should all be doable
         struct dim {
@@ -244,41 +244,41 @@ void unit_test_window_functions()
 
         for (const auto& it : sizes)
         {
-            w.create("unit-test", it.width, it.height, 0);
+            w.Create("unit-test", it.width, it.height, 0);
 
             SYNC_POINT_WIN(1, w);
 
-            TEST_REQUIRE(w.surface_height() == it.height);
-            TEST_REQUIRE(w.surface_width() == it.width);
+            TEST_REQUIRE(w.GetSurfaceHeight() == it.height);
+            TEST_REQUIRE(w.GetSurfaceWidth() == it.width);
 
 
-            w.destroy();
+            w.Destroy();
         }
 
     }
 
     // set to fullscreen
     {
-        const wdk::videomode& current_mode = wdk::get_current_video_mode();
+        const wdk::VideoMode& current_mode = wdk::GetCurrentVideoMode();
 
-        wdk::window w;
-        w.create("unit-test", 640, 400, 0);
-        w.set_fullscreen(true);
-
-        SYNC_POINT_WIN(1, w);
-
-        TEST_REQUIRE(w.surface_height() == current_mode.yres);
-        TEST_REQUIRE(w.surface_width() == current_mode.xres);
-        TEST_REQUIRE(w.is_fullscreen() == true);
-
-        w.set_fullscreen(false);
+        wdk::Window w;
+        w.Create("unit-test", 640, 400, 0);
+        w.SetFullscreen(true);
 
         SYNC_POINT_WIN(1, w);
 
-        TEST_REQUIRE(w.surface_width() == 640);
-        TEST_REQUIRE(w.surface_height() == 400);
-        TEST_REQUIRE(w.is_fullscreen() == false);
-        w.destroy();
+        TEST_REQUIRE(w.GetSurfaceHeight() == current_mode.yres);
+        TEST_REQUIRE(w.GetSurfaceWidth() == current_mode.xres);
+        TEST_REQUIRE(w.IsFullscreen() == true);
+
+        w.SetFullscreen(false);
+
+        SYNC_POINT_WIN(1, w);
+
+        TEST_REQUIRE(w.GetSurfaceWidth() == 640);
+        TEST_REQUIRE(w.GetSurfaceHeight() == 400);
+        TEST_REQUIRE(w.IsFullscreen() == false);
+        w.Destroy();
 
     }
 }
@@ -290,14 +290,14 @@ void unit_test_window_functions()
 // - window is created.
 void unit_test_window_create_event()
 {
-    const auto& screen = wdk::get_current_video_mode();
+    const auto& screen = wdk::GetCurrentVideoMode();
     TEST_REQUIRE(screen.xres >= 600);
     TEST_REQUIRE(screen.yres >= 500);
 
     bool got_create_event = false;
 
-    wdk::window w;
-    w.on_create = [&](const wdk::window_event_create& create) {
+    wdk::Window w;
+    w.on_create = [&](const wdk::WindowEventCreate& create) {
         TEST_REQUIRE(create.width == 600);
         TEST_REQUIRE(create.height == 500);
         TEST_REQUIRE(create.x >= 0);
@@ -307,7 +307,7 @@ void unit_test_window_create_event()
         got_create_event = true;
     };
 
-    w.create("window", 600, 500, 0);
+    w.Create("window", 600, 500, 0);
 
     SYNC_POINT_WIN(1, w);
 
@@ -338,15 +338,15 @@ void unit_test_window_paint_event()
 
     paintEvent.clear();
 
-    wdk::window w;
-    w.on_paint = [&](const wdk::window_event_paint& paint) {
+    wdk::Window w;
+    w.on_paint = [&](const wdk::WindowEventPaint& paint) {
         paintEvent.x = paint.x;
         paintEvent.y = paint.y;
         paintEvent.w = paint.width;
         paintEvent.h = paint.height;
         paintEvent.fired = true;
     };
-    w.create("window", 600,500, 0);
+    w.Create("window", 600,500, 0);
     SYNC_POINT_WIN(1, w);
     TEST_REQUIRE(paintEvent.fired == true);
     TEST_REQUIRE(paintEvent.x == 0);
@@ -355,7 +355,7 @@ void unit_test_window_paint_event()
     TEST_REQUIRE(paintEvent.w == 600);
     paintEvent.clear();
 
-    w.destroy();
+    w.Destroy();
 }
 
 // test the resize event.
@@ -378,30 +378,30 @@ void unit_test_window_resize_event()
 
         resizeEvent.clear();
 
-        wdk::window w;
-        w.on_resize = [&](const wdk::window_event_resize& resize) {
+        wdk::Window w;
+        w.on_resize = [&](const wdk::WindowEventResize& resize) {
             resizeEvent.fired = true;
             resizeEvent.w = resize.width;
             resizeEvent.h = resize.height;
         };
 
-        w.create("try to resize the window", 600, 500, 0, true);
+        w.Create("try to resize the window", 600, 500, 0, true);
         SYNC_POINT_WIN(1, w);
         TEST_REQUIRE(resizeEvent.fired);
         TEST_REQUIRE(resizeEvent.w == 600);
         TEST_REQUIRE(resizeEvent.h == 500);
         resizeEvent.clear();
 
-        w.set_size(300, 200);
+        w.SetSize(300, 200);
         SYNC_POINT_WIN(1, w);
         TEST_REQUIRE(resizeEvent.fired);
         TEST_REQUIRE(resizeEvent.w == 300);
         TEST_REQUIRE(resizeEvent.h == 200);
         resizeEvent.clear();
 
-        const auto& desktop = wdk::get_current_video_mode();
+        const auto& desktop = wdk::GetCurrentVideoMode();
 
-        w.set_fullscreen(true);
+        w.SetFullscreen(true);
         SYNC_POINT_WIN(1, w);
         TEST_REQUIRE(resizeEvent.fired);
         TEST_REQUIRE(resizeEvent.w == desktop.xres);
@@ -410,7 +410,7 @@ void unit_test_window_resize_event()
 
 
         // go back into windowed.
-        w.set_fullscreen(false);
+        w.SetFullscreen(false);
         SYNC_POINT_WIN(1, w);
         TEST_REQUIRE(resizeEvent.fired);
         TEST_REQUIRE(resizeEvent.w == 300);
@@ -432,9 +432,9 @@ void unit_test_window_resize_event()
             std::cout.flush();
 
             wdk::native_event_t event;
-            while (wdk::peek_event(event))
+            while (wdk::PeekEvent(event))
             {
-                w.process_event(event);
+                w.ProcessEvent(event);
             }
             if (resizeEvent.fired)
                 break;
@@ -455,38 +455,38 @@ void unit_test_window_focus_event()
     bool twoHasFocus = false;
 
     // create two windows and swap between these two
-    wdk::window one;
-    one.on_lost_focus = [&](const wdk::window_event_focus&) {
+    wdk::Window one;
+    one.on_lost_focus = [&](const wdk::WindowEventFocus&) {
         oneHasFocus = false;
     };
-    one.on_gain_focus = [&](const wdk::window_event_focus&) {
+    one.on_gain_focus = [&](const wdk::WindowEventFocus&) {
         oneHasFocus = true;
     };
 
-    wdk::window two;
-    two.on_lost_focus = [&](const wdk::window_event_focus&) {
+    wdk::Window two;
+    two.on_lost_focus = [&](const wdk::WindowEventFocus&) {
         twoHasFocus = false;
     };
-    two.on_gain_focus = [&](const wdk::window_event_focus&) {
+    two.on_gain_focus = [&](const wdk::WindowEventFocus&) {
         twoHasFocus = true;
     };
 
-    one.create("one", 100, 100, 0);
-    one.set_focus();
+    one.Create("one", 100, 100, 0);
+    one.SetFocus();
     SYNC_POINT_WIN(1, one);
     TEST_REQUIRE(oneHasFocus == true);
     TEST_REQUIRE(twoHasFocus == false);
 
-    two.create("two", 100, 100, 0);
-    two.move(100, 100);
-    two.set_focus();
+    two.Create("two", 100, 100, 0);
+    two.Move(100, 100);
+    two.SetFocus();
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
     wdk::native_event_t event;
-    while (wdk::peek_event(event))
+    while (wdk::PeekEvent(event))
     {
-        one.process_event(event);
-        two.process_event(event);
+        one.ProcessEvent(event);
+        two.ProcessEvent(event);
     }
 
     TEST_REQUIRE(twoHasFocus == true);
@@ -496,12 +496,12 @@ void unit_test_window_focus_event()
 
 void unit_test_window_close_event()
 {
-    wdk::window win;
-    win.create("click window close 'x' or alt+f4", 500, 500, 0);
+    wdk::Window win;
+    win.Create("click window close 'x' or alt+f4", 500, 500, 0);
 
     bool want_close = false;
 
-    win.on_want_close = [&](const wdk::window_event_want_close&) {
+    win.on_want_close = [&](const wdk::WindowEventWantClose&) {
         want_close = true;
     };
 
@@ -521,19 +521,19 @@ void unit_test_window_close_event()
 
 void unit_test_window_key_event()
 {
-    wdk::window win;
-    win.set_encoding(wdk::window::encoding::ascii);
-    win.create("press 'A' key on the window", 500, 500, 0);
+    wdk::Window win;
+    win.SetEncoding(wdk::Window::Encoding::ASCII);
+    win.Create("press 'A' key on the window", 500, 500, 0);
 
     bool on_key_down = false;
     bool on_key_up   = false;
     bool on_char     = false;
 
-    win.on_keydown = [&](const wdk::window_event_keydown& key) {
-        TEST_REQUIRE(key.symbol == wdk::keysym::key_A);
+    win.on_keydown = [&](const wdk::WindowEventKeydown& key) {
+        TEST_REQUIRE(key.symbol == wdk::Keysym::KeyA);
         on_key_down = true;
     };
-    win.on_keyup = [&](const wdk::window_event_keyup& key) {
+    win.on_keyup = [&](const wdk::WindowEventKeyup& key) {
 
         // there's a weird problem on X11 here that when this test case is
         // run something somewhere generates an Enter press in the input queue.
@@ -544,13 +544,13 @@ void unit_test_window_key_event()
         // I.e. the terminal responds to X's KeyPress event and either the terminal
         // or X server then itself sends the KeyRelease event to the newly launched
         // application.
-        if (key.symbol == wdk::keysym::enter && !on_key_up)
+        if (key.symbol == wdk::Keysym::Enter && !on_key_up)
             return;
 
-        TEST_REQUIRE(key.symbol == wdk::keysym::key_A);
+        TEST_REQUIRE(key.symbol == wdk::Keysym::KeyA);
         on_key_up = true;
     };
-    win.on_char = [&](const wdk::window_event_char& c) {
+    win.on_char = [&](const wdk::WindowEventChar& c) {
         TEST_REQUIRE(c.ascii == 'a');
         on_char = true;
     };
@@ -568,9 +568,9 @@ void unit_test_window_key_event()
         std::cout.flush();
 
         wdk::native_event_t event;
-        while (wdk::peek_event(event))
+        while (wdk::PeekEvent(event))
         {
-            win.process_event(event);
+            win.ProcessEvent(event);
         }
         if (on_key_down && on_key_up && on_char)
             break;
@@ -584,22 +584,22 @@ void unit_test_window_key_event()
 // test mouse events
 void unit_test_window_mouse_events()
 {
-    wdk::window win;
-    win.create("move mouse and click left button", 500, 500, 0);
+    wdk::Window win;
+    win.Create("move mouse and click left button", 500, 500, 0);
 
     bool on_mouse_move    = false;
     bool on_mouse_press   = false;
     bool on_mouse_release = false;
 
-    win.on_mouse_move = [&](const wdk::window_event_mouse_move& mickey) {
+    win.on_mouse_move = [&](const wdk::WindowEventMouseMove& mickey) {
         on_mouse_move = true;
     };
-    win.on_mouse_press = [&](const wdk::window_event_mouse_press& mickey) {
-        TEST_REQUIRE(mickey.btn == wdk::button::left);
+    win.on_mouse_press = [&](const wdk::WindowEventMousePress& mickey) {
+        TEST_REQUIRE(mickey.btn == wdk::MouseButton::Left);
         on_mouse_press = true;
     };
-    win.on_mouse_release = [&](const wdk::window_event_mouse_release& mickey) {
-        TEST_REQUIRE(mickey.btn == wdk::button::left);
+    win.on_mouse_release = [&](const wdk::WindowEventMouseRelease& mickey) {
+        TEST_REQUIRE(mickey.btn == wdk::MouseButton::Left);
         on_mouse_release = true;
     };
 
@@ -615,9 +615,9 @@ void unit_test_window_mouse_events()
         std::cout.flush();
 
         wdk::native_event_t event;
-        while (wdk::peek_event(event))
+        while (wdk::PeekEvent(event))
         {
-            win.process_event(event);
+            win.ProcessEvent(event);
         }
         if (on_mouse_move && on_mouse_press && on_mouse_release)
             break;

@@ -21,14 +21,18 @@
 //  THE SOFTWARE.
 
 #include <GL/glx.h>
+
 #include <functional>
 #include <stdexcept>
-#include <wdk/X11/errorhandler.h>
-#include <wdk/system.h>
-#include <wdk/window.h>
-#include <wdk/pixmap.h>
-#include "../surface.h"
-#include "../config.h"
+
+#include "wdk/X11/errorhandler.h"
+#include "wdk/system.h"
+#include "wdk/window.h"
+#include "wdk/pixmap.h"
+#include "wdk/opengl/surface.h"
+#include "wdk/opengl/config.h"
+
+#define X11_None 0L
 
 namespace {
     enum class surface_type { window, pixmap, pbuffer };
@@ -36,18 +40,19 @@ namespace {
 
 namespace wdk
 {
-struct surface::impl {
+struct Surface::impl {
     GLXDrawable  surface;
     surface_type type;
 };
 
-surface::surface(const config& conf, const window& win)
+Surface::Surface(const Config& conf, const Window& win)
 {
     pimpl_.reset(new impl);
 
-    factory<GLXDrawable> fac(get_display_handle());
+    factory<GLXDrawable> fac(GetNativeDisplayHandle());
 
-    GLXDrawable surface = fac.create(std::bind(glXCreateWindow, std::placeholders::_1, conf.handle(), win.handle(), nullptr));
+    GLXDrawable surface = fac.create(std::bind(glXCreateWindow, std::placeholders::_1, 
+        conf.GetNativeHandle(), win.GetNativeHandle(), nullptr));
     if (fac.has_error())
         throw std::runtime_error("create window surface failed");
 
@@ -55,13 +60,14 @@ surface::surface(const config& conf, const window& win)
     pimpl_->type    = surface_type::window;
 }
 
-surface::surface(const config& conf, const pixmap& px)
+Surface::Surface(const Config& conf, const Pixmap& px)
 {
     pimpl_.reset(new impl);
 
-    factory<GLXDrawable> fac(get_display_handle());
+    factory<GLXDrawable> fac(GetNativeDisplayHandle());
 
-    GLXDrawable surface = fac.create(std::bind(glXCreatePixmap, std::placeholders::_1, conf.handle(), px.handle(), nullptr));
+    GLXDrawable surface = fac.create(std::bind(glXCreatePixmap, std::placeholders::_1, 
+        conf.GetNativeHandle(), px.GetNativeHandle(), nullptr));
     if (fac.has_error())
         throw std::runtime_error("create pixmap surface failed");
 
@@ -69,19 +75,19 @@ surface::surface(const config& conf, const pixmap& px)
     pimpl_->type    = surface_type::pixmap;
 }
 
-surface::surface(const config& conf, uint_t width, uint_t height)
+Surface::Surface(const Config& conf, uint_t width, uint_t height)
 {
     pimpl_.reset(new impl);
 
-    factory<GLXDrawable> fac(get_display_handle());
+    factory<GLXDrawable> fac(GetNativeDisplayHandle());
 
     const int attrs[] = {
         GLX_PBUFFER_WIDTH, (int)width,
         GLX_PBUFFER_HEIGHT, (int)height,
-        None
+        X11_None
     };
 
-    GLXDrawable surface = fac.create(std::bind(glXCreatePbuffer, std::placeholders::_1, conf.handle(), attrs));
+    GLXDrawable surface = fac.create(std::bind(glXCreatePbuffer, std::placeholders::_1, conf.GetNativeHandle(), attrs));
     if (fac.has_error())
         throw std::runtime_error("create offscreen surface failed");
 
@@ -89,14 +95,14 @@ surface::surface(const config& conf, uint_t width, uint_t height)
     pimpl_->type    = surface_type::pbuffer;
 }
 
-surface::~surface()
+Surface::~Surface()
 {
-    dispose();
+    Dispose();
 }
 
-uint_t surface::width() const
+uint_t Surface::GetWidth() const
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     uint_t width = 0;
 
@@ -105,9 +111,9 @@ uint_t surface::width() const
     return width;
 }
 
-uint_t surface::height() const
+uint_t Surface::GetHeight() const
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     uint_t height = 0;
 
@@ -116,17 +122,17 @@ uint_t surface::height() const
     return height;
 }
 
-gl_surface_t surface::handle() const
+gl_surface_t Surface::GetNativeHandle() const
 {
     return gl_surface_t {pimpl_->surface};
 }
 
-void surface::dispose()
+void Surface::Dispose()
 {
     if (!pimpl_->surface)
         return;
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     switch (pimpl_->type)
     {

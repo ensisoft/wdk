@@ -24,10 +24,11 @@
 
 namespace wdk
 {
-    class surface;
-    class window;
-    class context;
-    class pixmap;
+    class Window;
+    class Pixmap;
+    class Context;
+    class Surface;
+    class Config;
     
 } // wdk
 

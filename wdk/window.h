@@ -26,30 +26,31 @@
 #include <memory>  // for unique_ptr
 #include <utility> // for pair
 #include <string>
+
 #include "callback.h"
 #include "utility.h"
 #include "types.h"
 
 namespace wdk
 {
-    struct window_event_create;
-    struct window_event_paint;
-    struct window_event_resize;
-    struct window_event_focus;
-    struct window_event_want_close;
-    struct window_event_keyup;
-    struct window_event_keydown;
-    struct window_event_char;
-    struct window_event_mouse_move;
-    struct window_event_mouse_press;
-    struct window_event_mouse_release;
+    struct WindowEventCreate;
+    struct WindowEventPaint;
+    struct WindowEventResize;
+    struct WindowEventFocus;
+    struct WindowEventWantClose;
+    struct WindowEventKeyup;
+    struct WindowEventKeydown;
+    struct WindowEventChar;
+    struct WindowEventMouseMove;
+    struct WindowEventMousePress;
+    struct WindowEventMouseRelease;
 
-    class window : noncopyable
+    class Window
     {
     public:
         // character encoding for char events. defaults to utf8
-        enum class encoding {
-            ascii, ucs2, utf8
+        enum class Encoding {
+            ASCII, UCS2, UTF8
         };
 
         // event callbacks
@@ -57,36 +58,35 @@ namespace wdk
         // If this build time flag is enabled we can register
         // multiple listeners per each callback.
     #ifdef WDK_MULTIPLE_WINDOW_LISTENERS
-        callback<window_event_create>        on_create;
-        callback<window_event_paint>         on_paint;
-        callback<window_event_resize>        on_resize;
-        callback<window_event_focus>         on_lost_focus;
-        callback<window_event_focus>         on_gain_focus;
-        callback<window_event_want_close>    on_want_close;
-        callback<window_event_keydown>       on_keydown;
-        callback<window_event_keyup>         on_keyup;
-        callback<window_event_char>          on_char;
-        callback<window_event_mouse_move>    on_mouse_move;
-        callback<window_event_mouse_press>   on_mouse_press;
-        callback<window_event_mouse_release> on_mouse_release;
+        EventCallback<WindowEventCreate>       on_create;
+        EventCallback<WindowEventPaint>        on_paint;
+        EventCallback<WindowEventResize>       on_resize;
+        EventCallback<WindowEventFocus>        on_lost_focus;
+        EventCallback<WindowEventFocus>        on_gain_focus;
+        EventCallback<WindowEventWantClose>    on_want_close;
+        EventCallback<WindowEventKeydown>      on_keydown;
+        EventCallback<WindowEventKeyup>        on_keyup;
+        EventCallback<WindowEventChar>         on_char;
+        EventCallback<WindowEventMouseMove>    on_mouse_move;
+        EventCallback<WindowEventMousePress>   on_mouse_press;
+        EventCallback<WindowEventMouseRelease> on_mouse_release;
     #else
-        std::function<void (const window_event_create&)>        on_create;
-        std::function<void (const window_event_paint&)>         on_paint;
-        std::function<void (const window_event_resize&)>        on_resize;
-        std::function<void (const window_event_focus&)>         on_lost_focus;
-        std::function<void (const window_event_focus&)>         on_gain_focus;
-        std::function<void (const window_event_want_close&)>    on_want_close;
-        std::function<void (const window_event_keydown&)>       on_keydown;
-        std::function<void (const window_event_keyup&)>         on_keyup;
-        std::function<void (const window_event_char&)>          on_char;
-        std::function<void (const window_event_mouse_move&)>    on_mouse_move;
-        std::function<void (const window_event_mouse_press&)>   on_mouse_press;
-        std::function<void (const window_event_mouse_release&)> on_mouse_release;
+        std::function<void (const WindowEventCreate&)>       on_create;
+        std::function<void (const WindowEventPaint&)>        on_paint;
+        std::function<void (const WindowEventResize&)>       on_resize;
+        std::function<void (const WindowEventFocus&)>        on_lost_focus;
+        std::function<void (const WindowEventFocus&)>        on_gain_focus;
+        std::function<void (const WindowEventWantClose&)>    on_want_close;
+        std::function<void (const WindowEventKeydown&)>      on_keydown;
+        std::function<void (const WindowEventKeyup&)>        on_keyup;
+        std::function<void (const WindowEventChar&)>         on_char;
+        std::function<void (const WindowEventMouseMove&)>    on_mouse_move;
+        std::function<void (const WindowEventMousePress&)>   on_mouse_press;
+        std::function<void (const WindowEventMouseRelease&)> on_mouse_release;
     #endif
 
-        window();
-
-       ~window();
+        Window();
+       ~Window();
 
         // create the window with the given dimension and flags.
         // window must not exist before.
@@ -94,63 +94,69 @@ namespace wdk
         // If you're planning on using this window for OpenGL drawing
         // you should pass in a visual id that identifies your OpenGL ćonfiguration.
         // If visualid is 0 the window may not be compatible with your opengl config.
-        void create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+        void Create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
             bool can_resize = true, bool has_border = true, bool initially_visible = true);
 
         // hide the window if currently visible. (shown)
-        void hide();
+        void Hide();
 
         // show the window if currently hidden.
-        void show();
+        void Show();
 
         // destroy the window. window must have been created before.
-        void destroy();
+        void Destroy();
 
         // invalide the window contents.
         // erases the window contents with the background brush and eventually
         // generates a paint event.
-        void invalidate();
+        void Invalidate();
 
         // move window to x,y position with respect to it's parent. (desktop)
         // precondition: not fullscreen
         // precondition: window has been created
-        void move(int x, int y);
+        void Move(int x, int y);
 
         // toggle between fullscreen/windowed mode.
-        void set_fullscreen(bool fullscreen);
+        void SetFullscreen(bool fullscreen);
 
         // set input focus to this window
-        void set_focus();
+        void SetFocus();
 
         // set new drawable surface size
-        void set_size(uint_t width, uint_t height);
+        void SetSize(uint_t width, uint_t height);
 
         // set new character encoding for character events
-        void set_encoding(encoding e);
+        void SetEncoding(Encoding e);
 
         // process the given event.
         // returns true if event was consumed otherwise false.
-        bool process_event(const native_event_t& ev);
+        bool ProcessEvent(const native_event_t& ev);
 
         // get the current drawable window surface height
-        uint_t surface_height() const;
+        uint_t GetSurfaceHeight() const;
 
         // get the current drawable window surface width
-        uint_t surface_width() const;
+        uint_t GetSurfaceWidth() const;
 
         // returns true if window currently exists. otherwise false.
-        bool exists() const;
+        bool DoesExist() const;
 
-        bool is_fullscreen() const;
+        // Returns true if window is currently in fullscreen mode
+        // otherwise returns false.
+        bool IsFullscreen() const;
 
         // get the current character encoding. the default is utf8
-        encoding get_encoding() const;
+        Encoding GetEncoding() const;
 
         // get native window handle
-        native_window_t handle() const;
+        native_window_t GetNativeHandle() const;
 
-        std::pair<uint_t, uint_t> min_size() const;
-        std::pair<uint_t, uint_t> max_size() const;
+        // Get the dimensions for the window with smallest possible
+        // dimensions.
+        std::pair<uint_t, uint_t> GetMinSize() const;
+        // Get the dimensions for the window with biggest possible
+        // dimensions.
+        std::pair<uint_t, uint_t> GetMaxSize() const;
     private:
         struct impl;
 

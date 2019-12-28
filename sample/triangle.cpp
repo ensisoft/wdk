@@ -21,22 +21,11 @@
 //  THE SOFTWARE.
 
 #ifdef SAMPLE_GLES
-#    define GL_GLEXT_PROTOTYPES
 #  include <GLES2/gl2.h>
 #else
-#  ifndef _WIN32
-#    define GL_GLEXT_PROTOTYPES
-#  endif
 #  include "glcorearb.h"
 #endif
-#include <wdk/window_listener.h>
-#include <wdk/window_events.h>
-#include <wdk/window.h>
-#include <wdk/system.h>
-#include <wdk/opengl/context.h>
-#include <wdk/opengl/surface.h>
-#include <wdk/opengl/config.h>
-#include <wdk/opengl/opengl.h>
+
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -45,98 +34,102 @@
 #include <cassert>
 #include <cstring>
 
+#include "wdk/window_listener.h"
+#include "wdk/events.h"
+#include "wdk/window.h"
+#include "wdk/system.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/surface.h"
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/opengl.h"
+
+
 #define GL_ERR_CLEAR \
-    while (glGetError()) \
+    while (gl::GetError()) \
 
 #define GL_CHECK(statement) \
     statement; \
     do { \
-        const int err = glGetError(); \
+        const int err = gl::GetError(); \
         if (err != GL_NO_ERROR) { \
             printf("GL error 0x%04x @ %s,%d\n", err, __FILE__, __LINE__); \
             abort(); \
         }\
     } while(0)
 
-#if !defined(SAMPLE_GLES) && !defined(GL_GLEXT_PROTOTYPES)
-PFNGLCREATEPROGRAMPROC           glCreateProgram;
-PFNGLCREATESHADERPROC            glCreateShader;
-PFNGLSHADERSOURCEPROC            glShaderSource;
-PFNGLGETERRORPROC                glGetError;
-PFNGLCOMPILESHADERPROC           glCompileShader;
-PFNGLDETACHSHADERPROC            glAttachShader;
-PFNGLDELETESHADERPROC            glDeleteShader;
-PFNGLLINKPROGRAMPROC             glLinkProgram;
-PFNGLUSEPROGRAMPROC              glUseProgram;
-PFNGLVALIDATEPROGRAMPROC         glValidateProgram;
-PFNGLCLEARCOLORPROC              glClearColor;
-PFNGLCLEARPROC                   glClear;
-PFNGLVIEWPORTPROC                glViewport;
-PFNGLDRAWARRAYSPROC              glDrawArrays;
-PFNGLGETATTRIBLOCATIONPROC       glGetAttribLocation;
-PFNGLVERTEXATTRIBPOINTERPROC     glVertexAttribPointer;
-PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
-PFNGLGETSTRINGPROC               glGetString;
-PFNGLGETUNIFORMLOCATIONPROC      glGetUniformLocation;
-PFNGLUNIFORM1FPROC               glUniform1f;
-PFNGLGETPROGRAMIVPROC            glGetProgramiv;
-PFNGLGETSHADERIVPROC             glGetShaderiv;
-PFNGLGETPROGRAMINFOLOGPROC       glGetProgramInfoLog;
+namespace gl {
+PFNGLCREATEPROGRAMPROC           CreateProgram;
+PFNGLCREATESHADERPROC            CreateShader;
+PFNGLSHADERSOURCEPROC            ShaderSource;
+PFNGLGETERRORPROC                GetError;
+PFNGLCOMPILESHADERPROC           CompileShader;
+PFNGLDETACHSHADERPROC            AttachShader;
+PFNGLDELETESHADERPROC            DeleteShader;
+PFNGLLINKPROGRAMPROC             LinkProgram;
+PFNGLUSEPROGRAMPROC              UseProgram;
+PFNGLVALIDATEPROGRAMPROC         ValidateProgram;
+PFNGLCLEARCOLORPROC              ClearColor;
+PFNGLCLEARPROC                   Clear;
+PFNGLVIEWPORTPROC                Viewport;
+PFNGLDRAWARRAYSPROC              DrawArrays;
+PFNGLGETATTRIBLOCATIONPROC       GetAttribLocation;
+PFNGLVERTEXATTRIBPOINTERPROC     VertexAttribPointer;
+PFNGLENABLEVERTEXATTRIBARRAYPROC EnableVertexAttribArray;
+PFNGLGETSTRINGPROC               GetString;
+PFNGLGETUNIFORMLOCATIONPROC      GetUniformLocation;
+PFNGLUNIFORM1FPROC               Uniform1f;
+PFNGLGETPROGRAMIVPROC            GetProgramiv;
+PFNGLGETSHADERIVPROC             GetShaderiv;
+PFNGLGETPROGRAMINFOLOGPROC       GetProgramInfoLog;
+} // gl
 
 template<typename T>
-T resolve(const char* name, const wdk::opengl& opengl)
+T resolve(const char* name, const wdk::OpenGL& opengl)
 {
     printf("Resolving %s ", name);
-
-    T ret = (T)opengl.resolve(name);
-
+    T ret = (T)opengl.Resolve(name);
     printf(" ... %p\n", (void*)ret);
-
     return ret;
 }
 
-#define RESOLVE(x) x = resolve<decltype(x)>(#x, opengl)
+#define RESOLVE(x) gl::x = resolve<decltype(gl::x)>("gl"#x, opengl)
 
-void resolve(const wdk::opengl& opengl)
+void ResolveEntryPoints(const wdk::OpenGL& opengl)
 {
-    RESOLVE(glCreateProgram);
-    RESOLVE(glCreateShader);
-    RESOLVE(glShaderSource);
-    RESOLVE(glGetError);
-    RESOLVE(glCompileShader);
-    RESOLVE(glAttachShader);
-    RESOLVE(glDeleteShader);
-    RESOLVE(glLinkProgram);
-    RESOLVE(glUseProgram);
-    RESOLVE(glValidateProgram);
-    RESOLVE(glClearColor);
-    RESOLVE(glClear);
-    RESOLVE(glViewport);
-    RESOLVE(glDrawArrays);
-    RESOLVE(glGetAttribLocation);
-    RESOLVE(glVertexAttribPointer);
-    RESOLVE(glEnableVertexAttribArray);
-    RESOLVE(glGetString);
-    RESOLVE(glGetUniformLocation);
-    RESOLVE(glUniform1f);
-    RESOLVE(glGetString);
-    RESOLVE(glGetProgramiv);
-    RESOLVE(glGetShaderiv);
-    RESOLVE(glGetProgramInfoLog);
+    RESOLVE(CreateProgram);
+    RESOLVE(CreateShader);
+    RESOLVE(ShaderSource);
+    RESOLVE(GetError);
+    RESOLVE(CompileShader);
+    RESOLVE(AttachShader);
+    RESOLVE(DeleteShader);
+    RESOLVE(LinkProgram);
+    RESOLVE(UseProgram);
+    RESOLVE(ValidateProgram);
+    RESOLVE(ClearColor);
+    RESOLVE(Clear);
+    RESOLVE(Viewport);
+    RESOLVE(DrawArrays);
+    RESOLVE(GetAttribLocation);
+    RESOLVE(VertexAttribPointer);
+    RESOLVE(EnableVertexAttribArray);
+    RESOLVE(GetString);
+    RESOLVE(GetUniformLocation);
+    RESOLVE(Uniform1f);
+    RESOLVE(GetString);
+    RESOLVE(GetProgramiv);
+    RESOLVE(GetShaderiv);
+    RESOLVE(GetProgramInfoLog);
 }
-#else
-void resolve(const wdk::opengl&) {}
-#endif
 
-class triangle : public wdk::window_listener
+class RotatingTriangle : public wdk::WindowListener
 {
 public:
-    triangle(wdk::window& win) : program_(0), run_(true), win_(win)
+    RotatingTriangle(wdk::Window& win) : mWindow(win)
     {
-        program_ = glCreateProgram();
-
-        GLuint vert = glCreateShader(GL_VERTEX_SHADER);
-        GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
+        mProgram = gl::CreateProgram();
+        GLuint vert = gl::CreateShader(GL_VERTEX_SHADER);
+        GLuint frag = gl::CreateShader(GL_FRAGMENT_SHADER);
 
 #if defined(SAMPLE_GLES)
         const char* v_src =
@@ -187,11 +180,11 @@ public:
           "}                                                             \n"
           "\n";
 #endif
-        GL_CHECK(glShaderSource(vert, 1, &v_src, NULL));
-        GL_CHECK(glCompileShader(vert));
+        GL_CHECK(gl::ShaderSource(vert, 1, &v_src, NULL));
+        GL_CHECK(gl::CompileShader(vert));
 
         GLint compile = 0;
-        GL_CHECK(glGetShaderiv(vert, GL_COMPILE_STATUS, &compile));
+        GL_CHECK(gl::GetShaderiv(vert, GL_COMPILE_STATUS, &compile));
         if (compile == 1)
         {
             std::cout << "Vertex shader compiled OK\n";
@@ -201,9 +194,9 @@ public:
             std::cout << "Vertex shader compile failed. :(\n";
         }
 
-        GL_CHECK(glShaderSource(frag, 1, &f_src, NULL));
-        GL_CHECK(glCompileShader(frag));
-        GL_CHECK(glGetShaderiv(frag, GL_COMPILE_STATUS, &compile));
+        GL_CHECK(gl::ShaderSource(frag, 1, &f_src, NULL));
+        GL_CHECK(gl::CompileShader(frag));
+        GL_CHECK(gl::GetShaderiv(frag, GL_COMPILE_STATUS, &compile));
         if (compile == 1)
         {
             std::cout << "Fragment shader compiled OK\n";
@@ -213,12 +206,12 @@ public:
             std::cout << "Fragment shader compile failed. :(\n";
         }
 
-        GL_CHECK(glAttachShader(program_, vert));
-        GL_CHECK(glAttachShader(program_, frag));
-        GL_CHECK(glLinkProgram(program_));
+        GL_CHECK(gl::AttachShader(mProgram, vert));
+        GL_CHECK(gl::AttachShader(mProgram, frag));
+        GL_CHECK(gl::LinkProgram(mProgram));
 
         GLint link = 0;
-        GL_CHECK(glGetProgramiv(program_, GL_LINK_STATUS, &link));
+        GL_CHECK(gl::GetProgramiv(mProgram, GL_LINK_STATUS, &link));
         if (link == 1)
         {
             std::cout << "Program linked OK\n";
@@ -228,17 +221,16 @@ public:
             std::cout << "Program link failed :(\n";
             std::string info;
             info.resize(1024);
-            GL_CHECK(glGetProgramInfoLog(program_, 1024, NULL, &info[0]));
+            GL_CHECK(gl::GetProgramInfoLog(mProgram, 1024, NULL, &info[0]));
             std::cout << info;
         }
 
-        GL_CHECK(glUseProgram(program_));
-
-        GL_CHECK(glDeleteShader(vert));
-        GL_CHECK(glDeleteShader(frag));
+        GL_CHECK(gl::UseProgram(mProgram));
+        GL_CHECK(gl::DeleteShader(vert));
+        GL_CHECK(gl::DeleteShader(frag));
     }
 
-    void render()
+    void Render()
     {
         typedef std::chrono::steady_clock clock;
 #if _MSC_VER == 1800 // VS2013 has this bug
@@ -262,114 +254,114 @@ public:
 
         rotation += seconds.count() * velocity;
 
-        GL_ERR_CLEAR;
-
-        GL_CHECK(glClearColor(0.0f, 0.0f, 0.2f, 1.0f));
-        GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
         struct vertex {
             float x, y;
         };
         const vertex triangle[3] = {{0, 1}, {-1, -1}, {1, -1}};
 
-        GLint pos = glGetAttribLocation(program_, "a_position");
-        GLint rot = glGetUniformLocation(program_, "u_rot");
+        const GLint pos = gl::GetAttribLocation(mProgram, "a_position");
+        const GLint rot = gl::GetUniformLocation(mProgram, "u_rot");
 
-        GL_CHECK(glVertexAttribPointer(pos, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
-        GL_CHECK(glEnableVertexAttribArray(pos));
-        GL_CHECK(glUniform1f(rot, rotation));
-
-        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 3));
+        GL_ERR_CLEAR;
+        GL_CHECK(gl::ClearColor(0.0f, 0.0f, 0.2f, 1.0f));
+        GL_CHECK(gl::Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+        GL_CHECK(gl::VertexAttribPointer(pos, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), triangle));
+        GL_CHECK(gl::EnableVertexAttribArray(pos));
+        GL_CHECK(gl::Uniform1f(rot, rotation));
+        GL_CHECK(gl::DrawArrays(GL_TRIANGLES, 0, 3));
 
         stamp = now;
 
     }
 
-    void on_create(const wdk::window_event_create& create)
+    void OnCreate(const wdk::WindowEventCreate& create)
     {
-        GL_CHECK(glViewport(0, 0, create.width, create.height));
+        GL_CHECK(gl::Viewport(0, 0, create.width, create.height));
     }
-    void on_resize(const wdk::window_event_resize& resize)
+    void OnResize(const wdk::WindowEventResize& resize)
     {
-        GL_CHECK(glViewport(0, 0, resize.width, resize.height));
+        GL_CHECK(gl::Viewport(0, 0, resize.width, resize.height));
     }
-    void on_keydown(const wdk::window_event_keydown& key)
+    void OnKeydown(const wdk::WindowEventKeydown& key)
     {
-        if (key.symbol == wdk::keysym::escape)
-            run_ = false;
-        else if (key.symbol == wdk::keysym::space)
-            win_.set_fullscreen(!win_.is_fullscreen());
+        if (key.symbol == wdk::Keysym::Escape)
+            mRunning = false;
+        else if (key.symbol == wdk::Keysym::Space)
+            mWindow.SetFullscreen(!mWindow.IsFullscreen());
     }
 
-    bool running() const
+    bool IsRunning() const
     {
-        return run_;
+        return mRunning;
     }
 private:
-    GLint program_;
-    bool run_;
-    wdk::window& win_;
+    GLint mProgram = 0;
+    bool mRunning  = true;
+    wdk::Window& mWindow;
 
 };
 
 
 int launch(int argc, char* argv[])
 {
-    auto msaa = wdk::config::multisampling::none;
+    auto msaa = wdk::Config::Multisampling::None;
     bool srgb = false;
 
     for (int i=1; i<argc; ++i)
     {
         if (!std::strcmp(argv[i], "--msaa4"))
-            msaa = wdk::config::multisampling::msaa4;
+            msaa = wdk::Config::Multisampling::MSAA4;
         else if (!std::strcmp(argv[i], "--msaa8"))
-            msaa = wdk::config::multisampling::msaa8;
+            msaa = wdk::Config::Multisampling::MSAA8;
         else if (!std::strcmp(argv[i], "--msaa16"))
-            msaa = wdk::config::multisampling::msaa16;
+            msaa = wdk::Config::Multisampling::MSAA16;
 
         if (!std::strcmp(argv[i], "--srgb"))
           srgb = true;
     }
 
     // start with opengl with default config
-    wdk::config::attributes attr = wdk::config::DEFAULT;
+    wdk::Config::Attributes attr = wdk::Config::DEFAULT;
     attr.sampling    = msaa;
     attr.srgb_buffer = srgb;
 
-    wdk::opengl gl(attr);
+    wdk::OpenGL gl(attr);
 
-    // resolve function pointers if needed
-    resolve(gl);
+    // resolve function pointers 
+    ResolveEntryPoints(gl);
 
-    printf("OpenGL initialized:\n%s\n%s\n%s\n", glGetString(GL_VENDOR), glGetString(GL_VERSION), glGetString(GL_RENDERER));
+    printf("OpenGL initialized:\n%s\n%s\n%s\n", 
+        gl::GetString(GL_VENDOR), 
+        gl::GetString(GL_VERSION), 
+        gl::GetString(GL_RENDERER));
 
     // rendering window
-    wdk::window win;
+    wdk::Window win;
 
     // model and event listener
-    triangle model(win);
+    RotatingTriangle model(win);
 
     // listen to the events
-    connect(win, model);
+    Connect(win, model);
 
-    win.create("Triangle", 600, 600, gl.visualid(),
+    win.Create("Triangle", 600, 600, gl.GetVisualID(),
       true, true, true);
 
-    gl.attach(win);
+    gl.Attach(win);
 
     wdk::native_event_t event;
 
-    while (model.running())
+    while (model.IsRunning())
     {
-        model.render();
+        model.Render();
 
-        gl.swap();
+        gl.SwapBuffers();
 
-        if (wdk::peek_event(event))
-            win.process_event(event);
+        if (wdk::PeekEvent(event))
+            win.ProcessEvent(event);
     }
 
-    gl.detach();
+    gl.Detach();
 
     return 0;
 }

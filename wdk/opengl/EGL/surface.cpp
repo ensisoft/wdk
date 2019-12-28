@@ -20,18 +20,15 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-// for clang in SublimeText2
-#ifndef WDK_MOBILE
-#  define WDK_MOBILE
-#endif
-
 #include <EGL/egl.h>
+
 #include <stdexcept>
-#include <wdk/system.h>
-#include <wdk/window.h>
-#include <wdk/pixmap.h>
-#include "../surface.h"
-#include "../config.h"
+
+#include "wdk/system.h"
+#include "wdk/window.h"
+#include "wdk/pixmap.h"
+#include "wdk/opengl/surface.h"
+#include "wdk/opengl/config.h"
 #include "egldisplay.h"
 
 // EGK_KHR_gl_colorspace.txt
@@ -50,72 +47,73 @@
 
 namespace wdk 
 {
-struct surface::impl {
+struct Surface::impl {
     EGLDisplay display;
     EGLSurface surface;
 };
 
-surface::surface(const config& conf, const window& win) : pimpl_(new impl)
+Surface::Surface(const Config& conf, const Window& win) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<EGLint> attribs;
-    if (conf.srgb_buffer())
+    if (conf.sRGB())
     { 
         attribs.push_back(EGL_GL_COLORSPACE_KHR);
         attribs.push_back(EGL_GL_COLORSPACE_SRGB_KHR);
     }
     attribs.push_back(EGL_NONE);
 
-    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.handle(), win.handle(), &attribs[0]);
+    pimpl_->surface = eglCreateWindowSurface(pimpl_->display, conf.GetNativeHandle(), win.GetNativeHandle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create window surface failed");
 }
 
-surface::surface(const config& conf, const pixmap& px) : pimpl_(new impl)
+Surface::Surface(const Config& conf, const Pixmap& px) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<EGLint> attribs;
-    if (conf.srgb_buffer())
+    if (conf.sRGB())
     {
         attribs.push_back(EGL_GL_COLORSPACE_KHR);
         attribs.push_back(EGL_GL_COLORSPACE_SRGB_KHR);
     }
     attribs.push_back(EGL_NONE);
 
-    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, conf.handle(), px.handle(), &attribs[0]);
+    pimpl_->surface = eglCreatePixmapSurface(pimpl_->display, 
+        conf.GetNativeHandle(), px.GetNativeHandle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create pixmap surface failed");
 }
 
-surface::surface(const config& conf, uint_t width, uint_t height) : pimpl_(new impl)
+Surface::Surface(const Config& conf, uint_t width, uint_t height) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<EGLint> attribs {
         EGL_HEIGHT, (EGLint)height,
 	EGL_WIDTH,  (EGLint)width
     };
 
-    if (conf.srgb_buffer())
+    if (conf.sRGB())
     {
         attribs.push_back(EGL_GL_COLORSPACE_KHR);
         attribs.push_back(EGL_GL_COLORSPACE_SRGB_KHR);
     } 
     attribs.push_back(EGL_NONE);
 
-    pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.handle(), &attribs[0]);
+    pimpl_->surface = eglCreatePbufferSurface(pimpl_->display, conf.GetNativeHandle(), &attribs[0]);
     if (!pimpl_->surface)
         throw std::runtime_error("create offscreen surface failed");
 }
 
-surface::~surface()
+Surface::~Surface()
 {
-    dispose();
+    Dispose();
 }
 
-uint_t surface::width() const
+uint_t Surface::GetWidth() const
 {
     EGLint width = 0;
 
@@ -124,7 +122,7 @@ uint_t surface::width() const
     return (uint_t)width;
 }
 
-uint_t surface::height() const
+uint_t Surface::GetHeight() const
 {
     EGLint height = 0;
 
@@ -133,12 +131,12 @@ uint_t surface::height() const
     return (uint_t)height;
 }
 
-gl_surface_t surface::handle() const
+gl_surface_t Surface::GetNativeHandle() const
 {
     return gl_surface_t { pimpl_->surface };
 }
 
-void surface::dispose()
+void Surface::Dispose()
 {
     if (pimpl_->surface != EGL_NO_SURFACE)
     {

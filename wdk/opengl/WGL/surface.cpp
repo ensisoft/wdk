@@ -21,11 +21,13 @@
 //  THE SOFTWARE.
 
 #include <windows.h>
+
 #include <cassert>
-#include <wdk/window.h>
-#include <wdk/pixmap.h>
-#include "../surface.h"
-#include "../config.h"
+
+#include "wdk/window.h"
+#include "wdk/pixmap.h"
+#include "wdk/opengl/surface.h"
+#include "wdk/opengl/config.h"
 #include "fakecontext.h"
 
 namespace {
@@ -34,24 +36,24 @@ namespace {
 
 namespace wdk
 {
-struct surface::impl {
+struct Surface::impl {
     HDC hdc;
     surface_type type;
     uint_t width;
     uint_t height;
 };
 
-surface::surface(const config& conf, const window& win)
+Surface::Surface(const Config& conf, const Window& win)
 {
     pimpl_.reset(new impl);
-    pimpl_->hdc    = GetDC(win.handle());
+    pimpl_->hdc    = GetDC(win.GetNativeHandle());
     pimpl_->width  = 0;
     pimpl_->height = 0;
     pimpl_->type   = surface_type::window;
 
     // grab the pixelformat descriptor that the configuration has
     // and then resolve that to the HDC specific pixel format index.
-    const PIXELFORMATDESCRIPTOR* desc = conf.handle();
+    const PIXELFORMATDESCRIPTOR* desc = conf.GetNativeHandle();
 
     // note: this PixelFormat id can be different than what the
     // "visualid" of the config object is since it's per HDC
@@ -66,32 +68,32 @@ surface::surface(const config& conf, const window& win)
     // Windows allows us to do this only once!
     if (!SetPixelFormat(pimpl_->hdc, PixelFormat, desc))
     {
-        ReleaseDC(win.handle(), pimpl_->hdc);
+        ReleaseDC(win.GetNativeHandle(), pimpl_->hdc);
         throw std::runtime_error("set pixelformat failed");
     }
 }
 
-surface::surface(const config& conf, const pixmap& px)
+Surface::Surface(const Config& conf, const Pixmap& px)
 {
     assert(!"not supported");
 }
 
-surface::surface(const config& conf, uint_t width, uint_t height)
+Surface::Surface(const Config& conf, uint_t width, uint_t height)
 {
     assert(!"not implemented");
 }
 
-surface::~surface()
+Surface::~Surface()
 {
-    dispose();
+    Dispose();
 }
 
-gl_surface_t surface::handle() const
+gl_surface_t Surface::GetNativeHandle() const
 {
     return pimpl_->hdc;
 }
 
-uint_t surface::width() const
+uint_t Surface::GetWidth() const
 {
     if (pimpl_->type != surface_type::window)
         return pimpl_->width;
@@ -103,7 +105,7 @@ uint_t surface::width() const
     return rc.right;
 }
 
-uint_t surface::height() const
+uint_t Surface::GetHeight() const
 {
     if (pimpl_->type != surface_type::window)
         return pimpl_->height;
@@ -115,7 +117,7 @@ uint_t surface::height() const
     return rc.bottom;
 }
 
-void surface::dispose()
+void Surface::Dispose()
 {
     if (!pimpl_->hdc)
         return;

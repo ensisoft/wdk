@@ -142,21 +142,24 @@ TARGET_LINK_LIBRARIES(SimpleEventSample wdk_system)
 
 # Open a window and draw using "big" desktop GL
 ADD_EXECUTABLE(DesktopGLSample sample/triangle.cpp)
-TARGET_LINK_LIBRARIES(DesktopGLSample
-    wdk_system wdk_desktop_gl)
+TARGET_LINK_LIBRARIES(DesktopGLSample wdk_system wdk_desktop_gl)
 
 
 # Open a window and draw using "small" GL
 ADD_EXECUTABLE(MobileGLSample sample/triangle.cpp)
-TARGET_COMPILE_DEFINITIONS(MobileGLSample PRIVATE "SAMPLE_GLES")
-TARGET_LINK_LIBRARIES(MobileGLSample
-    wdk_system wdk_mobile_gl)
+TARGET_COMPILE_DEFINITIONS(MobileGLSample PRIVATE "SAMPLE_GLES" "WDK_MOBILE")
+TARGET_LINK_LIBRARIES(MobileGLSample wdk_system wdk_mobile_gl)
 
 ADD_EXECUTABLE(QueryTool sample/query_tool.cpp)
-TARGET_LINK_LIBRARIES(QueryTool 
-    wdk_system wdk_desktop_gl)
+TARGET_LINK_LIBRARIES(QueryTool  wdk_system wdk_desktop_gl)
 
 # Build unit tests
 ADD_EXECUTABLE(UnitTestSystem wdk/unit_test/unit_test_wdk.cpp)
 TARGET_LINK_LIBRARIES(UnitTestSystem wdk_system)
 
+ADD_EXECUTABLE(UnitTestGL wdk/unit_test/unit_test_wdk_gl.cpp)
+TARGET_LINK_LIBRARIES(UnitTestGL wdk_system wdk_desktop_gl)
+
+ADD_EXECUTABLE(UnitTestGLES wdk/unit_test/unit_test_wdk_gl.cpp)
+TARGET_COMPILE_DEFINITIONS(UnitTestGLES PRIVATE "TEST_GLES" "WDK_MOBILE")
+TARGET_LINK_LIBRARIES(UnitTestGLES wdk_system wdk_mobile_gl)

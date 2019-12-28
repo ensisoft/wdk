@@ -33,18 +33,18 @@
 namespace wdk
 {
 
-struct pixmap::impl {
-    Pixmap handle;
-    uint_t width;
-    uint_t height;
-    uint_t depth;
+struct Pixmap::impl {
+    ::Pixmap handle = 0;
+    uint_t width = 0;
+    uint_t height = 0;
+    uint_t depth  = 0;
 };
 
-pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
+Pixmap::Pixmap(uint_t width, uint_t height, uint_t visualid)
 {
     assert(width && height);
 
-    Display* dpy = get_display_handle();
+    Display* dpy = GetNativeDisplayHandle();
 
     XVisualInfo vistemplate = {0};
     vistemplate.visualid    = visualid ? visualid : 0;
@@ -60,9 +60,9 @@ pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
 
     XFree(visinfo);
 
-    factory<Pixmap> px_factory(dpy);
+    factory<::Pixmap> px_factory(dpy);
 
-    Pixmap px = px_factory.create(std::bind(XCreatePixmap, std::placeholders::_1, RootWindow(dpy, DefaultScreen(dpy)), width, height, bit_depth));
+    ::Pixmap px = px_factory.create(std::bind(XCreatePixmap, std::placeholders::_1, RootWindow(dpy, DefaultScreen(dpy)), width, height, bit_depth));
     if (px_factory.has_error())
         throw std::runtime_error("failed to create pixmap");
 
@@ -85,31 +85,31 @@ pixmap::pixmap(uint_t width, uint_t height, uint_t visualid)
 #endif
 }
 
-pixmap::~pixmap()
+Pixmap::~Pixmap()
 {
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XFreePixmap(d, pimpl_->handle);
 }
 
-native_pixmap_t pixmap::handle() const
+native_pixmap_t Pixmap::GetNativeHandle() const
 {
     return native_pixmap_t {pimpl_->handle};
 }
 
-uint_t pixmap::width() const
+uint_t Pixmap::GetWidth() const
 {
     return pimpl_->width;
 }
 
-uint_t pixmap::height() const
+uint_t Pixmap::GetHeight() const
 {
     return pimpl_->height;
 }
 
-uint_t pixmap::depth() const
+uint_t Pixmap::GetBitDepth() const
 {
-    return pimpl_->depth;
+    return pimpl_->depth * 8;
 }
 
 } // wdk

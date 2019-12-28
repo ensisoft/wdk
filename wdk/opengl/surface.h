@@ -23,41 +23,50 @@
 #pragma once
 
 #include <memory>
-#include <wdk/utility.h>
-#include <wdk/types.h>
+
+#include "wdk/types.h"
 #include "types.h"
 
 namespace wdk
 {
-    class window;
-    class pixmap;
-    class config;
+    class Window;
+    class Pixmap;
+    class Config;
 
-    // rendering surface.
-    class surface : noncopyable
+    // OpenGL rendering surface can be constructed for a window
+    // system created object such as Window or Pixmap or
+    // it can be created in a headless fashion where a OpenGL implementation
+    // provided rendering surface is used.
+    class Surface
     {
     public:
-        // create a rendering surface that renders to the given window.
-        surface(const config& conf, const window& win);
+        // Create a rendering surface that renders to the given window.
+        Surface(const Config& conf, const Window& win);
 
-        // create a rendering surface that renders to the given pixmap.
-        surface(const config& conf, const pixmap& px);
+        // Create a rendering surface that renders to the given pixmap.
+        Surface(const Config& conf, const Pixmap& px);
 
-        // create an offscreen width x height px rendering surface.
-        surface(const config& conf, uint_t width, uint_t height);
+        // Create an offscreen width x height px rendering surface.
+        Surface(const Config& conf, uint_t width, uint_t height);
 
-       ~surface();
+       ~Surface();
 
-        // get surface width
-        uint_t width() const;
+        // Get surface width.
+        uint_t GetWidth() const;
 
-        // get surface height
-        uint_t height() const;
+        // Get surface height.
+        uint_t GetHeight() const;
 
-        // get implemntation specific handle
-        gl_surface_t handle() const;
+        // Get implementation specific native handle.
+        // On GLX this is GLXDrawable.
+        // On EGL this is EGLSurface.
+        // On WGL this is HDC.
+        gl_surface_t GetNativeHandle() const;
 
-        void dispose();
+        // Destroy and dispose of the rendering surface.
+        // After having called this the Surface is no longer
+        // valid rendering target.
+        void Dispose();
     private:
         struct impl;
 

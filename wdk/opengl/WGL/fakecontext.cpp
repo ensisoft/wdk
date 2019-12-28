@@ -7,14 +7,14 @@
 namespace wgl
 {
 
-std::map<const wdk::config*, std::weak_ptr<FakeContext>> gFakes;
+std::map<const wdk::Config*, std::weak_ptr<FakeContext>> gFakes;
 
-void stashFakeContext(const wdk::config* conf, std::shared_ptr<FakeContext> ctx)
+void StashFakeContext(const wdk::Config* conf, std::shared_ptr<FakeContext> ctx)
 {
     gFakes[conf] = ctx;
 }
 
-void fetchFakeContext(const wdk::config* conf, std::shared_ptr<FakeContext>& ctx)
+void FetchFakeContext(const wdk::Config* conf, std::shared_ptr<FakeContext>& ctx)
 {
     auto it = gFakes.find(conf);
     assert(it != gFakes.end());
@@ -25,7 +25,7 @@ void fetchFakeContext(const wdk::config* conf, std::shared_ptr<FakeContext>& ctx
     ctx = weak.lock();
 }
 
-void eraseFakeContext(const wdk::config* conf)
+void EraseFakeContext(const wdk::Config* conf)
 {
     gFakes.erase(conf);
 }

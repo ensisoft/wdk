@@ -124,16 +124,33 @@ namespace wdk
 {
 
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, true, false, {true, false, false}, multisampling::none};
+Config::Attributes GetDefaultAttrs()
+{
+    Config::Attributes attrs;
+    attrs.red_size = 8;
+    attrs.green_size = 8;
+    attrs.blue_size = 8;
+    attrs.alpha_size = 8;
+    attrs.depth_size = 16;
+    attrs.stencil_size = 8;
+    attrs.double_buffer = true;
+    attrs.srgb_buffer = false;
+    attrs.surfaces.window = true;
+    attrs.sampling = Config::Multisampling::None;
+    return attrs;
+}
 
-struct config::impl {
+Config::Attributes Config::DONT_CARE;
+Config::Attributes Config::DEFAULT = GetDefaultAttrs(); 
+
+struct Config::impl {
     PIXELFORMATDESCRIPTOR desc;
     bool srgb;
     std::shared_ptr<wgl::FakeContext> fake;
+    int format;
 };
 
-config::config(const attributes& attrs) : pimpl_(new impl)
+Config::Config(const Attributes& attrs) : pimpl_(new impl)
 {
     // Create the dummy context first, so we can query it for better WGL functions
     // for creating the actual context later.
@@ -153,7 +170,7 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     desc.cStencilBits = attrs.stencil_size ? attrs.stencil_size : 8;
     
     auto fake = std::make_shared<wgl::FakeContext>(desc);
-    auto wglChoosePixelFormat = fake->resolve<wglChoosePixelFormatARBProc>("wglChoosePixelFormatARB");
+    auto wglChoosePixelFormat = fake->Resolve<wglChoosePixelFormatARBProc>("wglChoosePixelFormatARB");
     if (!wglChoosePixelFormat)
         throw std::runtime_error("unable to choose framebuffer format. no wglChoosePixelFormatARB");
 
@@ -182,14 +199,14 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
     set_if(criteria, WGL_DRAW_TO_PBUFFER_ARB, (uint_t)attrs.surfaces.pbuffer);
 
-    if (attrs.sampling != multisampling::none)
+    if (attrs.sampling != Multisampling::None)
     {
         set_if(criteria, WGL_SAMPLE_BUFFERS_ARB, 1);
-        if (attrs.sampling == multisampling::msaa4)
+        if (attrs.sampling == Multisampling::MSAA4)
             set_if(criteria, WGL_SAMPLES_ARB, 4);
-        else if (attrs.sampling == multisampling::msaa8)
+        else if (attrs.sampling == Multisampling::MSAA8)
             set_if(criteria, WGL_SAMPLES_ARB, 8);            
-        else if (attrs.sampling == multisampling::msaa16)
+        else if (attrs.sampling == Multisampling::MSAA16)
             set_if(criteria, WGL_SAMPLES_ARB, 16);                        
     }
 
@@ -198,39 +215,38 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     int pixelformat  = 0;
     UINT num_matches = 0;
-    if (!wglChoosePixelFormat(fake->getDC(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
+    if (!wglChoosePixelFormat(fake->GetDC(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
         throw std::runtime_error("no matching framebuffer configuration available");
 
-    pimpl_->srgb        = attrs.srgb_buffer;
-    pimpl_->fake        = fake;
-    DescribePixelFormat(fake->getDC(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
+    pimpl_->srgb   = attrs.srgb_buffer;
+    pimpl_->fake   = fake;
+    pimpl_->format = pixelformat;
+    DescribePixelFormat(fake->GetDC(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
 
-    wgl::stashFakeContext(this, fake);
+    wgl::StashFakeContext(this, fake);
 }
 
-config::~config()
+Config::~Config()
 {
 }
 
-uint_t config::visualid() const
+uint_t Config::GetVisualID() const
 {
-    // this isn't useful on windows so we'll return just 0.
-    return 0;
+    return pimpl_->format;
 }
 
-uint_t config::configid() const
+uint_t Config::GetConfigID() const
 {
-    // this isn't available.
-    return 0; 
+    return pimpl_->format;
 }
 
 
-gl_config_t config::handle() const
+gl_config_t Config::GetNativeHandle() const
 {
     return gl_config_t { &pimpl_->desc };
 }
 
-bool config::srgb_buffer() const 
+bool Config::sRGB() const 
 {
     return pimpl_->srgb;
 }

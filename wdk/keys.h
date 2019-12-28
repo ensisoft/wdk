@@ -28,6 +28,8 @@
 #  undef hyper
 #endif
 
+// X11 poison 
+#undef None
 
 namespace wdk
 {
@@ -36,9 +38,14 @@ namespace wdk
     // left and right buttons and a mouse wheel. 
     // some mice also have more buttons in "non-standard" locations
     // these are named thumbN buttons here.
-    enum class button {
-        none, left, right, wheel, wheel_up, wheel_down, 
-        thumb1, thumb2, thumb3, thumb4
+    enum class MouseButton {
+        None, 
+        // Left right buttons
+        Left, Right, 
+        // Wheel button, wheel scroll up / down
+        Wheel, WheelScrollUp, WheelScrollDown, 
+        // Possible different thumb buttons
+        Thumb1, Thumb2, Thumb3, Thumb4
     };
 
     // keyboard event processing has 3 potential levels of operation available to applications.
@@ -57,8 +64,8 @@ namespace wdk
     // Unicode characters for cooked character based input.
 
     // possible modifiers, used as a bitwise OR flag
-    enum class keymod {
-        none, shift, control, alt
+    enum class Keymod {
+        None, Shift, Control, Alt
     };
 
     // primitive key symbols. this list represents a physical keys available
@@ -69,86 +76,88 @@ namespace wdk
     // FI layout user needs to press Shift+2.
     // therefore this list does not contain any keys that are layout specific but maps
     // directly to physical keys on the keyboard
-    enum class keysym 
+    enum class Keysym 
     {
-        none,                   // no known key
-        backspace,
-        tab,
-        enter,
-        space,
-        key_0, 
-        key_1, 
-        key_2, 
-        key_3, 
-        key_4, 
-        key_5, 
-        key_6,
-        key_7, 
-        key_8, 
-        key_9,
-        key_A, 
-        key_B, 
-        key_C, 
-        key_D, 
-        key_E, 
-        key_F, 
-        key_G, 
-        key_H, 
-        key_I, 
-        key_J, 
-        key_K, 
-        key_L, 
-        key_M, 
-        key_N, 
-        key_O, 
-        key_P, 
-        key_Q, 
-        key_R, 
-        key_S, 
-        key_T, 
-        key_U, 
-        key_V, 
-        key_W, 
-        key_X, 
-        key_Y,
-        key_Z,
-        f1, 
-        f2, 
-        f3, 
-        f4, 
-        f5, 
-        f6, 
-        f7, 
-        f8, 
-        f9,
-        f10, 
-        f11, 
-        f12,
-        control_R,
-        control_L,
-        shift_R,
-        shift_L,
-        alt_L,
-        capslock,
-        insert,
-        del,
-        home,
-        end,
-        pageup,
-        pagedown,
-        left,
-        up,
-        down,
-        right,
-        escape
+        None,                   // no known key
+        Backspace,
+        Tab,
+        Enter,
+        Space,
+        Key0, 
+        Key1, 
+        Key2, 
+        Key3, 
+        Key4, 
+        Key5, 
+        Key6,
+        Key7, 
+        Key8, 
+        Key9,
+        KeyA, 
+        KeyB, 
+        KeyC, 
+        KeyD, 
+        KeyE, 
+        KeyF, 
+        KeyG, 
+        KeyH, 
+        KeyI, 
+        KeyJ, 
+        KeyK, 
+        KeyL, 
+        KeyM, 
+        KeyN, 
+        KeyO, 
+        KeyP, 
+        KeyQ, 
+        KeyR, 
+        KeyS, 
+        KeyT, 
+        KeyU, 
+        KeyV, 
+        KeyW, 
+        KeyX, 
+        KeyY,
+        KeyZ,
+        F1, 
+        F2, 
+        F3, 
+        F4, 
+        F5, 
+        F6, 
+        F7, 
+        F8, 
+        F9,
+        F10, 
+        F11, 
+        F12,
+        ControlR,
+        ControlL,
+        ShiftR,
+        ShiftL,
+        AltL,
+        CapsLock,
+        Insert,
+        Del,
+        Home,
+        End,
+        PageUp,
+        PageDown,
+        ArrowLeft,
+        ArrowUp,
+        ArrowDown,
+        ArrowRight,
+        Escape
     }; 
 
-    std::string name(keymod mod);
+    // Map key modifier to a human readable name.
+    std::string ToString(Keymod mod);
 
-    std::string name(keysym sym);
+    // Map key symbol to a human readable name.
+    std::string ToString(Keysym sym);
 
-
-    std::string name(button btn);
+    // Map mouse button to a human readable name.
+    std::string ToString(MouseButton btn);
 
 } // wdk
 

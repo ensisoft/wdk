@@ -24,10 +24,9 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string>
 
-#ifdef _WIN32
-#  include <windows.h>
+#if defined(_MSC_VER)
+#  include <Windows.h> // for DebugBreak
 #endif
 
 namespace test {
@@ -38,21 +37,17 @@ void blurb_failure(const char* expression,
     const char* function,
     int line, bool fatality)
 {
-
-#ifdef _WIN32 
-    if (IsDebuggerPresent())
-    {
-        std::string str;
-        str.resize(1024);
-        std::snprintf(&str[0], str.size(), 
-            "\n%s(%d): %s failed in function: '%s'\n", file, line, expression, function);
-        OutputDebugStringA(str.c_str());
-        DebugBreak();
-    }
-#endif
     std::printf("\n%s(%d): %s failed in function: '%s'\n", file, line, expression, function);
     if (fatality)
-        std::exit(1);
+    {
+#if defined(_MSC_VER)
+        DebugBreak();
+#elif defined(__GNUG__)
+        __builtin_trap();
+#endif
+        std::abort();
+    }
+
 }
 
 } // test

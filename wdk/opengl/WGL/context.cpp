@@ -21,17 +21,20 @@
 //  THE SOFTWARE.
 
 #include <windows.h>
+
 #include <GL/gl.h>
+
 #include <cassert>
 #include <stdexcept>
 #include <functional>
 #include <vector>
 #include <string>
 #include <sstream>
-#include <wdk/utility.h>
-#include "../context.h"
-#include "../config.h"
-#include "../surface.h"
+
+#include "wdk/utility.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/surface.h"
 #include "fakecontext.h"
 
 #pragma comment(lib, "opengl32.lib") // needed for wgl functions
@@ -72,23 +75,23 @@ namespace {
 
 namespace wdk
 {
-struct context::impl {
+struct Context::impl {
     std::shared_ptr<wgl::FakeContext> fake;
 
     HGLRC    context;
     HDC      surface;    
 
-    impl(const config& conf, int major, int minor, bool debug, context::type type)
+    impl(const Config& conf, int major, int minor, bool debug, Context::Type type)
     {
         // when config was created it has created a fake gl context.
         // we'll need to retrive that context now to query for the "real" 
         // context creation functions.
         // also we'll use the fake window hdc (that the context has created)
         // untill the the user sets the real surface to this context.
-        wgl::fetchFakeContext(&conf, fake);
+        wgl::FetchFakeContext(&conf, fake);
         assert(fake); 
 
-        auto wglCreateContextAttribsARB = fake->resolve<wglCreateContextAttribsARBProc>("wglCreateContextAttribsARB");
+        auto wglCreateContextAttribsARB = fake->Resolve<wglCreateContextAttribsARBProc>("wglCreateContextAttribsARB");
         if (!wglCreateContextAttribsARB)
             throw std::runtime_error("unable to create context. no wglCreateContextAttribs");
 
@@ -96,12 +99,12 @@ struct context::impl {
         // we need to query the extensions strings. 
         // but because it's a WGL extension it's not part of the GL_EXTENSIONS string.
         // so we need WGL_ARB_extensions_string to query the extensions.. uh.. string
-        if (type == context::type::mobile) 
+        if (type == Context::Type::OpenGL_ES) 
         {   
-            auto wglGetExtensionsStringARB = fake->resolve<wglGetExtensionsStringARBProc>("wglGetExtensionsStringARB");
+            auto wglGetExtensionsStringARB = fake->Resolve<wglGetExtensionsStringARBProc>("wglGetExtensionsStringARB");
             if (!wglGetExtensionsStringARB)
                 throw std::runtime_error("unable to create context. no wglGetExtensionsString"); 
-            const char* extensions_string = wglGetExtensionsStringARB(fake->getDC());
+            const char* extensions_string = wglGetExtensionsStringARB(fake->GetDC());
             bool WGL_EXT_create_context_es2_profile_support = false;
             std::stringstream ss(extensions_string);
             std::string extension;
@@ -124,7 +127,7 @@ struct context::impl {
         // todo: the desktop context profile bit
         // WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
         //WGL_CONTEXT_CORE_PROFILE_BIT_ARB;            
-        const int PROFILE = (type == context::type::mobile) 
+        const int PROFILE = (type == Context::Type::OpenGL_ES) 
             ? WGL_CONTEXT_ES_PROFILE_BIT_EXT : WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;   
 
         const int attrs[] = 
@@ -135,34 +138,34 @@ struct context::impl {
             WGL_CONTEXT_PROFILE_MASK_ARB, PROFILE, 
             ARNOLD
         };
-        auto ctx = make_unique_ptr(wglCreateContextAttribsARB(fake->getDC(), nullptr, attrs), wglDeleteContext);
+        auto ctx = MakeUniqueHandle(wglCreateContextAttribsARB(fake->GetDC(), nullptr, attrs), wglDeleteContext);
         if (!ctx)
             throw std::runtime_error("create context failed");
 
-        if (!wglMakeCurrent(fake->getDC(), ctx.get()))
+        if (!wglMakeCurrent(fake->GetDC(), ctx.get()))
             throw std::runtime_error("make current failed");
 
         this->context = ctx.release();
-        this->surface = fake->getDC();
+        this->surface = fake->GetDC();
     }
 };
 
-context::context(const config& conf)
+Context::Context(const Config& conf)
 {
-    pimpl_.reset(new impl(conf, 3, 0, false, type::desktop));
+    pimpl_.reset(new impl(conf, 3, 0, false, Type::OpenGL));
 }
 
-context::context(const config& conf, int major_version, int minor_version, bool debug)
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug)
 {
-    pimpl_.reset(new impl(conf, major_version, minor_version, debug, type::desktop));
+    pimpl_.reset(new impl(conf, major_version, minor_version, debug, Type::OpenGL));
 }
 
-context::context(const config& conf, int major_version, int minor_version, bool debug, type requested_type)
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type)
 {
     pimpl_.reset(new impl(conf, major_version, minor_version, debug, requested_type));
 }
 
-context::~context()
+Context::~Context()
 {
     const auto hgl = wglGetCurrentContext();
     if (hgl == pimpl_->context)
@@ -171,43 +174,43 @@ context::~context()
     wglDeleteContext(pimpl_->context);
 }
 
-void context::make_current(surface* surf)
+void Context::MakeCurrent(Surface* surf)
 {
     // wgl has a problem similar to glX that you can't pass NULL for HDC.
     // so we use the temporary window surface
     if (!surf)
     {
-        wglMakeCurrent(pimpl_->fake->getDC(), pimpl_->context);
-        pimpl_->surface = pimpl_->fake->getDC();
+        wglMakeCurrent(pimpl_->fake->GetDC(), pimpl_->context);
+        pimpl_->surface = pimpl_->fake->GetDC();
     }
     else
     {
-        if (!wglMakeCurrent(surf->handle(), pimpl_->context))
+        if (!wglMakeCurrent(surf->GetNativeHandle(), pimpl_->context))
         {
             if (GetLastError() == ERROR_INVALID_PIXEL_FORMAT)
                 throw std::runtime_error("make current failed. "
                     "surface doesn't have a pixel format compatible with the contex");
             throw std::runtime_error("make current failed");
         }                
-        pimpl_->surface = surf->handle();
+        pimpl_->surface = surf->GetNativeHandle();
     }
 }
 
-void context::swap_buffers()
+void Context::SwapBuffers()
 {
     assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
     
-    const BOOL ret = SwapBuffers(pimpl_->surface);
+    const BOOL ret = ::SwapBuffers(pimpl_->surface);
 
     assert(ret == TRUE);
 }
 
-bool context::has_dri() const
+bool Context::HasDRI() const
 {
     return true;
 }
 
-void* context::resolve(const char* function) const
+void* Context::Resolve(const char* function) const
 {
     assert(function && "null function name");
     

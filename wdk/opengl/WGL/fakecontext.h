@@ -2,15 +2,17 @@
 #pragma once
 
 #include <windows.h>
+
 #include <stdexcept>
 #include <cassert>
 #include <memory>
-#include <wdk/utility.h>
+
+#include "wdk/utility.h"
 
 #pragma comment(lib, "opengl32.lib")
 
 namespace wdk {
-    class config;
+    class Config;
 } // wdk
 
 namespace wgl
@@ -18,9 +20,11 @@ namespace wgl
     // on WGL we need this dummy trampoline context that we can 
     // create in order to query the runtime for functions to create
     // the "real" context.
-    class FakeContext : wdk::noncopyable
+    class FakeContext
     {
     public:
+        FakeContext(const FakeContext&) = delete;
+
         FakeContext(const PIXELFORMATDESCRIPTOR& conf)
         {
             WNDCLASSEX cls = {0};
@@ -31,7 +35,7 @@ namespace wgl
             RegisterClassEx(&cls);
             m_hwnd = CreateWindow(TEXT("WDKFakeWindow"), TEXT(""), 
                 WS_POPUP, 0, 0, 1, 1, NULL, NULL, NULL, NULL);
-            m_hdc  = GetDC(m_hwnd);    
+            m_hdc  = ::GetDC(m_hwnd);    
 
             const int PixelFormat = ChoosePixelFormat(m_hdc, &conf);
             if (!SetPixelFormat(m_hdc, PixelFormat, &conf))
@@ -53,7 +57,7 @@ namespace wgl
             (void)ret;
         }
 
-        void* resolve(const char* function) const
+        void* Resolve(const char* function) const
         {
             assert(function);
             const auto hgl = wglGetCurrentContext();
@@ -69,27 +73,29 @@ namespace wgl
             return ret;
         }
         template<typename FunctionPointerT>
-        FunctionPointerT resolve(const char* function) const
+        FunctionPointerT Resolve(const char* function) const
         {
-            return reinterpret_cast<FunctionPointerT>(resolve(function));
+            return reinterpret_cast<FunctionPointerT>(Resolve(function));
         } 
 
-        HDC getDC() const 
+        HDC GetDC() const 
         { return m_hdc; }
 
-        HWND getHWND() const 
+        HWND GetHWND() const 
         { return m_hwnd; }
 
+        FakeContext& operator=(const FakeContext&) = delete;
+
     private:
-        HWND  m_hwnd;
-        HDC   m_hdc;
-        HGLRC m_hgl;
-        int   m_pixel_format;
+        HWND  m_hwnd = NULL;
+        HDC   m_hdc  = NULL;
+        HGLRC m_hgl  = NULL;
+        int   m_pixel_format = 0;
     };
 
-    void stashFakeContext(const wdk::config* config, std::shared_ptr<FakeContext> ctx);
-    void fetchFakeContext(const wdk::config* config, std::shared_ptr<FakeContext>& ctx);
-    void eraseFakeContext(const wdk::config* config);
+    void StashFakeContext(const wdk::Config* config, std::shared_ptr<FakeContext> ctx);
+    void FetchFakeContext(const wdk::Config* config, std::shared_ptr<FakeContext>& ctx);
+    void EraseFakeContext(const wdk::Config* config);
 
 
 } // namespace

@@ -32,28 +32,29 @@ namespace wdk
     // contains a vector of std::function objects that all get
     // invoked when the callback is invoked.
     template<typename Event>
-    class callback
+    class EventCallback
     {
     public:
         using Handler = std::function<void (const Event&)>;
 
-        void listen(const Handler& handler)
+        // 
+        void Bind(const Handler& handler)
         {
             handlers_.push_back(handler);
         }
-
-        void listen(Handler&& handler)
+        // Bind a new handler 
+        void Bind(Handler&& handler)
         {
             handlers_.push_back(std::move(handler));
         }
-
+        // Invoke the handlers.
         void operator()(const Event& event) const
         {
             for (auto& handler : handlers_)
                 handler(event);
         }
-
-        void invoke(const Event& event) const
+        // Invoke the handlers.
+        void Invoke(const Event& event) const
         {
             for (auto& handler : handlers_)
                 handler(event);

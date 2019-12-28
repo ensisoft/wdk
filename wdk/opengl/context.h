@@ -23,31 +23,38 @@
 #pragma once
 
 #include <memory>
-#include <wdk/utility.h>
 
 namespace wdk
 {
-    class config;
-    class surface;
+    class Config;
+    class Surface;
 
-    // OpenGL rendering context.
-    class context : noncopyable
+    // OpenGL rendering context. Any application that wants to 
+    // perform OpenGL rendering will need to create a "context"
+    // for each thread that wants to perform rendering.
+    // The context is the "main" object that contains all the current 
+    // graphics state.
+    // The context is alwys "implicit" in the API state i.e. instead
+    // of it getting passed to the OpenGL API calls it's just set as the
+    // "current context" for the calling thread.
+    class Context
     {
     public:
-        // create a rendering context compatible with the given
+        // Create a rendering context compatible with the given
         // configuration and with default GL version. (GL 3.0, GLES 2.0)
-        context(const config& conf);
+        Context(const Config& conf);
 
-        // create a rendering context compatible with the given
+        // Create a rendering context compatible with the given
         // configuration and with a specific GL version.
-        // if debug is true the context is created as a debug context if possible.
-        context(const config& conf, int major_version, int minor_version, bool debug);
+        // If debug is true the context is created as a debug context if possible.
+        Context(const Config& conf, int major_version, int minor_version, bool debug);
 
-        enum type {
-            desktop, // Open GL
-            mobile, // OpenGL ES
+        // Preferred context type 
+        enum Type {
+            OpenGL, // Open GL
+            OpenGL_ES, // OpenGL ES
         };
-        // create a rendering context compatible with the given
+        // Create a rendering context compatible with the given
         // configuration and with a specific GL version. 
         // if debug is true the context is created as a debug context if possible.
         // Using the ContextType one can ask the backend to create a "non native" 
@@ -56,22 +63,41 @@ namespace wdk
         // through extensions such as WGL_EXT_create_context_es2 to create a 
         // another type of context. 
         // Currently only supported on WGL if the driver supports WGL_EXT_create_context_es2. 
-        context(const config& conf, int major_version, int minor_version, bool debug, 
-            type requested_type);
+        Context(const Config& conf, int major_version, int minor_version, bool debug, 
+            Type requested_type);
 
         // dtor
-       ~context();
+       ~Context();
 
-        void make_current(surface* surf);
+        // Make this context the current context for the calling thread.
+        // The Surface can be a nullptr in which case the context is 
+        // detached from any previous rendering surface and no further
+        // rendering is possible until a new surface object is provided.
+        void MakeCurrent(Surface* surf);
 
-        // swap back and front buffers of the current surface
-        void swap_buffers();
+        // Typical OpenGL applications use a so called "double buffered"
+        // rendering surfaces to avoid a problem where the user would be
+        // displayed partially rendered image. Instead one buffer is being
+        // displayed to the user while the other (so called back buffer)
+        // buffer is used as the rendering target for rendering the next
+        // image to be displayed. Once all the rendering commands have been
+        // executed the buffers are "swapped" i.e. the back buffer is 
+        // displayed and the old front buffer becomes the new back buffer.
+        void SwapBuffers();
 
-        // has direct rendering or not
-        bool has_dri() const;
+        // Has direct rendering or not. Some window systems may not provide
+        // direct access to the rendering hardware. (X11 Remoting).
+        bool HasDRI() const;
 
-        // resolve (an extension) function
-        void* resolve(const char* function) const;
+        // Resolve an OpenGL entry point to a function pointer. 
+        // Note that the returned function pointers *may* be context
+        // specific depending on the particular implementation
+        // and configuration. For example on Windows the pointers 
+        // may change if the context use different pixel formats.
+        // Never assume that one set of pointers are applicable
+        // to another context.
+        // Returns nullptr if no such function is available.
+        void* Resolve(const char* function) const;
         
     private:
         struct impl;

@@ -26,13 +26,14 @@
 #endif
 
 #include <EGL/egl.h>
-#include <wdk/system.h>
+
 #include <stdexcept>
 #include <vector>
 #include <cassert>
-#include "../config.h"
-#include "egldisplay.h"
 
+#include "wdk/system.h"
+#include "wdk/opengl/config.h"
+#include "egldisplay.h"
 
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
@@ -48,11 +49,26 @@ namespace {
 
 namespace wdk
 {
+Config::Attributes GetDefaultAttrs()
+{
+    Config::Attributes attrs;
+    attrs.red_size = 8;
+    attrs.green_size = 8;
+    attrs.blue_size = 8;
+    attrs.alpha_size = 8;
+    attrs.depth_size = 8;
+    attrs.stencil_size = 8;
+    attrs.double_buffer = true;
+    attrs.srgb_buffer = false;
+    attrs.surfaces.window = true;
+    attrs.sampling = Config::Multisampling::None;
+    return attrs;
+}
 
-config::attributes config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, true, false, {true, false, false}, multisampling::none};
-config::attributes config::DEFAULT = {8, 8, 8, 8, 8, 8, 0, true, false, {true, false, false}, multisampling::none};
+Config::Attributes Config::DONT_CARE;
+Config::Attributes Config::DEFAULT = GetDefaultAttrs(); 
 
-struct config::impl {
+struct Config::impl {
     EGLDisplay   display;
     EGLConfig    config;
     uint_t       visualid;
@@ -60,9 +76,9 @@ struct config::impl {
     bool         srgb;
 };
 
-config::config(const attributes& attrs) : pimpl_(new impl)
+Config::Config(const Attributes& attrs) : pimpl_(new impl)
 {
-    pimpl_->display = egl_init(get_display_handle());
+    pimpl_->display = egl_init(GetNativeDisplayHandle());
 
     std::vector<uint_t> criteria;
 
@@ -105,14 +121,14 @@ config::config(const attributes& attrs) : pimpl_(new impl)
 
     set_if(criteria, EGL_SURFACE_TYPE, drawable_bits);
 
-    if (attrs.sampling != multisampling::none)
+    if (attrs.sampling != Multisampling::None)
     {
         set_if(criteria, EGL_SAMPLE_BUFFERS, 1);
-        if (attrs.sampling == multisampling::msaa4)
+        if (attrs.sampling == Multisampling::MSAA4)
             set_if(criteria, EGL_SAMPLES, 4);
-        else if (attrs.sampling == multisampling::msaa8)
+        else if (attrs.sampling == Multisampling::MSAA8)
             set_if(criteria, EGL_SAMPLES, 8);
-        else if (attrs.sampling == multisampling::msaa16)
+        else if (attrs.sampling == Multisampling::MSAA16)
             set_if(criteria, EGL_SAMPLES, 16);
     }
 
@@ -138,26 +154,26 @@ config::config(const attributes& attrs) : pimpl_(new impl)
     eglGetConfigAttrib(pimpl_->display, config, EGL_CONFIG_ID, (EGLint*)&pimpl_->configid);
 }
 
-config::~config()
+Config::~Config()
 {
 }
 
-uint_t config::visualid() const
+uint_t Config::GetVisualID() const
 {
     return pimpl_->visualid;
 }
 
-uint_t config::configid() const
+uint_t Config::GetConfigID() const
 {
     return pimpl_->configid;
 }
 
-gl_config_t config::handle() const
+gl_config_t Config::GetNativeHandle() const
 {
     return { pimpl_->config };
 }
 
-bool config::srgb_buffer() const
+bool Config::sRGB() const
 {
     return pimpl_->srgb;
 }

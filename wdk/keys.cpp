@@ -26,16 +26,16 @@
 namespace wdk
 {
 
-std::string name(keymod mod)
+std::string ToString(Keymod mod)
 {
-    assert(mod != keymod::none);
+    assert(mod != Keymod::None);
 
     switch (mod)
     {
-        case keymod::none:    return "none";
-        case keymod::shift:   return "Shift";
-        case keymod::control: return "Ctrl";
-        case keymod::alt:     return "Alt";
+        case Keymod::None:    return "none";
+        case Keymod::Shift:   return "Shift";
+        case Keymod::Control: return "Ctrl";
+        case Keymod::Alt:     return "Alt";
         // case keymod::super:   return "Super";
         // case keymod::hyper:   return "Hyper";
     }
@@ -43,102 +43,102 @@ std::string name(keymod mod)
     return "";
 }
 
-std::string name(keysym sym)
+std::string ToString(Keysym sym)
 {
-    assert(sym != keysym::none);
+    assert(sym != Keysym::None);
 
     // this is not localized, but we don't care about it atm.
     switch (sym)
     {
-        case keysym::none:      return "none";
-        case keysym::backspace: return "Backspace";
-        case keysym::tab:       return "Tab";
-        case keysym::enter:     return "Enter";
-        case keysym::space:     return "Space";
-        case keysym::key_0:     return "0";
-        case keysym::key_1:     return "1";
-        case keysym::key_2:     return "2";
-        case keysym::key_3:     return "3";
-        case keysym::key_4:     return "4";
-        case keysym::key_5:     return "5";
-        case keysym::key_6:     return "6";
-        case keysym::key_7:     return "7";
-        case keysym::key_8:     return "8";        
-        case keysym::key_9:     return "9";                
-        case keysym::key_A:     return "A";
-        case keysym::key_B:     return "B";
-        case keysym::key_C:     return "C";
-        case keysym::key_D:     return "D";        
-        case keysym::key_E:     return "E";
-        case keysym::key_F:     return "F";        
-        case keysym::key_G:     return "G";
-        case keysym::key_H:     return "H";
-        case keysym::key_I:     return "I";
-        case keysym::key_J:     return "J";                                
-        case keysym::key_K:     return "K";                                
-        case keysym::key_L:     return "L";                                
-        case keysym::key_M:     return "M";                                
-        case keysym::key_N:     return "N";                                
-        case keysym::key_O:     return "O";
-        case keysym::key_P:     return "P";
-        case keysym::key_Q:     return "Q";
-        case keysym::key_R:     return "R";
-        case keysym::key_S:     return "S";                                
-        case keysym::key_T:     return "T";
-        case keysym::key_U:     return "U";        
-        case keysym::key_V:     return "V";
-        case keysym::key_W:     return "W";        
-        case keysym::key_X:     return "X";        
-        case keysym::key_Y:     return "Y";                        
-        case keysym::key_Z:     return "Z";                                
-        case keysym::f1:        return "F1";
-        case keysym::f2:        return "F2";
-        case keysym::f3:        return "F3";
-        case keysym::f4:        return "F4";
-        case keysym::f5:        return "F5";
-        case keysym::f6:        return "F6";
-        case keysym::f7:        return "F7";
-        case keysym::f8:        return "F8"; 
-        case keysym::f9:        return "F9";
-        case keysym::f10:       return "F10";
-        case keysym::f11:       return "F11";
-        case keysym::f12:       return "F12";        
-        case keysym::control_R: return "Ctrl_R";
-        case keysym::control_L: return "Ctrl_L";
-        case keysym::shift_R:   return "Shift_R";
-        case keysym::shift_L:   return "Shift_L";
-        case keysym::alt_L:     return "Alt_L";
-        case keysym::capslock:  return "CapsLock";
-        case keysym::insert:    return "Insert";
-        case keysym::del:       return "Delete";
-        case keysym::home:      return "Home";
-        case keysym::end:       return "End";
-        case keysym::pageup:    return "Page Up";
-        case keysym::pagedown:  return "Page Down";
-        case keysym::left:      return "Left";
-        case keysym::right:     return "Right";
-        case keysym::up:        return "Up";
-        case keysym::down:      return "Down";
-        case keysym::escape:    return "Esc";
+        case Keysym::None:      return "none";
+        case Keysym::Backspace: return "Backspace";
+        case Keysym::Tab:       return "Tab";
+        case Keysym::Enter:     return "Enter";
+        case Keysym::Space:     return "Space";
+        case Keysym::Key0:      return "0";
+        case Keysym::Key1:      return "1";
+        case Keysym::Key2:      return "2";
+        case Keysym::Key3:      return "3";
+        case Keysym::Key4:      return "4";
+        case Keysym::Key5:      return "5";
+        case Keysym::Key6:      return "6";
+        case Keysym::Key7:      return "7";
+        case Keysym::Key8:      return "8";        
+        case Keysym::Key9:      return "9";                
+        case Keysym::KeyA:      return "A";
+        case Keysym::KeyB:      return "B";
+        case Keysym::KeyC:      return "C";
+        case Keysym::KeyD:      return "D";        
+        case Keysym::KeyE:      return "E";
+        case Keysym::KeyF:      return "F";        
+        case Keysym::KeyG:      return "G";
+        case Keysym::KeyH:      return "H";
+        case Keysym::KeyI:      return "I";
+        case Keysym::KeyJ:      return "J";                                
+        case Keysym::KeyK:      return "K";                                
+        case Keysym::KeyL:      return "L";                                
+        case Keysym::KeyM:      return "M";                                
+        case Keysym::KeyN:      return "N";                                
+        case Keysym::KeyO:      return "O";
+        case Keysym::KeyP:      return "P";
+        case Keysym::KeyQ:      return "Q";
+        case Keysym::KeyR:      return "R";
+        case Keysym::KeyS:      return "S";                                
+        case Keysym::KeyT:      return "T";
+        case Keysym::KeyU:      return "U";        
+        case Keysym::KeyV:      return "V";
+        case Keysym::KeyW:      return "W";        
+        case Keysym::KeyX:      return "X";        
+        case Keysym::KeyY:      return "Y";                        
+        case Keysym::KeyZ:      return "Z";                                
+        case Keysym::F1:        return "F1";
+        case Keysym::F2:        return "F2";
+        case Keysym::F3:        return "F3";
+        case Keysym::F4:        return "F4";
+        case Keysym::F5:        return "F5";
+        case Keysym::F6:        return "F6";
+        case Keysym::F7:        return "F7";
+        case Keysym::F8:        return "F8"; 
+        case Keysym::F9:        return "F9";
+        case Keysym::F10:       return "F10";
+        case Keysym::F11:       return "F11";
+        case Keysym::F12:       return "F12";        
+        case Keysym::ControlR:  return "Ctrl_R";
+        case Keysym::ControlL:  return "Ctrl_L";
+        case Keysym::ShiftR:    return "Shift_R";
+        case Keysym::ShiftL:    return "Shift_L";
+        case Keysym::AltL:      return "Alt_L";
+        case Keysym::CapsLock:  return "CapsLock";
+        case Keysym::Insert:    return "Insert";
+        case Keysym::Del:       return "Delete";
+        case Keysym::Home:      return "Home";
+        case Keysym::End:       return "End";
+        case Keysym::PageUp:    return "Page Up";
+        case Keysym::PageDown:  return "Page Down";
+        case Keysym::ArrowLeft: return "Left";
+        case Keysym::ArrowRight:return "Right";
+        case Keysym::ArrowUp:   return "Up";
+        case Keysym::ArrowDown: return "Down";
+        case Keysym::Escape:    return "Esc";
     }
     assert(0);
     return "";
 }
 
-std::string name(button btn)
+std::string ToString(MouseButton btn)
 {
     switch (btn)
     {
-        case button::none:       return "none";
-        case button::left:       return "Left";
-        case button::right:      return "Right";
-        case button::wheel:      return "Wheel";
-        case button::wheel_up:   return "Wheel Up";
-        case button::wheel_down: return "Wheel Down";
-        case button::thumb1:     return "Thumb 1";
-        case button::thumb2:     return "Thumb 2";
-        case button::thumb3:     return "Thumb 3";
-        case button::thumb4:     return "Thumb 4";
+        case MouseButton::None:       return "none";
+        case MouseButton::Left:       return "Left";
+        case MouseButton::Right:      return "Right";
+        case MouseButton::Wheel:      return "Wheel";
+        case MouseButton::WheelScrollUp:   return "Wheel Up";
+        case MouseButton::WheelScrollDown: return "Wheel Down";
+        case MouseButton::Thumb1:     return "Thumb 1";
+        case MouseButton::Thumb2:     return "Thumb 2";
+        case MouseButton::Thumb3:     return "Thumb 3";
+        case MouseButton::Thumb4:     return "Thumb 4";
     }
     assert(0);
     return "";

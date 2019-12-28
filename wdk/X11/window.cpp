@@ -22,17 +22,22 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+
 #include <stdexcept>
 #include <limits>
 #include <cassert>
 #include <cstring>
-#include "../window_events.h"
-#include "../window.h"
-#include "../system.h"
-#include "../videomode.h"
-#include "../utf8.h"
+
+#include "wdk/events.h"
+#include "wdk/window.h"
+#include "wdk/system.h"
+#include "wdk/videomode.h"
+#include "wdk/utf8.h"
 #include "errorhandler.h"
 #include "atoms.h"
+
+#define X11_None 0L
+#define X11_RevertToNone 0
 
 // g++ -std=gnu++14 defines linux (doh)
 #undef linux
@@ -44,27 +49,27 @@ namespace linux {
 namespace wdk
 {
 
-struct window::impl {
-    Window window;
-    int width;
-    int height;
-    encoding enc;
-    bool fullscreen;
+struct Window::impl {
+    ::Window window = 0;
+    int width = 0;
+    int height = 0;
+    Encoding enc;
+    bool fullscreen = false;
 };
 
-window::window() : pimpl_(new impl)
+Window::Window() : pimpl_(new impl)
 {
     pimpl_->window = 0;
-    pimpl_->enc    = encoding::utf8;
+    pimpl_->enc    = Encoding::UTF8;
 }
 
-window::~window()
+Window::~Window()
 {
-    if (exists())
-        destroy();
+    if (DoesExist())
+        Destroy();
 }
 
-void window::create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
+void Window::Create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
     bool can_resize, bool has_border, bool initially_visible)
 {
     assert(width);
@@ -72,7 +77,7 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     assert(!title.empty());
     assert(!pimpl_->window);
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     int screen = DefaultScreen(d);
     int root   = RootWindow(d, screen);
@@ -99,11 +104,11 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
 
     const unsigned long AttrMask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
 
-    factory<Window> win_factory(d);
+    factory<::Window> win_factory(d);
 
-    Window win = win_factory.create([&](Display* d)
+    ::Window win = win_factory.create([&](Display* d)
     {
-        Window ret = XCreateWindow(d,
+        ::Window ret = XCreateWindow(d,
             root,
             0, 0,
             width,
@@ -181,29 +186,29 @@ void window::create(const std::string& title, uint_t width, uint_t height, uint_
     pimpl_->fullscreen = false;
 }
 
-void window::hide()
+void Window::Hide()
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* display = get_display_handle();
+    Display* display = GetNativeDisplayHandle();
 
     XUnmapWindow(display, pimpl_->window);
 }
 
-void window::show()
+void Window::Show()
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* display = get_display_handle();
+    Display* display = GetNativeDisplayHandle();
 
     XMapWindow(display, pimpl_->window);
 }
 
-void window::destroy()
+void Window::Destroy()
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     if (pimpl_->fullscreen)
     {
@@ -221,40 +226,40 @@ void window::destroy()
 
 }
 
-void window::invalidate()
+void Window::Invalidate()
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XClearArea(d, pimpl_->window,
         0, 0,
-        surface_width(),
-        surface_height(),
+        GetSurfaceWidth(),
+        GetSurfaceHeight(),
         True);
 }
 
-void window::move(int x, int y)
+void Window::Move(int x, int y)
 {
-    assert(exists());
-    assert(!is_fullscreen());
+    assert(DoesExist());
+    assert(!IsFullscreen());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XMoveWindow(d, pimpl_->window, x, y);
 
     XFlush(d);
 }
 
-void window::set_fullscreen(bool fullscreen)
+void Window::SetFullscreen(bool fullscreen)
 {
-    assert(exists());
+    assert(DoesExist());
 
     if (fullscreen == pimpl_->fullscreen)
         return;
 
-    Display* d = get_display_handle();
-    Window   w = handle();
+    Display* d = GetNativeDisplayHandle();
+    ::Window   w = GetNativeHandle();
 
     // todo: this is a bit slow at changing and will get confused if
     // multiple requests are made before the previous one is complete
@@ -276,7 +281,7 @@ void window::set_fullscreen(bool fullscreen)
         XGrabKeyboard(d, w, True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
         // get exclusive pointer (mouse) access
-        XGrabPointer(d, w, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, w, None, CurrentTime);
+        XGrabPointer(d, w, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, w, X11_None, CurrentTime);
     }
     else
     {
@@ -301,40 +306,40 @@ void window::set_fullscreen(bool fullscreen)
     pimpl_->fullscreen = fullscreen;
 }
 
-void window::set_focus()
+void Window::SetFocus()
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XRaiseWindow(d, pimpl_->window);
-    XSetInputFocus(d, pimpl_->window, RevertToNone, CurrentTime);
+    XSetInputFocus(d, pimpl_->window, X11_RevertToNone, CurrentTime);
 
     XFlush(d);
 }
 
-void window::set_size(uint_t width, uint_t height)
+void Window::SetSize(uint_t width, uint_t height)
 {
     assert(width);
     assert(height);
-    assert(exists());
-    assert(!is_fullscreen());
+    assert(DoesExist());
+    assert(!IsFullscreen());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XResizeWindow(d, pimpl_->window, width, height);
 
     XFlush(d);
 }
 
-void window::set_encoding(encoding enc)
+void Window::SetEncoding(Encoding enc)
 {
     pimpl_->enc = enc;
 }
 
-bool window::process_event(const native_event_t& ev)
+bool Window::ProcessEvent(const native_event_t& ev)
 {
-    if (ev.get_window_handle() != handle())
+    if (ev.get_window_handle() != GetNativeHandle())
         return false;
 
     const XEvent& event = ev;
@@ -344,7 +349,7 @@ bool window::process_event(const native_event_t& ev)
         case MotionNotify:
             if (on_mouse_move)
             {
-                window_event_mouse_move mickey = {};
+                WindowEventMouseMove mickey = {};
                 mickey.window_x = event.xmotion.x;
                 mickey.window_y = event.xmotion.y;
                 mickey.global_x = event.xmotion.x_root;
@@ -356,9 +361,9 @@ bool window::process_event(const native_event_t& ev)
         case ButtonPress:
             if (on_mouse_press)
             {
-                const auto& button = translate_mouse_button_event(ev);
+                const auto& button = TranslateMouseButtonEvent(ev);
 
-                window_event_mouse_press mickey = {};
+                WindowEventMousePress mickey = {};
                 mickey.window_x = event.xbutton.x;
                 mickey.window_y = event.xbutton.y;
                 mickey.global_x = event.xbutton.x_root;
@@ -372,9 +377,9 @@ bool window::process_event(const native_event_t& ev)
         case ButtonRelease:
             if (on_mouse_release)
             {
-                const auto& button = translate_mouse_button_event(ev);
+                const auto& button = TranslateMouseButtonEvent(ev);
 
-                window_event_mouse_release mickey = {};
+                WindowEventMouseRelease mickey = {};
                 mickey.window_x = event.xbutton.x;
                 mickey.window_y = event.xbutton.y;
                 mickey.global_x = event.xbutton.x_root;
@@ -387,18 +392,18 @@ bool window::process_event(const native_event_t& ev)
 
         case FocusIn:
             if (on_gain_focus)
-                on_gain_focus(window_event_focus{});
+                on_gain_focus(WindowEventFocus{});
             break;
 
         case FocusOut:
             if (on_lost_focus)
-                on_lost_focus(window_event_focus{});
+                on_lost_focus(WindowEventFocus{});
             break;
 
         case Expose:
             if (on_paint)
             {
-                window_event_paint paint = {0};
+                WindowEventPaint paint = {0};
                 paint.x      = event.xexpose.x;
                 paint.y      = event.xexpose.y;
                 paint.width  = event.xexpose.width;
@@ -414,7 +419,7 @@ bool window::process_event(const native_event_t& ev)
                 pimpl_->height = event.xconfigure.height;
                 if (on_resize)
                 {
-                    window_event_resize resize = {0};
+                    WindowEventResize resize = {0};
                     resize.width  = event.xconfigure.width;
                     resize.height = event.xconfigure.height;
                     on_resize(resize);
@@ -425,7 +430,7 @@ bool window::process_event(const native_event_t& ev)
         case CreateNotify:
             if (on_create)
             {
-                window_event_create create = {0};
+                WindowEventCreate create = {0};
                 create.x      = event.xcreatewindow.x;
                 create.y      = event.xcreatewindow.y;
                 create.width  = event.xcreatewindow.width;
@@ -439,16 +444,16 @@ bool window::process_event(const native_event_t& ev)
             if ((Atom)event.xclient.data.l[0] == WM_DELETE_WINDOW)
             {
                 if (on_want_close)
-                    on_want_close(window_event_want_close{});
+                    on_want_close(WindowEventWantClose{});
             }
             break;
 
         case KeyPress:
             if (on_keydown)
             {
-                const auto& keys = translate_keydown_event(ev);
-                if (keys.second != keysym::none)
-                    on_keydown(window_event_keydown{keys.second, keys.first});
+                const auto& keys = TranslateKeydownEvent(ev);
+                if (keys.second != Keysym::None)
+                    on_keydown(WindowEventKeydown{keys.second, keys.first});
             }
             if (on_char)
             {
@@ -469,17 +474,17 @@ bool window::process_event(const native_event_t& ev)
                 std::memset(&hack, 0, sizeof(hack));
                 hack.type        = MapNotify;
                 hack.xmap.event  = ucs2;
-                hack.xmap.window = handle();
-                XSendEvent(event.xany.display, handle(), False, 0, &hack);
+                hack.xmap.window = GetNativeHandle();
+                XSendEvent(event.xany.display, GetNativeHandle(), False, 0, &hack);
             }
             break;
 
         case KeyRelease:
             if (on_keyup)
             {
-                const auto& keys = translate_keydown_event(ev);
-                if (keys.second != keysym::none)
-                    on_keyup(window_event_keyup{keys.second, keys.first});
+                const auto& keys = TranslateKeydownEvent(ev);
+                if (keys.second != Keysym::None)
+                    on_keyup(WindowEventKeyup{keys.second, keys.first});
             }
             break;
 
@@ -492,13 +497,13 @@ bool window::process_event(const native_event_t& ev)
                 const XMapEvent& uchar = event.xmap;
                 const long ucs2 = (long)uchar.event;
 
-                window_event_char c = {0};
+                WindowEventChar c = {0};
 
-                if (pimpl_->enc == encoding::ascii)
+                if (pimpl_->enc == Encoding::ASCII)
                     c.ascii = ucs2 & 0x7f;
-                else if (pimpl_->enc == encoding::ucs2)
+                else if (pimpl_->enc == Encoding::UCS2)
                     c.ucs2 = ucs2;
-                else if (pimpl_->enc == encoding::utf8)
+                else if (pimpl_->enc == Encoding::UTF8)
                     enc::utf8_encode(&ucs2, &ucs2 + 1, &c.utf8[0]);
 
                 on_char(c);
@@ -509,11 +514,11 @@ bool window::process_event(const native_event_t& ev)
     return true;
 }
 
-uint_t window::surface_width() const
+uint_t Window::GetSurfaceWidth() const
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XWindowAttributes attrs;
     XGetWindowAttributes(d, pimpl_->window, &attrs);
@@ -521,11 +526,11 @@ uint_t window::surface_width() const
     return attrs.width;
 }
 
-uint_t window::surface_height() const
+uint_t Window::GetSurfaceHeight() const
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XWindowAttributes attrs;
     XGetWindowAttributes(d, pimpl_->window, &attrs);
@@ -533,32 +538,32 @@ uint_t window::surface_height() const
     return attrs.height;
 }
 
-bool window::exists() const
+bool Window::DoesExist() const
 {
     return pimpl_->window != 0;
 }
 
-bool window::is_fullscreen() const
+bool Window::IsFullscreen() const
 {
     return pimpl_->fullscreen;
 }
 
 
-window::encoding window::get_encoding() const
+Window::Encoding Window::GetEncoding() const
 {
     return pimpl_->enc;
 }
 
-native_window_t window::handle() const
+native_window_t Window::GetNativeHandle() const
 {
     return native_window_t {pimpl_->window};
 }
 
-std::pair<uint_t, uint_t> window::min_size() const
+std::pair<uint_t, uint_t> Window::GetMinSize() const
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XSizeHints* hints = XAllocSizeHints();
 
@@ -583,11 +588,11 @@ std::pair<uint_t, uint_t> window::min_size() const
 
 }
 
-std::pair<uint_t, uint_t> window::max_size() const
+std::pair<uint_t, uint_t> Window::GetMaxSize() const
 {
-    assert(exists());
+    assert(DoesExist());
 
-    Display* d = get_display_handle();
+    Display* d = GetNativeDisplayHandle();
 
     XSizeHints* hints = XAllocSizeHints();
 
