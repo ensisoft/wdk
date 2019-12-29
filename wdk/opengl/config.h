@@ -27,6 +27,9 @@
 #include "wdk/types.h"
 #include "types.h"
 
+// X11 poison
+#undef None
+
 namespace wdk
 {
     // OpenGL framebuffer configuration. Normal OpenGL context creation
