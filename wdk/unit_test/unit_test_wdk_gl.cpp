@@ -151,49 +151,109 @@ void unit_test_config()
     { /* success*/ }
 }
 
-void unit_test_context()
+void unit_test_context_should_pass()
 {
-    Config conf(Config::DONT_CARE);
-
     // test some context creations that are expected to pass
     {
-
 #ifdef TEST_GLES
-        // this would fail on PowerVR
-        //Context ctx_1(conf, 1, 0, false);
-        Context ctx_2(conf, 2, 0, false);
+        Context ctx_2(Config::DONT_CARE, 2, 0, false);
 #else
-        Context ctx_1_1(conf, 1, 1, false);
-        Context ctx_2_0(conf, 2, 0, false);
-        Context ctx_2_1(conf, 2, 1, false);
-        Context ctx_3_0(conf, 3, 0, false);
-
-        // this might fail depending on your hardware
-        Context ctx_4_6(conf, 4, 6, false);
-
+        Context ctx_1_1(Config::DONT_CARE, 1, 1, false);
+        Context ctx_2_0(Config::DONT_CARE, 2, 0, false);
+        Context ctx_2_1(Config::DONT_CARE, 2, 1, false);
+        Context ctx_3_0(Config::DONT_CARE, 3, 0, false);
 #endif
     }
 
-    // Test querying some API entry points.
+    // test some context creations that are expected to pass
     {
-        Context ctx(conf);
-        TEST_REQUIRE(ctx.Resolve("glDrawArrays"));
-        TEST_REQUIRE(ctx.Resolve("glClearColor"));
-        // currently failing on GLX
-        //TEST_REQUIRE(ctx_1_1.Resolve("ssofuaf") == nullptr);
+#ifdef TEST_GLES
+        Context ctx_2(Config::DEFAULT, 2, 0, false);
+#else
+        Context ctx_1_1(Config::DEFAULT, 1, 1, false);
+        Context ctx_2_0(Config::DEFAULT, 2, 0, false);
+        Context ctx_2_1(Config::DEFAULT, 2, 1, false);
+        Context ctx_3_0(Config::DEFAULT, 3, 0, false);
+#endif
     }
+}
 
+void unit_test_context_might_pass()
+{
+    // these might fail or pass depending on your hardware
+    try 
+    {
+#ifdef TEST_GLES
+        Context ctx_1(Config::DONT_CARE, 1, 0, false);
+        std::printf("GL ES 1.0 Context, pass\n");
+        Context ctx_3_1(Config::DONT_CARE, 3, 1, false);
+        std::printf("GL ES 3.1 Context, pass\n");        
+#else
+        Context ctx_4_6(Config::DONT_CARE, 4, 6, false);  
+        std::printf("GL 4.6 Context, pass\n");
+        Context ctx_es_1_0(Config::DONT_CARE, 1, 0, false, Context::Type::OpenGL_ES);
+        std::printf("GL ES 1.0 Context, pass\n");        
+        Context ctx_es_2_0(Config::DONT_CARE, 2, 0, false, Context::Type::OpenGL_ES);
+        std::printf("GL ES 2.0 Context, pass\n");
+        Context ctx_es_3_1(Config::DONT_CARE, 3, 1, false,  Context::Type::OpenGL_ES);
+        std::printf("GL ES 3.1 ES Context, pass\n");
+#endif
+    }
+    catch (const std::exception& e) 
+    {}
+
+    // these might fail or pass depending on your hardware
+    try 
+    {
+#ifdef TEST_GLES
+        Context ctx_1(Config::DEFAULT, 1, 0, false);
+        std::printf("GL ES 1.0 Context, pass\n");        
+        Context ctx_3_1(Config::DEFAULT, 3, 1, false);
+        std::printf("GL ES 3.1 Context, pass\n");
+#else
+        Context ctx_4_6(Config::DEFAULT, 4, 6, false);      
+        std::printf("GL 4.6 Context, pass\n");        
+        Context ctx_es_1_0(Config::DONT_CARE, 1, 0, false, Context::Type::OpenGL_ES);
+        std::printf("GL ES 1.0 Context, pass\n");                
+        Context ctx_es_2_0(Config::DEFAULT, 2, 0, false, Context::Type::OpenGL_ES);
+        std::printf("GL ES 2.0 Context, pass\n");        
+        Context ctx_es_3_1(Config::DEFAULT, 3, 1, false,  Context::Type::OpenGL_ES);    
+        std::printf("GL ES 3.1 Context, pass\n");        
+#endif
+    } 
+    catch (const std::exception& e)
+    {}
+}
+
+void unit_test_context_should_fail()
+{
     // Test creating a context with a version that is not valid.
     // Expected to fail
+    try 
     {
-        try 
-        {
-            Context ctx(conf, 8, 4, false);
-            TEST_REQUIRE(!"incorrect context version didn't fail as expected");
-        }
-        catch(const std::exception&) 
-        { /* success */ }
+        Context ctx(Config::DONT_CARE, 8, 4, false);
+        TEST_REQUIRE(!"incorrect context version didn't fail as expected");
     }
+    catch(const std::exception&) 
+    { /* success */ }
+
+    try 
+    {
+        Context ctx(Config::DEFAULT, 8, 4, false);
+        TEST_REQUIRE(!"incorrect context version didn't fail as expected");
+    }
+    catch(const std::exception&) 
+    { /* success */ }
+
+#if !defined(TEST_GLES)
+    try 
+    {
+        Context ctx(Config::DEFAULT, 8, 4, false, Context::Type::OpenGL_ES);
+        TEST_REQUIRE(!"incorrect context version didn't fail as expected");
+    }
+    catch(const std::exception&) 
+    { /* success */ }  
+#endif  
 }
 
 #define GL_CHECK(statement) \
@@ -293,11 +353,11 @@ void TestRenderQuad(int width, int height)
 }
 
 
-void unit_test_surfaces()
+void unit_test_surfaces(const wdk::Config::Attributes& attrs)
 {
     // Render to a window surface
     {
-        wdk::Config config;
+        wdk::Config config(attrs);
         wdk::Context context(config);
         wdk::Window window;
         window.Create("test", 200, 200, config.GetVisualID(), 
@@ -317,7 +377,7 @@ void unit_test_surfaces()
 
     // Render to a offscreen buffer
     {
-        wdk::Config config;
+        wdk::Config config(attrs);
         wdk::Context context(config);
         wdk::Surface surface(config, 200, 200);
         TEST_REQUIRE(surface.GetNativeHandle());
@@ -333,7 +393,7 @@ void unit_test_surfaces()
     // this is currently not working on Win.
 #if !defined(_WIN32)
     {
-        wdk::Config config;
+        wdk::Config config(attrs);
         wdk::Context context(config);
         wdk::Pixmap pixmap(200, 200, config.GetVisualID());
         wdk::Surface surface(config, pixmap);
@@ -351,7 +411,21 @@ void unit_test_surfaces()
 int test_main(int, char*[])
 {
     unit_test_config();
-    unit_test_context();
-    unit_test_surfaces();
+    unit_test_context_should_pass();
+    unit_test_context_might_pass();
+    unit_test_surfaces(wdk::Config::DEFAULT);
+   
+    wdk::Config::Attributes attrs;
+    attrs.red_size = 8;
+    attrs.green_size = 8;
+    attrs.blue_size = 8;
+    attrs.alpha_size = 8;
+#ifdef TEST_GLES
+    attrs.depth_size = 8;
+#else 
+    attrs.depth_size = 16;
+#endif
+    attrs.stencil_size = 8;
+    unit_test_surfaces(attrs);
     return 0;
 }
