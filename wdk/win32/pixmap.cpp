@@ -31,29 +31,16 @@
 namespace wdk
 {
 struct Pixmap::impl {
-    HBITMAP bmp;
-    uint_t  width;
-    uint_t  height;
-    uint_t  depth;
+    HBITMAP bmp    = NULL;
+    uint_t  width  = 0;
+    uint_t  height = 0;
+    uint_t  depth  = 0;
 };
 
 Pixmap::Pixmap(uint_t width, uint_t height, uint_t visualid)
 {
     assert(width && height);
-    assert(visualid);
-
-    HDC dpy = GetNativeDisplayHandle();
-
-    auto hdc = MakeUniqueHandle(CreateCompatibleDC(dpy), DeleteDC);
-    if (!hdc.get())
-        throw std::runtime_error("create compatible dc failed");
-
-    PIXELFORMATDESCRIPTOR desc = {0};
-    DescribePixelFormat(hdc.get(), visualid, sizeof(desc), &desc);
-    if (!SetPixelFormat(hdc.get(), visualid, &desc))
-        throw std::runtime_error("set pixelformat failed");
-
-    auto bmp = MakeUniqueHandle(CreateCompatibleBitmap(hdc.get(), width, height), DeleteObject);
+    auto bmp = MakeUniqueHandle(CreateBitmap(width, height, 4, 8, nullptr), DeleteObject);
     if (!bmp.get())
         throw std::runtime_error("create bitmap failed");
 
@@ -61,7 +48,7 @@ Pixmap::Pixmap(uint_t width, uint_t height, uint_t visualid)
     pimpl_->bmp    = bmp.release();
     pimpl_->width  = width;
     pimpl_->height = height;
-    pimpl_->depth  = desc.cColorBits;
+    pimpl_->depth  = 4; 
 }
 
 Pixmap::~Pixmap()

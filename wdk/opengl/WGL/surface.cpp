@@ -28,6 +28,7 @@
 
 #include "wdk/window.h"
 #include "wdk/pixmap.h"
+#include "wdk/system.h"
 #include "wdk/opengl/surface.h"
 #include "wdk/opengl/config.h"
 #include "fakecontext.h"
@@ -35,7 +36,7 @@
 DECLARE_HANDLE(HPBUFFERARB);
 
 namespace {
-    enum class surface_type { window, pbuffer };
+    enum class surface_type { window, pbuffer, pixmap };
 
     // WGL_ARB_pbuffer
     typedef HPBUFFERARB (APIENTRY *wglCreatePbufferARBProc)(HDC device, 
@@ -95,7 +96,33 @@ Surface::Surface(const Config& conf, const Window& win)
 
 Surface::Surface(const Config& conf, const Pixmap& px)
 {
-    assert(!"not supported");
+    std::shared_ptr<wgl::FakeContext> fake;
+    wgl::FetchFakeContext(&conf, fake);
+    auto hdc = MakeUniqueHandle(CreateCompatibleDC(fake->GetDC()), DeleteDC); 
+    if (!hdc.get())
+        throw std::runtime_error("create compatible DC failed");
+    
+    SelectObject(hdc.get(), px.GetNativeHandle());
+
+    // grab the pixelformat descriptor that the configuration has
+    // and then resolve that to the HDC specific pixel format index.
+    const PIXELFORMATDESCRIPTOR* desc = conf.GetNativeHandle();
+
+    // note: this PixelFormat id can be different than what the
+    // "visualid" of the config object is since it's per HDC
+    const int PixelFormat = ChoosePixelFormat(hdc.get(), desc);
+    const int CurrentPixelFormat = GetPixelFormat(hdc.get());
+    if (CurrentPixelFormat != PixelFormat)
+    {
+        if (!SetPixelFormat(hdc.get(), PixelFormat, desc))
+            throw std::runtime_error("set pixel format failed");
+    }
+    pimpl_.reset(new impl);
+    pimpl_->width  = px.GetWidth();
+    pimpl_->height = px.GetHeight();
+    pimpl_->type   = surface_type::pixmap;
+    pimpl_->hdc    = hdc.release();
+    pimpl_->fake   = fake;
 }
 
 Surface::Surface(const Config& conf, uint_t width, uint_t height)
@@ -185,6 +212,12 @@ void Surface::Dispose()
                 wglDestroyPbufferARB(pimpl_->pbuffer);
                 pimpl_->pbuffer = NULL;
                 pimpl_->hdc   = NULL; 
+            }
+            break;
+        case surface_type::pixmap:
+            {
+                const bool ret = DeleteDC(pimpl_->hdc);
+                assert(ret == TRUE);
             }
             break;
     }
