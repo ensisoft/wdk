@@ -33,7 +33,9 @@ Currently the inverse is not possible, i.e it's not possible to use EGL to creat
 The following rendering surfaces are supported:
 * GLX: window, pbuffer, pixmap
 * EGL: window, pbuffer, pixmap
-* WGL: window
+* WGL: window, pbuffer
+
+Note that pbuffer support on Windows requires WGL_ARB_pbuffer extension.
 
 1. Building the library
 --------------------------------
