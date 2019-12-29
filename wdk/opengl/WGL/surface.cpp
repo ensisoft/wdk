@@ -24,23 +24,43 @@
 
 #include <cassert>
 
+#include <GL/gl.h>
+
 #include "wdk/window.h"
 #include "wdk/pixmap.h"
 #include "wdk/opengl/surface.h"
 #include "wdk/opengl/config.h"
 #include "fakecontext.h"
 
+DECLARE_HANDLE(HPBUFFERARB);
+
 namespace {
-    enum class surface_type { window };
+    enum class surface_type { window, pbuffer };
+
+    // WGL_ARB_pbuffer
+    typedef HPBUFFERARB (APIENTRY *wglCreatePbufferARBProc)(HDC device, 
+        int iPixelFormat,
+        int iWidth,
+        int iHeight, 
+        const int* pAttribList);
+    // get DC for the pbuffer
+    typedef HDC (APIENTRY  *wglGetPbufferDCARBProc)(HPBUFFERARB hPbuffer);
+    // release the pbuffer dc
+    typedef int (APIENTRY *wglReleasePbufferDCARBProc)(HPBUFFERARB hPbuffer, HDC hDC);
+    // destroy pbuffer
+    typedef BOOL (APIENTRY *wglDestroyPbufferARBProc)(HPBUFFERARB hPbuffer);
+        
 } // namespace
 
 namespace wdk
 {
 struct Surface::impl {
-    HDC hdc;
+    HPBUFFERARB pbuffer = NULL;
+    HDC hdc = NULL;
     surface_type type;
-    uint_t width;
-    uint_t height;
+    uint_t width  = 0;
+    uint_t height = 0;
+    std::shared_ptr<wgl::FakeContext> fake;
 };
 
 Surface::Surface(const Config& conf, const Window& win)
@@ -80,7 +100,33 @@ Surface::Surface(const Config& conf, const Pixmap& px)
 
 Surface::Surface(const Config& conf, uint_t width, uint_t height)
 {
-    assert(!"not implemented");
+    std::shared_ptr<wgl::FakeContext> fake;
+    wgl::FetchFakeContext(&conf, fake);
+
+    auto wglCreatePbufferARB = fake->Resolve<wglCreatePbufferARBProc>("wglCreatePbufferARB");
+    if (!wglCreatePbufferARB)
+        throw std::runtime_error("unable to create pbuffer. no wglCreatePbufferARB");
+    auto wglGetPbufferDCARB = fake->Resolve<wglGetPbufferDCARBProc>("wglGetPbufferDCARB");
+    
+    const int attrib_list[1] = {0};
+
+     // grab the pixelformat descriptor that the configuration has
+    // and then resolve that to the HDC specific pixel format index.
+    const PIXELFORMATDESCRIPTOR* desc = conf.GetNativeHandle();
+
+    const int PixelFormat = ChoosePixelFormat(fake->GetDC(), desc);
+
+    auto pbuff = wglCreatePbufferARB(fake->GetDC(), PixelFormat, width, height, attrib_list);
+    if (pbuff == NULL)
+        throw std::runtime_error("pbuffer creation failed");
+    
+    pimpl_.reset(new impl);
+    pimpl_->width  = width;
+    pimpl_->height = height;
+    pimpl_->type   = surface_type::pbuffer;
+    pimpl_->hdc    = wglGetPbufferDCARB(pbuff);
+    pimpl_->pbuffer = pbuff;
+    pimpl_->fake   = fake;
 }
 
 Surface::~Surface()
@@ -128,6 +174,17 @@ void Surface::Dispose()
             {
                 HWND hwnd = WindowFromDC(pimpl_->hdc);
                 ReleaseDC(hwnd, pimpl_->hdc);
+            }
+            break;
+        case surface_type::pbuffer:
+            {
+                auto fake = pimpl_->fake;
+                auto wglReleasePbufferDCARB = fake->Resolve<wglReleasePbufferDCARBProc>("wglReleasePbufferDCARB");
+                auto wglDestroyPbufferARB   = fake->Resolve<wglDestroyPbufferARBProc>("wglDestroyPbufferARB");
+                wglReleasePbufferDCARB(pimpl_->pbuffer, pimpl_->hdc);
+                wglDestroyPbufferARB(pimpl_->pbuffer);
+                pimpl_->pbuffer = NULL;
+                pimpl_->hdc   = NULL; 
             }
             break;
     }

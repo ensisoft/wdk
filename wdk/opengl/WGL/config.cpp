@@ -91,7 +91,7 @@
 #define WGL_TYPE_RGBA_ARB                       0x202B
 #define WGL_TYPE_COLORINDEX_ARB                 0x202C
 
-// http://www.opengl.org/registry/specs/ARB/wgl_pbuffer.txt
+// http://www.opengl.org/registry/specs/ARB/WGL_ARB_pbuffer.txt
 // Accepted by the <attribute> parameter of wglChoosePixelFormatEXT:
 #define WGL_DRAW_TO_PBUFFER_ARB                 0x202D
 
@@ -186,8 +186,6 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
     set_if(criteria, WGL_ALPHA_BITS_ARB, attrs.alpha_size);
     set_if(criteria, WGL_DEPTH_BITS_ARB, attrs.depth_size);
     set_if(criteria, WGL_STENCIL_BITS_ARB, attrs.stencil_size);
-
-    assert(!attrs.surfaces.pbuffer && "pbuffer is not implemented");
 
     if (attrs.double_buffer)
         set_if(criteria, WGL_DOUBLE_BUFFER_ARB, TRUE);

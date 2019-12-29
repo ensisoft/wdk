@@ -315,8 +315,6 @@ void unit_test_surfaces()
         TestRenderQuad(200, 200);
     }
 
-// currently not supported on Win32 
-#if !defined(_WIN32) || defined(TEST_GLES)
     // Render to a offscreen buffer
     {
         wdk::Config config;
@@ -347,7 +345,6 @@ void unit_test_surfaces()
         TestResolveEntryPoints(context);
         TestRenderQuad(200, 200);
     }
-#endif
 #endif
 }
 
