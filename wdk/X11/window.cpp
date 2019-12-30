@@ -217,9 +217,7 @@ void Window::Destroy()
     }
 
     XUnmapWindow(d, pimpl_->window);
-
     XDestroyWindow(d, pimpl_->window);
-
     XFlush(d);
 
     pimpl_->window = 0;
@@ -237,6 +235,7 @@ void Window::Invalidate()
         GetSurfaceWidth(),
         GetSurfaceHeight(),
         True);
+    XFlush(d);
 }
 
 void Window::Move(int x, int y)
@@ -247,7 +246,6 @@ void Window::Move(int x, int y)
     Display* d = GetNativeDisplayHandle();
 
     XMoveWindow(d, pimpl_->window, x, y);
-
     XFlush(d);
 }
 
@@ -314,7 +312,6 @@ void Window::SetFocus()
 
     XRaiseWindow(d, pimpl_->window);
     XSetInputFocus(d, pimpl_->window, X11_RevertToNone, CurrentTime);
-
     XFlush(d);
 }
 
@@ -328,7 +325,6 @@ void Window::SetSize(uint_t width, uint_t height)
     Display* d = GetNativeDisplayHandle();
 
     XResizeWindow(d, pimpl_->window, width, height);
-
     XFlush(d);
 }
 
