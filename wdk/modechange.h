@@ -37,36 +37,40 @@ namespace wdk
     {
     public:
         TemporaryVideoModeChange(const TemporaryVideoModeChange&) = delete;
-
-        TemporaryVideoModeChange(const VideoMode& mode = VideoMode())
+        TemporaryVideoModeChange() = default;
+        TemporaryVideoModeChange(const VideoMode& mode)
         {
-            original_mode_ = GetCurrentVideoMode();
-            if (mode.IsValid())
-                SetVideoMode(mode);
+            assert(mode.IsValid());
+            mOriginalMode = wdk::GetCurrentVideoMode();
+            if (mOriginalMode != mode)
+                wdk::SetVideoMode(mode);
         }
        ~TemporaryVideoModeChange()
         {
-            RestoreVideoMode();
+            // could have been moved
+            if (mOriginalMode.IsValid())
+            {
+                const VideoMode& current_video_mode = wdk::GetCurrentVideoMode();
+                if (current_video_mode != mOriginalMode)
+                    wdk::SetVideoMode(mOriginalMode);
+            }
         }
         void SetVideoMode(const VideoMode& mode)
         {
-            assert(mode.IsValid());
-
-            const VideoMode& cur_mode = GetCurrentVideoMode();
-            if (cur_mode != mode)
-                SetVideoMode(mode);
+            TemporaryVideoModeChange temp(mode);
+            mOriginalMode = temp.mOriginalMode;
+            temp.mOriginalMode.xres = 0;
+            temp.mOriginalMode.yres = 0;
         }
-        void RestoreVideoMode()
+        void ReleaseVideoModeChange()
         {
-            assert(original_mode_.IsValid());
-
-            const VideoMode& cur_mode = GetCurrentVideoMode();
-            if (cur_mode != original_mode_)
-                SetVideoMode(original_mode_);
+            mOriginalMode.xres = 0;
+            mOriginalMode.yres = 0;
         }
+
         TemporaryVideoModeChange& operator=(const TemporaryVideoModeChange&) = delete;
     private:
-        VideoMode original_mode_;
+        VideoMode mOriginalMode;
     };
 
 } // wdk
