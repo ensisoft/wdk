@@ -32,6 +32,7 @@
 #include "wdk/window.h"
 #include "wdk/system.h"
 #include "wdk/utf8.h"
+#include "msgqueue.h"
 
 #pragma comment(lib, "User32.lib")
 
@@ -39,62 +40,66 @@ namespace wdk
 {
 
 struct Window::impl {
-    HWND window;
-    Encoding enc;
-    bool fullscreen;
-    bool resizing;
-    int x, y;
-    int w, h;
-    DWORD style;
-    DWORD exstyle;
-
+    HWND window = NULL;
+    Encoding enc = Encoding::UTF8;
+    bool fullscreen = false;
+    bool resizing = false;
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+    DWORD style = 0;
+    DWORD exstyle = 0;
+    // a bit of a hack, we store here temporarily the latest
+    // dirty paint rectangle, so tat we don't need to pass
+    // any kind of heap allocated object from the wndproc
+    // to the window's process message function.
+    // this would cause a leak if the message got lost
+    RECT rcPaint;
+  
     static
-    LRESULT CALLBACK window_startup_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-    {
-        switch (msg)
-        {
-            case WM_CREATE:
-                {
-                    CREATESTRUCT* original = reinterpret_cast<CREATESTRUCT*>(lp);
-                    CREATESTRUCT* copy = new CREATESTRUCT(*original);
-                    PostMessage(hwnd, WM_APP + 1, wp, (LPARAM)copy);
-                }
-                return 0;
-        }
-        return DefWindowProc(hwnd, msg, wp, lp);
-    }
-
-    static
-    LRESULT CALLBACK window_message_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
+    LRESULT CALLBACK WindowMessageProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         // windows has posted and sent messages. Functions pumping the event
         // queue (GetMessage, PeekMessage) dispatch (call repeatedly) the window's
         // WndProc, untill a *posted* message is retrieved from the queue.
-
         // in order to support the dispatching mechanism, where the client
         // retrieves a message from the display, then potentially filters it, ignores it or
-        // dispatches it to keyboard/window/mouse objects we *post* the message back
-        // into the queue, so that it gets picked up by Get/PeekMessage on a later call.
-
-        LONG_PTR lptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
-        assert(lptr);
-
-        Window::impl* self = reinterpret_cast<Window::impl*>(lptr);
+        // dispatches it to window we put the message into own (global) message queue
+        // that is then inspected by the calls to WaitEvent, PeekEvent.
 
         switch (msg)
         {
-            // these messages can be forwarded directly
+            case WM_CREATE:
+               {
+                   CREATESTRUCT* original = reinterpret_cast<CREATESTRUCT*>(lp);
+                   CREATESTRUCT* copy = new CREATESTRUCT(*original);
+                   wdk::impl::PutGlobalWindowMessage(hwnd, WM_CREATE, wp, (LPARAM)copy);
+               }
+               return 0;
+
+            case WM_KILLFOCUS: 
+            case WM_SETFOCUS: 
+            case WM_SIZE:
             case WM_CLOSE:
-            case WM_KILLFOCUS:
-            case WM_SETFOCUS:
-                PostMessage(hwnd, msg, wp, lp);
+            case WM_KEYDOWN:
+            case WM_KEYUP:
+            case WM_MOUSEMOVE:
+            case WM_MOUSEWHEEL:
+            case WM_LBUTTONDOWN:
+            case WM_RBUTTONDOWN:
+            case WM_MBUTTONDOWN:
+            case WM_LBUTTONUP:
+            case WM_RBUTTONUP:
+            case WM_MBUTTONUP:
+            case WM_CHAR:
+                wdk::impl::PutGlobalWindowMessage(hwnd, msg, wp, lp);
                 return 0;
 
             // sent to window when it's size, pos, etc are about to change.
             // need to handle this in case another application tries to resize
             // the window with MoveWindow etc.
-            case WM_WINDOWPOSCHANGING:
+            case WM_WINDOWPOSCHANGING: // returns zero
                 {
                     const LONG style_bits = GetWindowLong(hwnd, GWL_STYLE);
                     if (style_bits & WS_SIZEBOX)
@@ -105,40 +110,26 @@ struct Window::impl {
                 }
                 return 0;
 
-            // resizing window generates (from DefWindowProc) multiple WM_SIZING, WM_SIZE and WM_PAINT
-            // messages. posting these directly to the queue won't work as expected (will call back to wndproc directly).
-            // so in case the window is being resized we just ignore these messages and notify once the resize is finished. (WM_EXITSIZEMOVE)
-            // however these messages are also used when a window becomes unobscured or minimize/maximize buttons are hit.
-            case WM_SIZE:
+            // Make sure we always validate the window rect by calling
+            // BeginPaint/EndPaint. The system will keep sending WM_PAINT
+            // until the current "update region is validated".
+            // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-validaterect
             case WM_PAINT:
-                if (self->resizing)
-                    return 0;
-                PostMessage(hwnd, msg, wp, lp);
-                return 0;
-
-            case WM_ENTERSIZEMOVE:
                 {
-                    RECT rc;
-                    GetWindowRect(hwnd, &rc);
-                    self->x = rc.right - rc.left;
-                    self->y = rc.bottom - rc.top;
-                    self->resizing = true;
+                    auto lptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+                    auto* self = reinterpret_cast<Window::impl*>(lptr);
+                    PAINTSTRUCT paint = {};
+                    RECT new_paint_rect = { 0 };
+                    BeginPaint(hwnd, &paint);
+                    UnionRect(&new_paint_rect, &self->rcPaint, &paint.rcPaint);
+                    EndPaint(hwnd, &paint);
+                    self->rcPaint = new_paint_rect;
                 }
+                wdk::impl::PutGlobalWindowMessage(hwnd, WM_PAINT, wp, lp);
                 return 0;
-
-            case WM_EXITSIZEMOVE:
-                {
-                    self->resizing = false;
-                    RECT rc;
-                    GetWindowRect(hwnd, &rc);
-                    if (self->x != (rc.right - rc.left) || self->y != (rc.bottom - rc.top))
-                        PostMessage(hwnd, WM_SIZE, 0, 0); // post only a notification that size has changed.
-                }
-                break;
 
             default:
             break;
-
         }
         return DefWindowProc(hwnd, msg, wp, lp);
     }
@@ -155,14 +146,15 @@ Window::Window() : pimpl_(new impl)
     pimpl_->y          = 0;
     pimpl_->style      = 0;
     pimpl_->exstyle    = 0;
+    pimpl_->rcPaint    = RECT{ 0 };
 
     WNDCLASSEX cls    = {0};
     cls.cbSize        = sizeof(cls);
     cls.hInstance     = GetModuleHandle(NULL);
     cls.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     cls.hCursor       = LoadCursor(NULL, IDC_ARROW);
-	cls.style         = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS | CS_OWNDC;
-    cls.lpfnWndProc   = impl::window_startup_proc;
+    cls.style         = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS | CS_OWNDC;
+    cls.lpfnWndProc   = impl::WindowMessageProc;
     cls.lpszClassName = TEXT("WDK-WINDOW");
     if (!RegisterClassEx(&cls))
     {
@@ -239,7 +231,7 @@ void Window::Create(const std::string& title, uint_t width, uint_t height, uint_
     HWND hwnd = win.get();
 
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pimpl_.get());
-    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::WindowMessageProc);
 
     // resize window to match the drawable client area with the desired size
     // based on the difference by client and window size. note that this might
@@ -296,9 +288,7 @@ void Window::Invalidate()
 {
     assert(DoesExist());
 
-    RECT client;
-    GetClientRect(pimpl_->window, &client);
-    InvalidateRect(pimpl_->window, &client, TRUE);
+    InvalidateRect(pimpl_->window, NULL, TRUE);
 }
 
 void Window::Move(int x, int y)
@@ -309,7 +299,7 @@ void Window::Move(int x, int y)
     GetWindowRect(pimpl_->window, &rc);
     SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)DefWindowProc);
     MoveWindow(pimpl_->window, x, y, rc.right - rc.left, rc.bottom - rc.top, FALSE);
-    SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(pimpl_->window, GWLP_WNDPROC, (LONG_PTR)impl::WindowMessageProc);
 }
 
 void Window::SetFullscreen(bool fullscreen)
@@ -394,7 +384,7 @@ void Window::SetFullscreen(bool fullscreen)
         ::SetFocus(hwnd);
     }
 
-    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::WindowMessageProc);
 
     // Since we swapped in the DefWindowProc we didn't get a chance to handle the
     // resize message. Thus we're going to regenerate one so that the client is
@@ -439,11 +429,11 @@ void Window::SetSize(uint_t width, uint_t height)
     MoveWindow(hwnd, x, y, width + frame_w, height + frame_h, TRUE);
 
     // restore our wndproc
-    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::window_message_proc);
+    SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)impl::WindowMessageProc);
 
     // Since we swapped in the DefWindowProc we didn't get a chance to handle the
     // resize message. Thus we're going to regenerate one so that the client is
-    // properly notified of the window size change.    
+    // properly notified of the window size change.
     // note that we indeed do a GetClientRect here since it's possible that
     // the size operation has failed. For example the sizes violate the minium/maximum sizes
     // that the window system is able to support.
@@ -465,12 +455,6 @@ bool Window::ProcessEvent(const native_event_t& ev)
 
     const MSG& m = ev;
 
-    // translate virtual key messages into unicode characters
-    // which are posted in WM_CHAR (UTF-16)
-    // this works fine for BMP in the range 0x0000 - 0xD7FF, 0xE000 - 0xFFFF.
-    // for values above 0xFFFF this is broken, but not an issue thus far.
-    TranslateMessage(&m);
-
     switch (m.message)
     {
         case WM_SETFOCUS:
@@ -486,19 +470,21 @@ bool Window::ProcessEvent(const native_event_t& ev)
         case WM_PAINT:
             if (on_paint)
             {
-                RECT rcPaint;
-                GetUpdateRect(m.hwnd, &rcPaint, FALSE);
-                if (rcPaint.bottom == 0 || rcPaint.right == 0)
-                    break;
+                RECT rcPaint = pimpl_->rcPaint;
+                if (IsRectEmpty(&rcPaint))
+					GetUpdateRect(m.hwnd, &rcPaint, FALSE);
+					
+                if (IsRectEmpty(&rcPaint))
+                    GetClientRect(m.hwnd, &rcPaint);
 
                 WindowEventPaint paint;
-                paint.x      = rcPaint.left;
-                paint.y      = rcPaint.top;
-                paint.width  = rcPaint.right - rcPaint.left;
+                paint.x = rcPaint.left;
+                paint.y = rcPaint.top;
+                paint.width = rcPaint.right - rcPaint.left;
                 paint.height = rcPaint.bottom - rcPaint.top;
                 on_paint(paint);
-
             }
+            pimpl_->rcPaint = RECT{ 0 };
             break;
 
         case WM_SIZE:
@@ -514,7 +500,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
             }
             break;
 
-        case WM_APP + 1: // WM_CREATE
+        case WM_CREATE:
             {
                 const CREATESTRUCT* ptr = reinterpret_cast<const CREATESTRUCT*>(m.lParam);
                 WindowEventCreate create;
@@ -606,7 +592,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
             if (on_mouse_release)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
-                
+
                 POINT global;
                 GetCursorPos(&global);
                 WindowEventMouseRelease mickey = {};
@@ -629,7 +615,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 if (pimpl_->enc == Encoding::ASCII)
                     c.ascii = utf16 & 0x7f;
                 else if (pimpl_->enc == Encoding::UCS2)
-                    c.ucs2 = (std::uint16_t)(utf16 & 0xFFFF); 
+                    c.ucs2 = (std::uint16_t)(utf16 & 0xFFFF);
                 else if (pimpl_->enc == Encoding::UTF8)
                     enc::utf8_encode(&utf16, &utf16 + 1, &c.utf8[0]);
 
@@ -641,9 +627,6 @@ bool Window::ProcessEvent(const native_event_t& ev)
         default:
             return true;
     }
-
-    ev.set_done();
-
     return true;
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -31,7 +31,7 @@ namespace wdk
     typedef HBITMAP native_pixmap_t;
     typedef HDC     native_display_t;
 
-    class native_event_t 
+    class native_event_t
     {
     public:
         enum class type {
@@ -56,68 +56,21 @@ namespace wdk
         {
             msg_ = MSG{0};
         }
-
-        native_event_t(const MSG& m) : msg_(m), done_(false)
+        native_event_t(const MSG& m) : msg_(m)
         {}
-        native_event_t(native_event_t&& other) : msg_(other.msg_), done_(other.done_)
-        {
-            other.msg_ = MSG {0};
-            other.done_ = false;
-        }
-        ~native_event_t()
-        {
-            if (msg_.message == 0)
-                return;
 
-            if (msg_.message == WM_PAINT)
-            {
-                // not sure if this is the right thing to do, but on X11
-                // the application also gets a single notification when an area in the
-                // window needs to repainted. On win32 if application doesn't validate
-                // the region (by Begin/EndPaint) the WM_PAINT is posted repeatedly
-                // as long as there's an invalid rect within the window.
-                // so here we enforce the assumption that after every paint request
-                // the window is valid and no more paints are posted untill re-exposed.
-                RECT rcPaint;
-                GetUpdateRect(msg_.hwnd, &rcPaint, FALSE);
-                ValidateRect(msg_.hwnd, &rcPaint);
-            }
-
-            if (done_)
-                return;
-            
-            if (msg_.message == WM_CLOSE)
-                return;
-
-            DefWindowProc(msg_.hwnd, msg_.message, msg_.wParam, msg_.lParam);
-        }
         operator const MSG& () const
         {
             return msg_;
         }
-        void set_done() const
-        {
-            done_ = true;
-        }
         native_window_t get_window_handle() const
-        { 
-            return msg_.hwnd;
-        }
-        native_event_t& operator=(native_event_t&& other)
         {
-            native_event_t tmp(std::move(*this));
-            msg_  = other.msg_;
-            done_ = other.done_;
-
-            other.msg_  = MSG {0};
-            other.done_ = false;
-
-            return *this;
+            return msg_.hwnd;
         }
      	const MSG& get() const
         {
-	        return msg_;
-        }	
+            return msg_;
+        }
 
         type identity() const
         {
@@ -136,7 +89,7 @@ namespace wdk
                 case WM_DISPLAYCHANGE: return type::system_resolution_change;
                 case WM_MOUSEMOVE:     return type::window_mouse_move;
 
-                case WM_LBUTTONDOWN:   
+                case WM_LBUTTONDOWN:
                 case WM_RBUTTONDOWN:
                 case WM_MBUTTONDOWN:
                     return type::window_mouse_press;
@@ -153,7 +106,6 @@ namespace wdk
         }
     private:
         MSG msg_;
-        mutable bool done_;
     };
 
 } // wdk

@@ -26,6 +26,7 @@
 #include "wdk/system.h"
 #include "wdk/videomode.h"
 #include "wdk/keys.h"
+#include "msgqueue.h"
 
 namespace {
     using namespace wdk;
@@ -146,7 +147,7 @@ native_display_t GetNativeDisplayHandle()
         {
             WNDCLASSEX cls    = {0};
             cls.cbSize        = sizeof(cls);
-            cls.lpfnWndProc   = DefWindowProc;
+            cls.lpfnWndProc   = Display::WndProc;
             cls.lpszClassName = TEXT("WDK-SYSTEM-WINDOW");
             RegisterClassEx(&cls);
 
@@ -159,10 +160,6 @@ native_display_t GetNativeDisplayHandle()
                 NULL, NULL, NULL, NULL);
             if (m_wnd_system == NULL)
                 throw std::runtime_error("create system window failed");
-
-            SetWindowLongPtr(m_wnd_system, GWLP_WNDPROC,
-                (LONG_PTR)Display::WndProc);
-
             m_hdc_desktop = GetDC(NULL);
 
         }
@@ -180,10 +177,9 @@ native_display_t GetNativeDisplayHandle()
         static
         LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         {
-            if (msg != WM_DISPLAYCHANGE)
-                return DefWindowProc(hwnd, msg, wp, lp);
-            PostMessage(hwnd, WM_DISPLAYCHANGE, wp, lp);
-            return 0;
+            if (msg == WM_DISPLAYCHANGE)
+                wdk::impl::PutGlobalWindowMessage(hwnd, WM_DISPLAYCHANGE, wp, lp);
+            return DefWindowProc(hwnd, msg, wp, lp);
         }
 
     private:
@@ -251,11 +247,23 @@ bool PeekEvent(native_event_t& ev)
 {
     MSG m;
 
-    if (!PeekMessage(&m, NULL, 0, 0, PM_REMOVE))
+    if (!impl::HasGlobalWindowMessage())
+    {
+        while (PeekMessage(&m, NULL, 0, 0, PM_REMOVE))
+        {
+            // translate virtual key messages into unicode characters
+            // which are posted in WM_CHAR (UTF-16)
+            // this works fine for BMP in the range 0x0000 - 0xD7FF, 0xE000 - 0xFFFF.
+            // for values above 0xFFFF this is broken, but not an issue thus far.
+            TranslateMessage(&m);
+            DispatchMessage(&m);
+        }
+    }
+
+    if (!impl::GetGlobalWindowMessage(&m))
         return false;
 
     ev = native_event_t(m);
-
     return true;
 }
 
@@ -263,14 +271,29 @@ void WaitEvent(native_event_t& ev)
 {
     MSG m;
 
-    GetMessage(&m, NULL, 0, 0);
+    while (!impl::HasGlobalWindowMessage())
+    {
+        // note that the GetMessage cleverly uses BOOL to
+        // indicate ok, quit and error conditions. Hooray for 
+        // true, false, file not found \o/
+        if (GetMessage(&m, NULL, 0, 0) == -1)
+            throw std::runtime_error("GetMessage failed");
 
+        // translate virtual key messages into unicode characters
+        // which are posted in WM_CHAR (UTF-16)
+        // this works fine for BMP in the range 0x0000 - 0xD7FF, 0xE000 - 0xFFFF.
+        // for values above 0xFFFF this is broken, but not an issue thus far.
+        TranslateMessage(&m);
+        DispatchMessage(&m);
+    }
+
+    impl::GetGlobalWindowMessage(&m);
     ev = native_event_t(m);
 }
 
 std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& key)
 {
-	const MSG& m = key;
+    const MSG& m = key;
     const uint_t native_keycode = (uint_t)m.wParam;
 
     std::pair<bitflag<Keymod>, Keysym> ret = {Keymod::None, Keysym::None};
@@ -322,7 +345,7 @@ std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& k
 
 std::pair<bitflag<Keymod>, MouseButton> TranslateMouseButtonEvent(const native_event_t& btn)
 {
-    std::pair<bitflag<Keymod>, MouseButton> ret = {Keymod::None, MouseButton::None};    
+    std::pair<bitflag<Keymod>, MouseButton> ret = {Keymod::None, MouseButton::None};
 
     const auto alt   = GetKeyState(VK_MENU);
     const auto shift = GetKeyState(VK_SHIFT);
@@ -343,7 +366,7 @@ std::pair<bitflag<Keymod>, MouseButton> TranslateMouseButtonEvent(const native_e
             ret.second = MouseButton::WheelScrollUp;
         else ret.second = MouseButton::WheelScrollDown;
     }
-    else 
+    else
     {
         switch (message)
         {
@@ -376,7 +399,7 @@ bool TestKeyDown(Keysym symbol)
     const UINT win    = find_keysym(symbol);
     const SHORT state = GetAsyncKeyState(win);
 
-	return (state & KEY_DOWN) == KEY_DOWN;
+    return (state & KEY_DOWN) == KEY_DOWN;
 
 }
 
@@ -386,7 +409,7 @@ bool TestKeyDown(uint_t keycode)
 
     const SHORT state = GetAsyncKeyState(keycode);
 
-	return (state & KEY_DOWN) == KEY_DOWN;
+    return (state & KEY_DOWN) == KEY_DOWN;
 }
 
 uint_t MapKeysymToNativeKeycode(Keysym symbol)
