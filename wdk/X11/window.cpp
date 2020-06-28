@@ -534,6 +534,138 @@ uint_t Window::GetSurfaceHeight() const
     return attrs.height;
 }
 
+int Window::GetPosX() const
+{
+    assert(DoesExist());
+
+    ::Display* d = GetNativeDisplayHandle();
+
+    ::Window root_window = X11_None;
+    ::Window parent_window = X11_None;
+    ::Window* child_windows = nullptr;
+    unsigned int num_children = 0;
+    ::XQueryTree(d, pimpl_->window, &root_window, &parent_window, &child_windows, &num_children);
+    if (child_windows)
+        ::XFree(child_windows);
+
+    assert(root_window == RootWindow(d, DefaultScreen(d)));
+
+    ::Window the_window = pimpl_->window;
+
+    // the big problem here is that our window can have been reparented
+    // by the WM and the parent window *might* (or might not) contain
+    // decorations such as border / title bar depending on the window manager.
+    // Mapping the 0, 0 coordinate using our Window handle might not then map
+    // to the top left corner of the "window" that user sees but refers only
+    // to the drawable client area inside the window captions.
+    //
+    // Some potential ways to try to "fix" could be to try to query the WM
+    // for window frame extents (but how to get the title bar?)
+    // or then try to look for a parent window of this window and try to
+    // use that as the window to map the coordinate from into desktop coordinate.
+    //
+    // Both are likely to fail randomly under different window manager systems.
+    //
+
+    // maybe the WM has reparanted the window and the WM parent window
+    // includes "our" window and some decorations.
+    if (parent_window != root_window)
+        the_window = parent_window;
+
+    ::Window child_dummy = X11_None;
+    int x = 0;
+    int y = 0;
+
+    // Translate the position 0,0 in our target window to root window coordinate space.
+    ::XTranslateCoordinates(d, the_window, root_window, 0, 0, &x, &y, &child_dummy);
+
+    Atom actual_type;
+    int actual_format = 0;
+    unsigned long nitems, bytes_after;
+    unsigned char *data = nullptr;
+    if (::XGetWindowProperty(d, pimpl_->window,
+        ::XInternAtom(d, "_NET_FRAME_EXTENTS", 0),
+        0, 4, False, AnyPropertyType,
+        &actual_type, &actual_format,
+        &nitems, &bytes_after, &data) == Success)
+    {
+        const auto border_left   = ((const uint32_t*)data)[0];
+        const auto border_right  = ((const uint32_t*)data)[1];
+        const auto border_top    = ((const uint32_t*)data)[2];
+        const auto border_bottom = ((const uint32_t*)data)[3];
+        ::XFree(data);
+
+        x = x - border_left;
+    }
+    return x;
+}
+
+int Window::GetPosY() const
+{
+    assert(DoesExist());
+
+    ::Display* d = GetNativeDisplayHandle();
+
+    ::Window root_window = X11_None;
+    ::Window parent_window = X11_None;
+    ::Window* child_windows = nullptr;
+    unsigned int num_children = 0;
+    ::XQueryTree(d, pimpl_->window, &root_window, &parent_window, &child_windows, &num_children);
+    if (child_windows)
+        ::XFree(child_windows);
+
+    assert(root_window == RootWindow(d, DefaultScreen(d)));
+
+    ::Window the_window = pimpl_->window;
+
+    // the big problem here is that our window can have been reparented
+    // by the WM and the parent window *might* (or might not) contain
+    // decorations such as border / title bar depending on the window manager.
+    // Mapping the 0, 0 coordinate using our Window handle might not then map
+    // to the top left corner of the "window" that user sees but refers only
+    // to the drawable client area inside the window captions.
+    //
+    // Some potential ways to try to "fix" could be to try to query the WM
+    // for window frame extents (but how to get the title bar?)
+    // or then try to look for a parent window of this window and try to
+    // use that as the window to map the coordinate from into desktop coordinate.
+    //
+    // Both are likely to fail randomly under different window manager systems.
+    //
+
+    // maybe the WM has reparanted the window and the WM parent window
+    // includes "our" window and some decorations.
+    if (parent_window != root_window)
+        the_window = parent_window;
+
+    ::Window child_dummy = X11_None;
+    int x = 0;
+    int y = 0;
+
+    // Translate the position 0,0 in our target window to root window coordinate space.
+    ::XTranslateCoordinates(d, the_window, root_window, 0, 0, &x, &y, &child_dummy);
+
+    Atom actual_type;
+    int actual_format = 0;
+    unsigned long nitems, bytes_after;
+    unsigned char *data = nullptr;
+    if (::XGetWindowProperty(d, pimpl_->window,
+        ::XInternAtom(d, "_NET_FRAME_EXTENTS", 0),
+        0, 4, False, AnyPropertyType,
+        &actual_type, &actual_format,
+        &nitems, &bytes_after, &data) == Success)
+    {
+        const auto border_left   = ((const uint32_t*)data)[0];
+        const auto border_right  = ((const uint32_t*)data)[1];
+        const auto border_top    = ((const uint32_t*)data)[2];
+        const auto border_bottom = ((const uint32_t*)data)[3];
+        ::XFree(data);
+
+        y = y - border_top;
+    }
+    return y;
+}
+
 bool Window::DoesExist() const
 {
     return pimpl_->window != 0;

@@ -25,6 +25,7 @@
 #include <iterator>
 #include <thread>
 #include <chrono>
+#include <cstdio>
 
 #include "wdk/system.h"
 #include "wdk/videomode.h"
@@ -37,7 +38,7 @@
 
 bool WaitVideoModeChange()
 {
-    // pump the application message loop for a while expecting to 
+    // pump the application message loop for a while expecting to
     // find a resolution change message.
     // note that displays will take some time before the resolution
     // change is actually visible to the user. i.e. while we might
@@ -49,7 +50,7 @@ bool WaitVideoModeChange()
         wdk::native_event_t event;
         while (wdk::PeekEvent(event))
         {
-            if (event.identity() == wdk::native_event_t::type::system_resolution_change) 
+            if (event.identity() == wdk::native_event_t::type::system_resolution_change)
                 return true;
         }
     }
@@ -76,7 +77,7 @@ void unit_test_video_modes()
     // test enumerating supported video modes and setting the mode.
     {
         const auto& mode  = wdk::GetCurrentVideoMode();
-        const auto& modes = wdk::ListVideoModes();        
+        const auto& modes = wdk::ListVideoModes();
         TEST_REQUIRE(mode.xres);
         TEST_REQUIRE(mode.yres);
         TEST_REQUIRE(find(modes.begin(), modes.end(), mode) != modes.end());
@@ -85,7 +86,7 @@ void unit_test_video_modes()
         {
             if (m == mode)
                 continue;
-            
+
             wdk::SetVideoMode(m);
             TEST_REQUIRE(WaitVideoModeChange());
         }
@@ -100,7 +101,7 @@ void unit_test_video_modes()
 
         const wdk::VideoMode XGA = {1024, 768};
         const auto ret = std::find(std::begin(modes), std::end(modes), XGA);
-        if (ret != std::end(modes)) 
+        if (ret != std::end(modes))
         {
             wdk::TemporaryVideoModeChange change(XGA);
             TEST_REQUIRE(WaitVideoModeChange());
@@ -235,6 +236,46 @@ void unit_test_window_functions()
         }
     }
 
+    // test position/move. The positioning stuff isn't exactly perfect on X11 so therefore
+    // we're only using TEST_CHECK here.
+    {
+        wdk::Window w;
+        w.Create("unit-test", 100, 100, 0);
+        ProcessWindowEvents(w, 1);
+
+        const auto original_x = w.GetPosX();
+        const auto original_y = w.GetPosY();
+        std::printf("original x=%d,y=%d\n", original_x, original_y);
+
+        w.Move(original_x + 100, original_y + 100);
+        ProcessWindowEvents(w, 1);
+        {
+            const auto x = w.GetPosX();
+            const auto y = w.GetPosY();
+            std::printf("x=%d,y=%d\n", x, y);
+            TEST_CHECK(x == original_x + 100);
+            TEST_CHECK(y == original_y + 100);
+        }
+
+        w.Move(0, 0);
+        ProcessWindowEvents(w, 1);
+        {
+            const auto x = w.GetPosX();
+            const auto y = w.GetPosY();
+            TEST_CHECK(x == 0);
+            TEST_CHECK(y == 0);
+        }
+
+        w.Move(200, 300);
+        ProcessWindowEvents(w, 1);
+        {
+            const auto x = w.GetPosX();
+            const auto y = w.GetPosY();
+            TEST_CHECK(x == 200);
+            TEST_CHECK(y == 300);
+        }
+    }
+
     // set to fullscreen
     {
         const wdk::VideoMode& current_mode = wdk::GetCurrentVideoMode();
@@ -318,7 +359,7 @@ void unit_test_window_paint_event()
     TEST_REQUIRE(paintEvent.y == 0);
     TEST_REQUIRE(paintEvent.h == 500);
     TEST_REQUIRE(paintEvent.w == 600);
-    
+
     paintEvent = PaintEvent{};
 
     w.Invalidate();
@@ -351,7 +392,7 @@ void unit_test_window_paint_event()
 // having the user resize the window.
 void unit_test_window_resize_event()
 {
-    
+
     struct ResizeEvent {
         bool fired;
         int w;
@@ -530,7 +571,7 @@ void unit_test_window_key_event(wdk::Keysym expected_key, char expected_characte
     std::cout << "\nPlease press key: " << ToString(expected_key);
     std::cout.flush();
 
-    for (int i=0; i<10; ++i) 
+    for (int i=0; i<10; ++i)
     {
         std::cout << "\r" << 10 - i << "s ...";
         std::cout.flush();
@@ -551,7 +592,7 @@ void unit_test_window_key_event(wdk::Keysym expected_key, char expected_characte
 void unit_test_window_mouse_events(wdk::MouseButton expected_button)
 {
     wdk::Window win;
-    win.Create("Move mouse and click button: " + ToString(expected_button), 
+    win.Create("Move mouse and click button: " + ToString(expected_button),
         500, 500, 0);
 
     bool on_mouse_move    = false;
@@ -598,8 +639,8 @@ int test_main(int, char*[])
     unit_test_window_focus_event();
     unit_test_window_close_event();
     unit_test_window_key_event(wdk::Keysym::KeyA, 'a');
-    unit_test_window_key_event(wdk::Keysym::KeyZ, 'z');    
-    unit_test_window_key_event(wdk::Keysym::Key0, '0');        
+    unit_test_window_key_event(wdk::Keysym::KeyZ, 'z');
+    unit_test_window_key_event(wdk::Keysym::Key0, '0');
     unit_test_window_key_event(wdk::Keysym::F1, 0);
     unit_test_window_key_event(wdk::Keysym::ShiftL, 0);
     unit_test_window_key_event(wdk::Keysym::ArrowDown, 0);

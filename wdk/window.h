@@ -138,6 +138,14 @@ namespace wdk
         // get the current drawable window surface width
         uint_t GetSurfaceWidth() const;
 
+        // get the window x coordinate relative to its parent (desktop)
+        // window's upper left corner.
+        int GetPosX() const;
+
+        // get the window y coordinate relative to its parent (desktop)
+        // window's upper left corner.
+        int GetPosY() const;
+
         // returns true if window currently exists. otherwise false.
         bool DoesExist() const;
 

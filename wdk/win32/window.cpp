@@ -56,7 +56,7 @@ struct Window::impl {
     // to the window's process message function.
     // this would cause a leak if the message got lost
     RECT rcPaint;
-  
+
     static
     LRESULT CALLBACK WindowMessageProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
@@ -78,8 +78,8 @@ struct Window::impl {
                }
                return 0;
 
-            case WM_KILLFOCUS: 
-            case WM_SETFOCUS: 
+            case WM_KILLFOCUS:
+            case WM_SETFOCUS:
             case WM_SIZE:
             case WM_CLOSE:
             case WM_KEYDOWN:
@@ -473,7 +473,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 RECT rcPaint = pimpl_->rcPaint;
                 if (IsRectEmpty(&rcPaint))
 					GetUpdateRect(m.hwnd, &rcPaint, FALSE);
-					
+
                 if (IsRectEmpty(&rcPaint))
                     GetClientRect(m.hwnd, &rcPaint);
 
@@ -646,6 +646,24 @@ uint_t Window::GetSurfaceHeight() const
     RECT rc = {0};
     GetClientRect(pimpl_->window, &rc);
     return rc.bottom;
+}
+
+int Window::GetPosX() const
+{
+    assert(DoesExist());
+
+    RECT rc = {0};
+    GetWindowRect(pimpl_->window, &rc);
+    return rc.left;
+}
+
+int Window::GetPosY() const
+{
+    assert(DoesExist());
+
+    RECT rc = {0};
+    GetWindowRect(pimpl_->window, &rc);
+    return rc.top;
 }
 
 bool Window::DoesExist() const
