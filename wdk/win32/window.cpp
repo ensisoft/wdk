@@ -39,6 +39,9 @@
 namespace wdk
 {
 
+// see the comments in system.cpp (PeekEvent) about this fiber stuff here.
+extern LPVOID caller_fiber_handle;
+
 struct Window::impl {
     HWND window = NULL;
     Encoding enc = Encoding::UTF8;
@@ -70,6 +73,17 @@ struct Window::impl {
 
         switch (msg)
         {
+            // see the comments in PeekEvent implementation about this timer fiber shit here!
+            case WM_ENTERSIZEMOVE:
+                SetTimer(hwnd, 1, USER_TIMER_MINIMUM, NULL);
+                return 0;
+            case WM_EXITSIZEMOVE:
+                KillTimer(hwnd, 1);
+                return 0;
+            case WM_TIMER:
+                SwitchToFiber(caller_fiber_handle);
+                return 0;
+
             case WM_CREATE:
                {
                    CREATESTRUCT* original = reinterpret_cast<CREATESTRUCT*>(lp);
@@ -128,6 +142,10 @@ struct Window::impl {
                 wdk::impl::PutGlobalWindowMessage(hwnd, WM_PAINT, wp, lp);
                 return 0;
 
+                // ignored. expectation is that everything is painted at one go.
+            case WM_ERASEBKGND:
+                return 1;
+
             default:
             break;
         }
@@ -153,7 +171,7 @@ Window::Window() : pimpl_(new impl)
     cls.hInstance     = GetModuleHandle(NULL);
     cls.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     cls.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    cls.style         = CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS | CS_OWNDC;
+    cls.style         = CS_DBLCLKS | CS_OWNDC;
     cls.lpfnWndProc   = impl::WindowMessageProc;
     cls.lpszClassName = TEXT("WDK-WINDOW");
     if (!RegisterClassEx(&cls))

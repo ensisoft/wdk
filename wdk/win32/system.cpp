@@ -243,11 +243,14 @@ std::vector<VideoMode> ListVideoModes()
     return modes;
 }
 
-bool PeekEvent(native_event_t& ev)
+LPVOID caller_fiber_handle = nullptr;
+LPVOID msgloop_fiber_handle = nullptr;
+
+void PeekEventFiberDelegate(LPVOID param)
 {
     MSG m;
 
-    if (!impl::HasGlobalWindowMessage())
+    while (true)
     {
         while (PeekMessage(&m, NULL, 0, 0, PM_REMOVE))
         {
@@ -258,8 +261,92 @@ bool PeekEvent(native_event_t& ev)
             TranslateMessage(&m);
             DispatchMessage(&m);
         }
+        SwitchToFiber(caller_fiber_handle);
     }
+}
 
+bool PeekEvent(native_event_t& ev)
+{
+    // the fundamental problem we're trying to solve here is that when a window is 
+    // being resized (or moved) the system generates a WM_SYSCOMMAND message 
+    // (wparam = SC_MOVE/SC_SIZE). If/when this message is passed to the DefWindowProc
+    // it enters a so called "modal loop" and does not return until the resize/move
+    // operation has finished. While the window is being resized the modal loop 
+    // invokes the WndProc directly with messages such as WM_ENTERSIZEMOVE, 
+    // WM_EXITSIZEMOVE and WM_PAINT. 
+    // The fact that the modal loop doesn't return however is bad news for an
+    // interactive type of application (such as a game) that is running a continous
+    // rendering loop and does not care about WM_PAINT message handler.
+    // Since the main thread (or whichever thread is handling the windowing) is now
+    // blocked the application's main loop cannot run and it cannot produce any frames
+    // which means that its UI will appear "frozen" to the user. 
+    //
+    // There are some suggestions on the internet saying "use threads" but I think
+    // this is a loaded footgun waiting to go off. Any sane Win32 app does not mix
+    // threads with window objects.. this will certainly cause hard to fix bugs
+    // since there is some (undocumented) amount of thread affinity per each window
+    // object. Additionally the message loop we're trying to pump here is specific
+    // to the thread.
+    // Obivously the application could offload some work such as running simulations
+    // or doing rendering to a separate GL context/thread but the main problem would
+    // still be same, those threads' work could not be displayed while the main thread
+    // is not able to render and put new pixels on the window surface.
+    // 
+    // One solution could be to possibly prevent this processing from happening
+    // inside of DefWindowProc by catching WM_SYSCOMMAND. However this then means
+    // that the window will not respond to resize or move requests. There might be
+    // a way for the application itself to simulate that behaviour but it's probably
+    // difficult to get right (I'm sure there are many pitfalls around this and 
+    // undocumented behaviours).
+    // 
+    // So the current solution here is to convert the calling thread to a fiber 
+    // on the first call. Then we delegate the message peeking to a secondary
+    // fiber that continuously runs the message loop but only when yielded 
+    // by the main fiber. Yielding to the message loop fiber stops the main fiber
+    // until the message loop fiber yields which it does when messages are found.
+    // Now the real trick here is that somehow when the message loop fiber 
+    // runs and enters the modal loop it needs to intermittently yield to the 
+    // main fiber as well! 
+    // We can do this from the WndProc when the DefWindowProc calls it directly
+    // during the processing! And the obvious choice could be WM_PAINT.
+    // Except that this doesn't work so well. As is the case with Win32 there's
+    // always that one more snag or undocumented thing among all the documented lies. 
+    // It looks that the WM_PAINT is indeed invoked but for whatever reason
+    // yielding to the main fiber from WM_PAINT when sandwitched between
+    // ENTER/EXIT_SIZEMOVE does not work well... the result is very janky. 
+    // Current best quess is that the frequency at which the WM_PAINT is generated
+    // and WndProc called is not high enough. 
+    // So instead of relying on that we use another hack which is to set a
+    // WM_TIMER (also triggers WndProc being called) and yield from timer handler
+    // to the main fiber. *phew*. 
+    // 
+    // This is still rather janky esp when resizing the window (moving seems to work
+    // better) but at least it gives the application some chance to display something
+    // even if the window is resized. The app's main loop should still not depend on 
+    // this, rather all simulations and such step forward regardless of whether the 
+    // application is able to put the pixels on the screen or not.
+    //
+    // Todo: investigate the overhead of fibers and whether there are ways to mitigate
+    // by for example having minimal stack size.
+    // Todo: skip the fiber creation if the window can never be moved/resized (i.e. in 
+    // fullscreen mode always ?)
+
+    if (caller_fiber_handle == nullptr) 
+    {
+        // this is now the apps "main" fiber.
+        caller_fiber_handle = ConvertThreadToFiber(nullptr);
+        // this will be message loop dispatching fiber.
+        msgloop_fiber_handle = CreateFiber(0, PeekEventFiberDelegate, nullptr);
+        if (msgloop_fiber_handle == nullptr || caller_fiber_handle == nullptr)
+            throw std::runtime_error("fiber creation failed.");
+    }
+    
+    // if we don't have any pending messages then switch to the 
+    // message fiber to pump the message loop for a while.
+    if (!impl::HasGlobalWindowMessage())
+        SwitchToFiber(msgloop_fiber_handle);
+
+    MSG m;
     if (!impl::GetGlobalWindowMessage(&m))
         return false;
 
