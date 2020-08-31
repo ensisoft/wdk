@@ -71,6 +71,8 @@ namespace {
     typedef HGLRC (APIENTRY *wglCreateContextAttribsARBProc)(HDC, HGLRC, const int*);
     // WGL_ARB_extensions_string
     typedef const char* (APIENTRY *wglGetExtensionsStringARBProc)(HDC);
+    // WGL_EXT_swap_control
+    typedef BOOL(APIENTRY* wglSwapIntervalEXTProc)(int interval);
 } // namespace
 
 namespace wdk
@@ -198,7 +200,9 @@ void Context::MakeCurrent(Surface* surf)
 
 void Context::SwapBuffers()
 {
-    assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
+    assert(pimpl_->surface && "context has no valid surface. did you forget to call MakeCurrent?");
+    if (!pimpl_->surface)
+        return;
 
     const BOOL ret = ::SwapBuffers(pimpl_->surface);
 
@@ -212,7 +216,36 @@ bool Context::HasDRI() const
 
 bool Context::SetSwapInterval(int interval)
 {
-    return false;
+    assert(pimpl_->surface && "Context has no valid surface. Did you forget to call MakeCurrent?");
+    if (!pimpl_->surface)
+        return false;
+
+    auto wglGetExtensionsStringARB = (wglGetExtensionsStringARBProc)Resolve("wglGetExtensionsStringARB");
+    if (!wglGetExtensionsStringARB)
+        return false;
+
+    const char* extensions_string = wglGetExtensionsStringARB(pimpl_->surface);
+    if (!extensions_string)
+        return false;
+    bool WGL_EXT_swap_control_found = false;
+    std::stringstream ss(extensions_string);
+    std::string extension;
+    while (std::getline(ss, extension, ' '))
+    {
+        if (extension == "WGL_EXT_swap_control")
+        {
+            WGL_EXT_swap_control_found = true;
+            break;
+        }
+    }
+    if (!WGL_EXT_swap_control_found)
+        return false;
+
+    auto swap_interval = (wglSwapIntervalEXTProc)Resolve("wglSwapIntervalEXT");
+    if (!swap_interval)
+        return false;
+
+    return swap_interval(interval) == TRUE;
 }
 
 void* Context::Resolve(const char* function) const
