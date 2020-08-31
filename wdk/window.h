@@ -128,6 +128,10 @@ namespace wdk
         // set new character encoding for character events
         void SetEncoding(Encoding e);
 
+        // Set new window title to be show in the window's title bar (if it has one).
+        // The title should be a UTF-8 encoded string.
+        void SetTitle(const std::string& title);
+
         // process the given event.
         // returns true if event was consumed otherwise false.
         bool ProcessEvent(const native_event_t& ev);

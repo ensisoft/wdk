@@ -333,6 +333,19 @@ void Window::SetEncoding(Encoding enc)
     pimpl_->enc = enc;
 }
 
+void Window::SetTitle(const std::string& title)
+{
+    assert(DoesExist());
+
+    Display* d = GetNativeDisplayHandle();
+
+    // todo: work out the actual encoding. we could have to do
+    // a conversion from UTF-8 to "Host portable character encoding"
+    // in case host is using something other than UTF-8
+    XStoreName(d, pimpl_->window, title.c_str());
+    XFlush(d);
+}
+
 bool Window::ProcessEvent(const native_event_t& ev)
 {
     if (ev.get_window_handle() != GetNativeHandle())

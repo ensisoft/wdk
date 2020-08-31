@@ -466,6 +466,13 @@ void Window::SetEncoding(Encoding enc)
     pimpl_->enc = enc;
 }
 
+void Window::SetTitle(const std::string& title)
+{
+    HWND hwnd = pimpl_->window;
+    const auto& wide = enc::utf8_decode(title);
+    SetWindowTextW(hwnd, wide.c_str());
+}
+
 bool Window::ProcessEvent(const native_event_t& ev)
 {
     if (ev.get_window_handle() != GetNativeHandle())
