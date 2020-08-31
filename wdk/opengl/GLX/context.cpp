@@ -36,7 +36,7 @@
 
 #define X11_None 0
 
-// GLX_ARB_create_context         
+// GLX_ARB_create_context
 // Accepted as an attribute name in <*attrib_list>:
 #define GLX_CONTEXT_MAJOR_VERSION_ARB           0x2091
 #define GLX_CONTEXT_MINOR_VERSION_ARB           0x2092
@@ -59,7 +59,12 @@
 // GLX_CONTEXT_PROFILE_MASK_ARB in <*attrib_list>:
 #define GLX_CONTEXT_ES_PROFILE_BIT_EXT		0x00000004
 #define GLX_CONTEXT_ES2_PROFILE_BIT_EXT		0x00000004
-        
+
+// GL_EXT_swap_control (EXT_swap_control)
+// New Tokens
+#define GLX_SWAP_INTERVAL_EXT               0x20F1
+#define GLX_MAX_SWAP_INTERVAL_EXT           0x20F2
+
 namespace wdk
 {
 
@@ -85,8 +90,8 @@ struct Context::impl {
 
         if (type == Context::Type::OpenGL_ES)
         {
-            // todo: what's the screen number ? 
-            const char* extensions_string = glXQueryExtensionsString(dpy, 0); 
+            // todo: what's the screen number ?
+            const char* extensions_string = glXQueryExtensionsString(dpy, 0);
             bool GLX_EXT_create_context_es2_profile_supported = false;
             std::stringstream ss(extensions_string);
             std::string extension;
@@ -108,7 +113,7 @@ struct Context::impl {
         {
             const int FLAGS = debug ?
                GLX_CONTEXT_DEBUG_BIT_ARB : 0;
-            const int PROFILE = (type == Context::Type::OpenGL_ES) 
+            const int PROFILE = (type == Context::Type::OpenGL_ES)
                 ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT : GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
 
             const int attrs[] = {
@@ -178,7 +183,7 @@ Context::Context(const Config& conf, int major_version, int minor_version, bool 
     pimpl_.reset(new impl(conf, major_version, minor_version, debug, Type::OpenGL));
 }
 
-Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type) 
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type)
 {
     pimpl_.reset(new impl(conf, major_version, minor_version, debug, requested_type));
 }
@@ -214,7 +219,9 @@ void Context::MakeCurrent(Surface* surf)
 
 void Context::SwapBuffers()
 {
-    assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
+    assert(pimpl_->surface && "context has no valid surface. did you forget to call MakeCurrent?");
+    if (!pimpl_->surface)
+        return;
 
     Display* d = GetNativeDisplayHandle();
 
@@ -226,6 +233,42 @@ bool Context::HasDRI() const
     Display* d = GetNativeDisplayHandle();
 
     return (glXIsDirect(d, pimpl_->context) == True);
+}
+
+bool Context::SetSwapInterval(int interval)
+{
+    assert(pimpl_->surface && "context has no valid surface yet. did you forget to call MakeCurrent?");
+    if (!pimpl_->surface)
+        return false;
+
+    Display* d = GetNativeDisplayHandle();
+
+    // todo: screen number ??
+    const char* extensions_string = glXQueryExtensionsString(d, 0);
+    bool GLX_EXT_swap_control_found = false;
+    std::stringstream ss(extensions_string);
+    std::string extension;
+    while (std::getline(ss, extension, ' '))
+    {
+        if (extension == "GLX_EXT_swap_control")
+        {
+            GLX_EXT_swap_control_found = true;
+            break;
+        }
+    }
+    if (!GLX_EXT_swap_control_found)
+        return false;
+
+    // Context creation requires GLX_ARB_create_context extension.
+    // if this is not available at runtime then context creation simply fails.
+    typedef void (APIENTRY *glXSwapIntervalExtProc)(Display*, GLXDrawable, int);
+
+    auto swap_control = reinterpret_cast<glXSwapIntervalExtProc>(glXGetProcAddress((GLubyte*)"glXSwapIntervalEXT"));
+    if (!swap_control)
+        return false;
+
+    swap_control(d, pimpl_->surface, interval);
+    return true;
 }
 
 void* Context::Resolve(const char* function) const

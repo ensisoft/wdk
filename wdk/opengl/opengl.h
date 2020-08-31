@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -50,7 +50,7 @@ namespace wdk
         {}
 
         // create specific context version with specific attributes
-        OpenGL(const Config::Attributes& attrs, int major_version, int minor_version, bool debug) 
+        OpenGL(const Config::Attributes& attrs, int major_version, int minor_version, bool debug)
             : config_(attrs), context_(config_, major_version, minor_version, debug)
         {}
 
@@ -62,13 +62,13 @@ namespace wdk
         OpenGL() : context_(config_)
         {}
 
-       ~OpenGL() 
+       ~OpenGL()
         {
             if (surface_)
                 Detach();
         }
 
-        // Create a new Surface for the given render target and then 
+        // Create a new Surface for the given render target and then
         // attach the surface to the context.
         template<typename RenderTarget>
         void Attach(RenderTarget& target)
@@ -102,21 +102,27 @@ namespace wdk
             context_.SwapBuffers();
         }
 
+        // Set the swap interval. See Context::SetSwapInterval.
+        bool SetSwapInterval(int interval)
+        {
+            return context_.SetSwapInterval(interval);
+        }
+
         // Get the Visual ID. See Config::GetVisualID
         uint_t GetVisualID() const
         {
             return config_.GetVisualID();
         }
         // Get the config ID. See Config::GetConfigID
-        uint_t GetConfigID() const 
-        { 
-            return config_.GetConfigID(); 
+        uint_t GetConfigID() const
+        {
+            return config_.GetConfigID();
         }
 
         // Get config object.
-        const Config& GetConfig() const 
-        { 
-            return config_; 
+        const Config& GetConfig() const
+        {
+            return config_;
         }
 
         // Resolve OpenGL entry point. See Context::Resolve

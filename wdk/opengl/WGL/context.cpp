@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Sami Väisänen, Ensisoft 
+// Copyright (c) 2013 Sami Väisänen, Ensisoft
 //
 // http://www.ensisoft.com
 //
@@ -79,36 +79,36 @@ struct Context::impl {
     std::shared_ptr<wgl::FakeContext> fake;
 
     HGLRC    context;
-    HDC      surface;    
+    HDC      surface;
 
     impl(const Config& conf, int major, int minor, bool debug, Context::Type type)
     {
         // when config was created it has created a fake gl context.
-        // we'll need to retrive that context now to query for the "real" 
+        // we'll need to retrive that context now to query for the "real"
         // context creation functions.
         // also we'll use the fake window hdc (that the context has created)
         // untill the the user sets the real surface to this context.
         wgl::FetchFakeContext(&conf, fake);
-        assert(fake); 
+        assert(fake);
 
         auto wglCreateContextAttribsARB = fake->Resolve<wglCreateContextAttribsARBProc>("wglCreateContextAttribsARB");
         if (!wglCreateContextAttribsARB)
             throw std::runtime_error("unable to create context. no wglCreateContextAttribs");
 
         // in order to know if the driver supports WGL_EXT_create_context_es2_profile
-        // we need to query the extensions strings. 
+        // we need to query the extensions strings.
         // but because it's a WGL extension it's not part of the GL_EXTENSIONS string.
         // so we need WGL_ARB_extensions_string to query the extensions.. uh.. string
-        if (type == Context::Type::OpenGL_ES) 
-        {   
+        if (type == Context::Type::OpenGL_ES)
+        {
             auto wglGetExtensionsStringARB = fake->Resolve<wglGetExtensionsStringARBProc>("wglGetExtensionsStringARB");
             if (!wglGetExtensionsStringARB)
-                throw std::runtime_error("unable to create context. no wglGetExtensionsString"); 
+                throw std::runtime_error("unable to create context. no wglGetExtensionsString");
             const char* extensions_string = wglGetExtensionsStringARB(fake->GetDC());
             bool WGL_EXT_create_context_es2_profile_support = false;
             std::stringstream ss(extensions_string);
             std::string extension;
-            while (std::getline(ss, extension, ' ')) 
+            while (std::getline(ss, extension, ' '))
             {
                 if (extension == "WGL_EXT_create_context_es2_profile")
                 {
@@ -126,16 +126,16 @@ struct Context::impl {
 
         // todo: the desktop context profile bit
         // WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
-        //WGL_CONTEXT_CORE_PROFILE_BIT_ARB;            
-        const int PROFILE = (type == Context::Type::OpenGL_ES) 
-            ? WGL_CONTEXT_ES_PROFILE_BIT_EXT : WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;   
+        //WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+        const int PROFILE = (type == Context::Type::OpenGL_ES)
+            ? WGL_CONTEXT_ES_PROFILE_BIT_EXT : WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
 
-        const int attrs[] = 
+        const int attrs[] =
         {
             WGL_CONTEXT_MAJOR_VERSION_ARB, major,
             WGL_CONTEXT_MINOR_VERSION_ARB, minor,
             WGL_CONTEXT_FLAGS_ARB, FLAGS,
-            WGL_CONTEXT_PROFILE_MASK_ARB, PROFILE, 
+            WGL_CONTEXT_PROFILE_MASK_ARB, PROFILE,
             ARNOLD
         };
         auto ctx = MakeUniqueHandle(wglCreateContextAttribsARB(fake->GetDC(), nullptr, attrs), wglDeleteContext);
@@ -191,7 +191,7 @@ void Context::MakeCurrent(Surface* surf)
                 throw std::runtime_error("make current failed. "
                     "surface doesn't have a pixel format compatible with the contex");
             throw std::runtime_error("make current failed");
-        }                
+        }
         pimpl_->surface = surf->GetNativeHandle();
     }
 }
@@ -199,7 +199,7 @@ void Context::MakeCurrent(Surface* surf)
 void Context::SwapBuffers()
 {
     assert(pimpl_->surface && "context has no valid surface. did you forget to call make_current?");
-    
+
     const BOOL ret = ::SwapBuffers(pimpl_->surface);
 
     assert(ret == TRUE);
@@ -210,10 +210,15 @@ bool Context::HasDRI() const
     return true;
 }
 
+bool Context::SetSwapInterval(int interval)
+{
+    return false;
+}
+
 void* Context::Resolve(const char* function) const
 {
     assert(function && "null function name");
-    
+
     // WGL proc addressess are per context and can theoretically
     // change between different context instances.
     // According to MSDN they're also unique for each pixel format.
@@ -224,8 +229,8 @@ void* Context::Resolve(const char* function) const
     {
         if (!wglMakeCurrent(pimpl_->surface, pimpl_->context))
             throw std::runtime_error("failed to make context current for proc address query");
-    } 
-    
+    }
+
     void* ret = (void*)wglGetProcAddress(function);
     if (hdc != pimpl_->surface && hgl != pimpl_->context)
     {
@@ -235,20 +240,20 @@ void* Context::Resolve(const char* function) const
 
     if (ret) return ret;
 
-    // There's the issue that according to the MSDN wglGetProcAddress 
+    // There's the issue that according to the MSDN wglGetProcAddress
     // returns *extension* function addresses. Original OpenGL (1.x) functions
-    // such as glClear are exported directly by Microsoft's OpenGL implementation. 
+    // such as glClear are exported directly by Microsoft's OpenGL implementation.
     // Now different drivers seem to have different behaviour, nvidia (currently 372.54)
-    // does return function pointers for these but Intel doesn't. 
+    // does return function pointers for these but Intel doesn't.
     const static auto opengl32 = LoadLibraryA("opengl32.dll");
-    ret = GetProcAddress(opengl32, function); 
+    ret = GetProcAddress(opengl32, function);
 
     // According to OpenGL wiki https://www.opengl.org/wiki/Load_OpenGL_Functions
     // some implementations can also return 0x1, 0x2, 0x3 or -1 for "not found" instead
     // of NULL
     if (ret == (void*)0x1 || ret == (void*)0x2 || ret == (void*)0x3 || ret == (void*)-1)
         return nullptr;
-    
+
     return ret;
 }
 

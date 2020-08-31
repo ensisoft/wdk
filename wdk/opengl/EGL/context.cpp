@@ -116,7 +116,7 @@ Context::Context(const Config& conf, int major_version, int minor_version, bool 
     pimpl_.reset(new impl(conf, major_version, minor_version, debug));
 }
 
-Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type) 
+Context::Context(const Config& conf, int major_version, int minor_version, bool debug, Type requested_type)
 {
     // currently not supported.
     if (requested_type == Context::Type::OpenGL)
@@ -162,6 +162,11 @@ bool Context::HasDRI() const
 {
     // todo ???
     return true;
+}
+
+bool Context::SetSwapInterval(int interval)
+{
+    return false;
 }
 
 void* Context::Resolve(const char* function) const

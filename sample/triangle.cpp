@@ -301,11 +301,24 @@ private:
 
 };
 
+// returns number of seconds elapsed since the last call
+// of this function.
+double ElapsedSeconds()
+{
+    using clock = std::chrono::steady_clock;
+    static auto start = clock::now();
+    auto now  = clock::now();
+    auto gone = now - start;
+    start = now;
+    return std::chrono::duration_cast<std::chrono::microseconds>(gone).count() /
+        (1000.0 * 1000.0);
+}
 
 int launch(int argc, char* argv[])
 {
     auto msaa = wdk::Config::Multisampling::None;
     bool srgb = false;
+    int swap_interval = 0;
 
     for (int i=1; i<argc; ++i)
     {
@@ -315,6 +328,8 @@ int launch(int argc, char* argv[])
             msaa = wdk::Config::Multisampling::MSAA8;
         else if (!std::strcmp(argv[i], "--msaa16"))
             msaa = wdk::Config::Multisampling::MSAA16;
+        else if (!std::strcmp(argv[i], "--sync"))
+            swap_interval = 1;
 
         if (!std::strcmp(argv[i], "--srgb"))
           srgb = true;
@@ -327,12 +342,12 @@ int launch(int argc, char* argv[])
 
     wdk::OpenGL gl(attr);
 
-    // resolve function pointers 
+    // resolve function pointers
     ResolveEntryPoints(gl);
 
-    printf("OpenGL initialized:\n%s\n%s\n%s\n", 
-        gl::GetString(GL_VENDOR), 
-        gl::GetString(GL_VERSION), 
+    printf("OpenGL initialized:\n%s\n%s\n%s\n",
+        gl::GetString(GL_VENDOR),
+        gl::GetString(GL_VERSION),
         gl::GetString(GL_RENDERER));
 
     // rendering window
@@ -348,6 +363,8 @@ int launch(int argc, char* argv[])
       true, true, true);
 
     gl.Attach(win);
+    printf("Set swap interval to: %d, %s\n",
+        swap_interval, gl.SetSwapInterval(swap_interval) ? "Success" : "Fail");
 
     wdk::native_event_t event;
 
@@ -359,6 +376,23 @@ int launch(int argc, char* argv[])
 
         if (wdk::PeekEvent(event))
             win.ProcessEvent(event);
+
+        // do some simple statistics bookkeeping.
+        static auto frames_total = 0;
+        static auto frames       = 0;
+        static auto seconds      = 0.0;
+
+        frames_total += 1;
+        frames  += 1;
+        seconds += ElapsedSeconds();
+        if (seconds > 1.0)
+        {
+            const auto fps = frames / seconds;
+            printf("\rFPS: %f", fps);
+            fflush(stdout);
+            frames  = 0;
+            seconds = 0.0;
+        }
     }
 
     gl.Detach();
