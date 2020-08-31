@@ -166,7 +166,7 @@ bool Context::HasDRI() const
 
 bool Context::SetSwapInterval(int interval)
 {
-    return false;
+    return eglSwapInterval(pimpl_->display, interval) == EGL_TRUE;
 }
 
 void* Context::Resolve(const char* function) const
