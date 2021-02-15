@@ -108,15 +108,15 @@ ELSEIF(UNIX)
         wdk/X11/pixmap.cpp
         wdk/X11/system.cpp
         wdk/X11/window.cpp)
-    TARGET_LINK_LIBRARIES(wdk_system PUBLIC
-        X11 xcb Xau Xdmcp Xxf86vm Xext Xrandr)
+    TARGET_LINK_LIBRARIES(wdk_system PUBLIC X11 xcb Xau Xdmcp Xxf86vm Xext Xrandr)
+    TARGET_COMPILE_OPTIONS(wdk_system PRIVATE -fPIC)
 
     ADD_LIBRARY(wdk_desktop_gl STATIC
         wdk/opengl/GLX/config.cpp
         wdk/opengl/GLX/context.cpp
         wdk/opengl/GLX/surface.cpp)
-    TARGET_LINK_LIBRARIES(wdk_desktop_gl PUBLIC
-        GL wdk_system)
+    TARGET_LINK_LIBRARIES(wdk_desktop_gl PUBLIC GL wdk_system)
+    TARGET_COMPILE_OPTIONS(wdk_desktop_gl PRIVATE -fPIC)
 
     # Nothing special to be done before building EGL specific code
     ADD_LIBRARY(wdk_mobile_gl STATIC
@@ -125,9 +125,8 @@ ELSEIF(UNIX)
         wdk/opengl/EGL/egldisplay.cpp
         wdk/opengl/EGL/surface.cpp)
     TARGET_COMPILE_DEFINITIONS(wdk_mobile_gl PRIVATE "WDK_MOBILE")
-    TARGET_LINK_LIBRARIES(wdk_mobile_gl PUBLIC
-        GLESv2 EGL wdk_system)
-
+    TARGET_LINK_LIBRARIES(wdk_mobile_gl PUBLIC GLESv2 EGL wdk_system)
+    TARGET_COMPILE_OPTIONS(wdk_mobile_gl PRIVATE -fPIC)
 ENDIF()
 
 
