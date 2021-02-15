@@ -78,13 +78,16 @@ struct Window::impl {
         {
             // see the comments in PeekEvent implementation about this timer fiber shit here!
             case WM_ENTERSIZEMOVE:
-                SetTimer(hwnd, 1, USER_TIMER_MINIMUM, NULL);
+                if (caller_fiber_handle) // peek event only
+                    SetTimer(hwnd, 1, USER_TIMER_MINIMUM, NULL);
                 return 0;
             case WM_EXITSIZEMOVE:
-                KillTimer(hwnd, 1);
+                if (caller_fiber_handle)
+                    KillTimer(hwnd, 1);
                 return 0;
             case WM_TIMER:
-                SwitchToFiber(caller_fiber_handle);
+                if (caller_fiber_handle) // peek event only
+                    SwitchToFiber(caller_fiber_handle);
                 return 0;
 
             case WM_CREATE:
