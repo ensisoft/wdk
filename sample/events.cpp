@@ -138,14 +138,15 @@ void handle_window_mouse_press(const wdk::WindowEventMousePress& mickey)
 }
 
 struct cmdline {
-    bool   print_help;
-    bool   fullscreen;
-    bool   listmodes;
-    bool   wnd_border;
-    bool   wnd_resize;
-    int    surface_width;
-    int    surface_height;
-    wdk::Window::Encoding encoding;
+    bool   print_help     = false;
+    bool   fullscreen     = false;
+    bool   listmodes      = false;
+    bool   wnd_border     = true;
+    bool   wnd_resize     = true;
+    bool   show_cursor    = true;
+    int    surface_width  = 640;
+    int    surface_height = 640;
+    wdk::Window::Encoding encoding = wdk::Window::Encoding::UTF8;
     wdk::VideoMode mode;
 };
 
@@ -165,6 +166,8 @@ bool parse_cmdline(int argc, char* argv[], cmdline& cmd)
             cmd.wnd_border = false;
         else if (!strcmp(name, "--wnd-no-resize"))
             cmd.wnd_resize = false;
+        else if (!strcmp(name, "--wnd-hide-cursor"))
+            cmd.show_cursor = false;
         else
         {
             if (!(i + 1 < argc))
@@ -236,6 +239,7 @@ int main(int argc, char* argv[])
         << "--wnd-no-move\t\tDisable window moving\n"
         << "--wnd-width\t\tWindow width\n"
         << "--wnd-height\t\tWindow height\n"
+        << "--wnd-hide-cursor\tHide window cursor.\n"
         << "--video-mode\t\tVideo mode\n\n";
         return 0;
     }
@@ -276,7 +280,7 @@ int main(int argc, char* argv[])
 
     win.SetEncoding(cmd.encoding);
     win.SetFullscreen(cmd.fullscreen);
-
+    win.ShowCursor(cmd.show_cursor);
 
     while (win.DoesExist())
     {

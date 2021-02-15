@@ -47,6 +47,9 @@ struct Window::impl {
     Encoding enc = Encoding::UTF8;
     bool fullscreen = false;
     bool resizing = false;
+    bool show_cursor = true;
+    bool was_cursor_shown = true;
+    bool has_mouse_focus = false;
     int x = 0;
     int y = 0;
     int w = 0;
@@ -98,6 +101,7 @@ struct Window::impl {
             case WM_CLOSE:
             case WM_KEYDOWN:
             case WM_KEYUP:
+            case WM_MOUSELEAVE:
             case WM_MOUSEMOVE:
             case WM_MOUSEWHEEL:
             case WM_LBUTTONDOWN:
@@ -414,6 +418,21 @@ void Window::SetFullscreen(bool fullscreen)
     pimpl_->fullscreen = fullscreen;
 }
 
+void Window::ShowCursor(bool on)
+{
+    assert(DoesExist());
+    if (pimpl_->show_cursor == on)
+        return;
+    pimpl_->show_cursor = on;
+    if (!pimpl_->has_mouse_focus)
+        return;
+
+    CURSORINFO cursor = {0};
+    cursor.cbSize = sizeof(CURSORINFO);
+    pimpl_->was_cursor_shown = cursor.flags & CURSOR_SHOWING;
+    ::ShowCursor(pimpl_->show_cursor);
+}
+
 void Window::SetFocus()
 {
     assert(DoesExist());
@@ -571,7 +590,36 @@ bool Window::ProcessEvent(const native_event_t& ev)
             }
             break;
 
+        // try to restore the application's mouse cursor to whatever state
+        // it was before this window got mouse focus.
+        case WM_MOUSELEAVE:
+            pimpl_->has_mouse_focus = false;
+            ::ShowCursor(pimpl_->was_cursor_shown);
+            break;
+
+        // on first mouse move show/hide the application mouse cursor
+        // in order to emulate per window based behavior.
         case WM_MOUSEMOVE:
+            if (!pimpl_->has_mouse_focus) {
+                pimpl_->has_mouse_focus = true;
+                // get the current mouse cursor state.
+                CURSORINFO cursor = {0};
+                cursor.cbSize = sizeof(CURSORINFO);
+                GetCursorInfo(&cursor);
+                pimpl_->was_cursor_shown = cursor.flags & CURSOR_SHOWING;
+                // set the mouse cursor state associated with *this* window
+                ::ShowCursor(pimpl_->show_cursor);
+                // start tracking mouse when mouse enters the window's client area
+                // so that we can receive the WM_MOUSELEAVE event.
+                // this needs to be done every time since every notification (WM_MOUSELEAVE)
+                // turns the tracking off.
+                TRACKMOUSEEVENT tracking = { 0 };
+                tracking.cbSize = sizeof(TRACKMOUSEEVENT);
+                tracking.dwFlags = TME_LEAVE; 
+                tracking.hwndTrack = pimpl_->window;
+                TrackMouseEvent(&tracking);
+            }
+
             if (on_mouse_move)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
@@ -586,7 +634,6 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 mickey.modifiers = button.first;
                 mickey.btn       = button.second;
                 on_mouse_move(mickey);
-
             }
             break;
 

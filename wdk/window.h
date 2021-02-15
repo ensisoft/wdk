@@ -106,8 +106,8 @@ namespace wdk
         // destroy the window. window must have been created before.
         void Destroy();
 
-        // invalide the window contents.
-        // erases the window contents with the background brush and eventually
+        // Invalidate the window contents.
+        // Erases the window contents with the background brush and eventually
         // generates a paint event.
         void Invalidate();
 
@@ -118,6 +118,13 @@ namespace wdk
 
         // toggle between fullscreen/windowed mode.
         void SetFullscreen(bool fullscreen);
+
+        // Show or hide this window's mouse cursor. When set to false the mouse
+        // cursor is hidden whenever the mouse is over this window. This frees
+        // the application (such as a game) to display it's own cursor if it so
+        // wishes. When set to true the window system's default mouse cursor
+        // for this window is restored.
+        void ShowCursor(bool on);
 
         // set input focus to this window
         void SetFocus();

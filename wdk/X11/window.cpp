@@ -304,6 +304,29 @@ void Window::SetFullscreen(bool fullscreen)
     pimpl_->fullscreen = fullscreen;
 }
 
+void Window::ShowCursor(bool on)
+{
+    assert(DoesExist());
+    Display* d = GetNativeDisplayHandle();
+    if (on)
+    {
+        XUndefineCursor(GetNativeDisplayHandle(), pimpl_->window);
+    }
+    else
+    {
+        static char null[] = { 0,0,0,0};
+        Cursor invisibleCursor;
+        Pixmap bitmapNoData;
+        XColor black  = {0};
+        Pixmap pixmap = XCreateBitmapFromData(d, pimpl_->window, null, 1, 1);
+        Cursor cursor = XCreatePixmapCursor(d, pixmap, pixmap, &black, &black, 0, 0);
+        XDefineCursor(d, pimpl_->window, cursor);
+        XFreeCursor(d, cursor);
+        XFreePixmap(d, pixmap);
+    }
+    XFlush(d);
+}
+
 void Window::SetFocus()
 {
     assert(DoesExist());
