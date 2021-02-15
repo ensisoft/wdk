@@ -432,6 +432,7 @@ void Window::ShowCursor(bool on)
 
     CURSORINFO cursor = {0};
     cursor.cbSize = sizeof(CURSORINFO);
+    GetCursorInfo(&cursor);
     pimpl_->was_cursor_shown = cursor.flags & CURSOR_SHOWING;
     ::ShowCursor(pimpl_->show_cursor);
 }
