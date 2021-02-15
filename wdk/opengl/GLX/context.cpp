@@ -36,6 +36,10 @@
 
 #define X11_None 0
 
+// multiple definitions, undef for removing compile warnings
+#undef GLX_CONTEXT_DEBUG_BIT_ARB
+#undef GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB
+
 // GLX_ARB_create_context
 // Accepted as an attribute name in <*attrib_list>:
 #define GLX_CONTEXT_MAJOR_VERSION_ARB           0x2091
