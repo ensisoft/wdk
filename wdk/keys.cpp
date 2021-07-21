@@ -32,12 +32,10 @@ std::string ToString(Keymod mod)
 
     switch (mod)
     {
-        case Keymod::None:    return "none";
+        case Keymod::None:    return "None";
         case Keymod::Shift:   return "Shift";
         case Keymod::Control: return "Ctrl";
         case Keymod::Alt:     return "Alt";
-        // case keymod::super:   return "Super";
-        // case keymod::hyper:   return "Hyper";
     }
     assert(0);
     return "";
@@ -50,7 +48,7 @@ std::string ToString(Keysym sym)
     // this is not localized, but we don't care about it atm.
     switch (sym)
     {
-        case Keysym::None:      return "none";
+        case Keysym::None:      return "None";
         case Keysym::Backspace: return "Backspace";
         case Keysym::Tab:       return "Tab";
         case Keysym::Enter:     return "Enter";
@@ -120,6 +118,8 @@ std::string ToString(Keysym sym)
         case Keysym::ArrowUp:   return "Up";
         case Keysym::ArrowDown: return "Down";
         case Keysym::Escape:    return "Esc";
+        case Keysym::Plus:      return "Plus";
+        case Keysym::Minus:     return "Minus";
     }
     assert(0);
     return "";
@@ -129,16 +129,16 @@ std::string ToString(MouseButton btn)
 {
     switch (btn)
     {
-        case MouseButton::None:       return "none";
-        case MouseButton::Left:       return "Left";
-        case MouseButton::Right:      return "Right";
-        case MouseButton::Wheel:      return "Wheel";
+        case MouseButton::None:            return "None";
+        case MouseButton::Left:            return "Left";
+        case MouseButton::Right:           return "Right";
+        case MouseButton::Wheel:           return "Wheel";
         case MouseButton::WheelScrollUp:   return "Wheel Up";
         case MouseButton::WheelScrollDown: return "Wheel Down";
-        case MouseButton::Thumb1:     return "Thumb 1";
-        case MouseButton::Thumb2:     return "Thumb 2";
-        case MouseButton::Thumb3:     return "Thumb 3";
-        case MouseButton::Thumb4:     return "Thumb 4";
+        case MouseButton::Thumb1:          return "Thumb 1";
+        case MouseButton::Thumb2:          return "Thumb 2";
+        case MouseButton::Thumb3:          return "Thumb 3";
+        case MouseButton::Thumb4:          return "Thumb 4";
     }
     assert(0);
     return "";

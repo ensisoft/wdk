@@ -111,7 +111,9 @@ namespace {
         {Keysym::ArrowUp,       VK_UP},
         {Keysym::ArrowDown,     VK_DOWN},
         {Keysym::ArrowRight,    VK_RIGHT},
-        {Keysym::Escape,        VK_ESCAPE}
+        {Keysym::Escape,        VK_ESCAPE},
+        {Keysym::Plus,          VK_OEM_PLUS},
+        {Keysym::Minus,         VK_OEM_MINUS}
     };
     struct table_sorter {
         table_sorter()

@@ -153,7 +153,9 @@ namespace {
         {Keysym::ArrowRight,           XK_Right},
         {Keysym::ArrowDown,            XK_Down},
         {Keysym::ArrowUp,              XK_Up},
-        {Keysym::Escape,               XK_Escape}
+        {Keysym::Escape,               XK_Escape},
+        {Keysym::Plus,                 XK_plus},
+        {Keysym::Minus,                XK_minus}
         // why does Right ALT Generate XK_ISO_Level3_Shift
         // instead of XK_Alt_R ?? -> XCK_ISO_Level3_Shift = AltGR
         //{keysym::alt_R,                 XK_ISO_Level3_Shift}
