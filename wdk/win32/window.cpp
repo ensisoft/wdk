@@ -50,6 +50,7 @@ struct Window::impl {
     bool show_cursor = true;
     bool was_cursor_shown = true;
     bool has_mouse_focus = false;
+    bool mouse_grab = false;
     int x = 0;
     int y = 0;
     int w = 0;
@@ -62,7 +63,8 @@ struct Window::impl {
     // to the window's process message function.
     // this would cause a leak if the message got lost
     RECT rcPaint;
-
+    // any previous cursor clip rect.
+    RECT rcClip;
     static
     LRESULT CALLBACK WindowMessageProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
@@ -152,6 +154,15 @@ struct Window::impl {
                 // ignored. expectation is that everything is painted at one go.
             case WM_ERASEBKGND:
                 return 1;
+
+                // posted to the window that loses mouse capture state.
+            case WM_CAPTURECHANGED:
+                {
+                    auto ptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+                    auto* self = reinterpret_cast<Window::impl*>(ptr);
+                    self->mouse_grab = false;
+                }
+                return 0;
 
             default:
             break;
@@ -435,6 +446,53 @@ void Window::ShowCursor(bool on)
     GetCursorInfo(&cursor);
     pimpl_->was_cursor_shown = cursor.flags & CURSOR_SHOWING;
     ::ShowCursor(pimpl_->show_cursor);
+}
+
+bool Window::GrabMouse(bool on_off)
+{
+    // The Win32 APIs are utterly stupid. Setting both
+    // capture and clip modify global desktop state but
+    // the relevant Win32 API is too limited to be actually
+    // useful and helpful in a simple way.
+    // In order to figure out if someone has already captured
+    // the mouse one needs to enumerate all gui threads and
+    // call GetGUIThreadInfo ??
+    // There's no way to simply *unset* the ClipCursor rect ??
+    // (I don't want to start wondering if the clip should be
+    // "restored" back to whole desktop or what)
+    if (on_off && !pimpl_->mouse_grab)
+    {
+        RECT client;
+        GetClientRect(pimpl_->window, &client);
+        POINT top_left;
+        POINT bot_right;
+        top_left.x = client.left;
+        top_left.y = client.top;
+        bot_right.x = client.right;
+        bot_right.y = client.bottom;
+        ClientToScreen(pimpl_->window, &top_left);
+        ClientToScreen(pimpl_->window, &bot_right);
+
+        RECT window; 
+        window.left = top_left.x;
+        window.top = top_left.y;
+        window.bottom = bot_right.y;
+        window.right = bot_right.x;
+        GetClipCursor(&pimpl_->rcClip);
+        if (!ClipCursor(&window))
+            return false;
+        // apparently on windows the mouse capturing will simply
+        // always work and overwrite previous capture since SetCapture
+        // doesn't offer any information about possibly failing.
+        SetCapture(pimpl_->window);
+    }
+    else if (pimpl_->mouse_grab)
+    {
+        ClipCursor(&pimpl_->rcClip);
+        ReleaseCapture();
+    }
+    pimpl_->mouse_grab = on_off;
+    return true;
 }
 
 void Window::SetFocus()

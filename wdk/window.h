@@ -92,7 +92,7 @@ namespace wdk
         // window must not exist before.
         //
         // If you're planning on using this window for OpenGL drawing
-        // you should pass in a visual id that identifies your OpenGL ćonfiguration.
+        // you should pass in a visual id that identifies your OpenGL configuration.
         // If visualid is 0 the window may not be compatible with your opengl config.
         void Create(const std::string& title, uint_t width, uint_t height, uint_t visualid,
             bool can_resize = true, bool has_border = true, bool initially_visible = true);
@@ -125,6 +125,15 @@ namespace wdk
         // wishes. When set to true the window system's default mouse cursor
         // for this window is restored.
         void ShowCursor(bool on);
+
+        // Try to grab/ungrab the mouse. When the grabbing is enabled the
+        // mouse events are always reported with respect to this window
+        // even when the mouse cursor isn't on top of this mouse.
+        // Note that this is a feature that is shared between all desktop
+        // applications and only a single application at the time can have
+        // the mouse grabbed. Thus the attempt to grab might fail in which
+        // case false is returned to indicate failure. On success returns true.
+        bool GrabMouse(bool on_off);
 
         // set input focus to this window
         void SetFocus();

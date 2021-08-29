@@ -55,6 +55,8 @@ struct Window::impl {
     int height = 0;
     Encoding enc;
     bool fullscreen = false;
+    bool cursor     = true;
+    bool mouse_grab = false;
 };
 
 Window::Window() : pimpl_(new impl)
@@ -324,7 +326,32 @@ void Window::ShowCursor(bool on)
         XFreeCursor(d, cursor);
         XFreePixmap(d, pixmap);
     }
+    pimpl_->cursor = on;
     XFlush(d);
+}
+
+bool Window::GrabMouse(bool on_off)
+{
+    auto* display = GetNativeDisplayHandle();
+    if (on_off)
+    {
+        const auto event_mask = ButtonPressMask | ButtonReleaseMask |
+                                EnterWindowMask | LeaveWindowMask |
+                                PointerMotionMask | ButtonMotionMask;
+        // okay.. so there's no way to figure out what is the current cursor ?
+        // and this stupid API requires a cursor to be given.. (why in the f*?)
+        const auto cursor = pimpl_->cursor ? XCreateFontCursor(display, 2) : X11_None;
+        return XGrabPointer(display,
+                            pimpl_->window, False, event_mask,
+                            GrabModeAsync, GrabModeAsync,
+                            pimpl_->window, cursor,
+                            CurrentTime) == Success;
+    }
+    else
+    {
+        return XUngrabPointer(display, CurrentTime) == Success;
+    }
+    pimpl_->mouse_grab = on_off;
 }
 
 void Window::SetFocus()
