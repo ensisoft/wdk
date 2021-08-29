@@ -44,7 +44,7 @@ SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 IF (WIN32)
     ADD_LIBRARY(wdk_system STATIC
-        wdk/window_listener.cpp
+        wdk/listener.cpp
         wdk/keys.cpp
         wdk/win32/pixmap.cpp
         wdk/win32/system.cpp
@@ -101,7 +101,7 @@ ELSEIF(UNIX)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
     ADD_LIBRARY(wdk_system STATIC
-        wdk/window_listener.cpp
+        wdk/listener.cpp
         wdk/keys.cpp
         wdk/X11/keysym2ucs.cpp
         wdk/X11/types.cpp

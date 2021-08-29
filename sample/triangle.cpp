@@ -34,7 +34,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "wdk/window_listener.h"
+#include "wdk/listener.h"
 #include "wdk/events.h"
 #include "wdk/window.h"
 #include "wdk/system.h"

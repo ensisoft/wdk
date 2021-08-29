@@ -32,7 +32,7 @@
 #include "wdk/modechange.h"
 #include "wdk/window.h"
 #include "wdk/events.h"
-#include "wdk/window_listener.h"
+#include "wdk/listener.h"
 
 #include "test_minimal.h"
 

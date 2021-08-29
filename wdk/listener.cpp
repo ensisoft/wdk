@@ -22,9 +22,9 @@
 
 #include <functional>
 
-#include "window_listener.h"
-#include "events.h"
-#include "window.h"
+#include "wdk/listener.h"
+#include "wdk/events.h"
+#include "wdk/window.h"
 
 namespace wdk
 {
