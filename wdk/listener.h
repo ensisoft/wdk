@@ -73,6 +73,32 @@ namespace wdk
 
     // connect all events in the window to the listener
     void Connect(wdk::Window& window, wdk::WindowListener& listener);
+    // ugly set of Dispatch overloads for cases when one wants to generically
+    // dispatch a window event to a listener.
+    inline void Dispatch(const WindowEventCreate& event, WindowListener& listener)
+    { listener.OnCreate(event); }
+    inline void Dispatch(const WindowEventPaint& event, WindowListener& listener)
+    { listener.OnPaint(event); }
+    inline void Dispatch(const WindowEventResize& event, WindowListener& listener)
+    { listener.OnResize(event); }
+    inline void Dispatch(const WindowEventGainFocus& event, WindowListener& listener)
+    { listener.OnGainFocus(event); }
+    inline void Dispatch(const WindowEventLostFocus& event, WindowListener& listener)
+    { listener.OnLostFocus(event); }
+    inline void Dispatch(const WindowEventWantClose& event, WindowListener& listener)
+    { listener.OnWantClose(event); }
+    inline void Dispatch(const WindowEventKeyDown& event, WindowListener& listener)
+    { listener.OnKeyDown(event); }
+    inline void Dispatch(const WindowEventKeyUp& event, WindowListener& listener)
+    { listener.OnKeyUp(event); }
+    inline void Dispatch(const WindowEventChar& event, WindowListener& listener)
+    { listener.OnChar(event); }
+    inline void Dispatch(const WindowEventMouseMove& event, WindowListener& listener)
+    { listener.OnMouseMove(event); }
+    inline void Dispatch(const WindowEventMousePress& event, WindowListener& listener)
+    { listener.OnMousePress(event); }
+    inline void Dispatch(const WindowEventMouseRelease& event, WindowListener& listener)
+    { listener.OnMouseRelease(event); }
 
 } // wdk
 
