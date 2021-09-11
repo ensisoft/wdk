@@ -564,17 +564,17 @@ bool Window::ProcessEvent(const native_event_t& ev)
     switch (m.message)
     {
         case WM_SETFOCUS:
-            if (on_gain_focus)
-                on_gain_focus(WindowEventFocus{});
+            if (OnGainFocus)
+                OnGainFocus(WindowEventGainFocus{});
             break;
 
         case WM_KILLFOCUS:
-            if (on_lost_focus)
-                on_lost_focus(WindowEventFocus{});
+            if (OnLostFocus)
+                OnLostFocus(WindowEventLostFocus{});
             break;
 
         case WM_PAINT:
-            if (on_paint)
+            if (OnPaint)
             {
                 RECT rcPaint = pimpl_->rcPaint;
                 if (IsRectEmpty(&rcPaint))
@@ -588,13 +588,13 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 paint.y = rcPaint.top;
                 paint.width = rcPaint.right - rcPaint.left;
                 paint.height = rcPaint.bottom - rcPaint.top;
-                on_paint(paint);
+                OnPaint(paint);
             }
             pimpl_->rcPaint = RECT{ 0 };
             break;
 
         case WM_SIZE:
-            if (on_resize)
+            if (OnResize)
             {
                 RECT rc;
                 GetClientRect(m.hwnd, &rc);
@@ -602,7 +602,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 WindowEventResize resize;
                 resize.width  = rc.right;
                 resize.height = rc.bottom;
-                on_resize(resize);
+                OnResize(resize);
             }
             break;
 
@@ -615,39 +615,39 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 create.width      = ptr->cx;
                 create.height     = ptr->cy;
                 delete ptr;
-                if (on_create)
-                    on_create(create);
+                if (OnCreate)
+                    OnCreate(create);
             }
             break;
 
         case WM_CLOSE:
-            if (on_want_close)
-                on_want_close(WindowEventWantClose{});
+            if (OnWantClose)
+                OnWantClose(WindowEventWantClose{});
             break;
 
 
         case WM_KEYDOWN:
-            if (on_keydown)
+            if (OnKeyDown)
             {
                 const auto& keys = TranslateKeydownEvent(ev);
                 if (keys.second != Keysym::None) {
-                    WindowEventKeydown key;
+                    WindowEventKeyDown key;
                     key.modifiers = keys.first;
                     key.symbol = keys.second;
-                    on_keydown(key);
+                    OnKeyDown(key);
                 }
             }
             break;
 
         case WM_KEYUP:
-            if (on_keyup)
+            if (OnKeyUp)
             {
                 const auto& keys = TranslateKeydownEvent(ev);
                 if (keys.second != Keysym::None) {
-                    WindowEventKeyup key;
+                    WindowEventKeyUp key;
                     key.modifiers = keys.first;
                     key.symbol = keys.second;
-                    on_keyup(key);
+                    OnKeyUp(key);
                 }
             }
             break;
@@ -682,7 +682,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 TrackMouseEvent(&tracking);
             }
 
-            if (on_mouse_move)
+            if (OnMouseMove)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
 
@@ -695,7 +695,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 mickey.global_y  = global.y;
                 mickey.modifiers = button.first;
                 mickey.btn       = button.second;
-                on_mouse_move(mickey);
+                OnMouseMove(mickey);
             }
             break;
 
@@ -703,7 +703,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
-            if (on_mouse_press)
+            if (OnMousePress)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
 
@@ -716,14 +716,14 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 mickey.global_y  = global.y;
                 mickey.modifiers = button.first;
                 mickey.btn       = button.second;
-                on_mouse_press(mickey);
+                OnMousePress(mickey);
             }
             break;
 
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
-            if (on_mouse_release)
+            if (OnMouseRelease)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
 
@@ -736,12 +736,12 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 mickey.global_y  = global.y;
                 mickey.modifiers = button.first;
                 mickey.btn       = button.second;
-                on_mouse_release(mickey);
+                OnMouseRelease(mickey);
             }
             break;
 
         case WM_CHAR:
-            if (on_char)
+            if (OnChar)
             {
                 const WPARAM utf16 = m.wParam;
 
@@ -753,7 +753,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 else if (pimpl_->enc == Encoding::UTF8)
                     enc::utf8_encode(&utf16, &utf16 + 1, &c.utf8[0]);
 
-                on_char(c);
+                OnChar(c);
 
             }
             break;

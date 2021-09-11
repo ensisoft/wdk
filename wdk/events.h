@@ -63,7 +63,8 @@ namespace wdk
 
 
     // Window has gained or lost input focus.
-    struct WindowEventFocus {};
+    struct WindowEventGainFocus {};
+    struct WindowEventLostFocus {};
 
     // Window close has been requested.
     struct WindowEventWantClose {};
@@ -74,14 +75,14 @@ namespace wdk
 
     // Keyboard was pressed when the window had input focus.
     // This message indicates the release of the key.
-    struct WindowEventKeyup {
+    struct WindowEventKeyUp {
         Keysym symbol = Keysym::None;
         bitflag<Keymod> modifiers;
     };
 
     // Keyboard was pressed when the window had input focus.
     // This messages indicates the press of the key.
-    struct WindowEventKeydown {
+    struct WindowEventKeyDown {
         Keysym symbol = Keysym::None;
         bitflag<Keymod> modifiers;
     };

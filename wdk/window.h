@@ -27,19 +27,20 @@
 #include <utility> // for pair
 #include <string>
 
-#include "callback.h"
-#include "utility.h"
-#include "types.h"
+#include "wdk/callback.h"
+#include "wdk/utility.h"
+#include "wdk/types.h"
 
 namespace wdk
 {
     struct WindowEventCreate;
     struct WindowEventPaint;
     struct WindowEventResize;
-    struct WindowEventFocus;
+    struct WindowEventLostFocus;
+    struct WindowEventGainFocus;
     struct WindowEventWantClose;
-    struct WindowEventKeyup;
-    struct WindowEventKeydown;
+    struct WindowEventKeyUp;
+    struct WindowEventKeyDown;
     struct WindowEventChar;
     struct WindowEventMouseMove;
     struct WindowEventMousePress;
@@ -58,31 +59,31 @@ namespace wdk
         // If this build time flag is enabled we can register
         // multiple listeners per each callback.
     #ifdef WDK_MULTIPLE_WINDOW_LISTENERS
-        EventCallback<WindowEventCreate>       on_create;
-        EventCallback<WindowEventPaint>        on_paint;
-        EventCallback<WindowEventResize>       on_resize;
-        EventCallback<WindowEventFocus>        on_lost_focus;
-        EventCallback<WindowEventFocus>        on_gain_focus;
-        EventCallback<WindowEventWantClose>    on_want_close;
-        EventCallback<WindowEventKeydown>      on_keydown;
-        EventCallback<WindowEventKeyup>        on_keyup;
-        EventCallback<WindowEventChar>         on_char;
-        EventCallback<WindowEventMouseMove>    on_mouse_move;
-        EventCallback<WindowEventMousePress>   on_mouse_press;
-        EventCallback<WindowEventMouseRelease> on_mouse_release;
+        EventCallback<WindowEventCreate>       OnCreate;
+        EventCallback<WindowEventPaint>        OnPaint;
+        EventCallback<WindowEventResize>       OnResize;
+        EventCallback<WindowEventLostFocus>    OnLostFocus;
+        EventCallback<WindowEventGainFocus>    OnGainFocus;
+        EventCallback<WindowEventWantClose>    OnWantClose;
+        EventCallback<WindowEventKeydown>      OnKeyDown;
+        EventCallback<WindowEventKeyup>        OnKeyUp;
+        EventCallback<WindowEventChar>         OnChar;
+        EventCallback<WindowEventMouseMove>    OnMouseMove;
+        EventCallback<WindowEventMousePress>   OnMousePress;
+        EventCallback<WindowEventMouseRelease> OnMouseRelease;
     #else
-        std::function<void (const WindowEventCreate&)>       on_create;
-        std::function<void (const WindowEventPaint&)>        on_paint;
-        std::function<void (const WindowEventResize&)>       on_resize;
-        std::function<void (const WindowEventFocus&)>        on_lost_focus;
-        std::function<void (const WindowEventFocus&)>        on_gain_focus;
-        std::function<void (const WindowEventWantClose&)>    on_want_close;
-        std::function<void (const WindowEventKeydown&)>      on_keydown;
-        std::function<void (const WindowEventKeyup&)>        on_keyup;
-        std::function<void (const WindowEventChar&)>         on_char;
-        std::function<void (const WindowEventMouseMove&)>    on_mouse_move;
-        std::function<void (const WindowEventMousePress&)>   on_mouse_press;
-        std::function<void (const WindowEventMouseRelease&)> on_mouse_release;
+        std::function<void (const WindowEventCreate&)>       OnCreate;
+        std::function<void (const WindowEventPaint&)>        OnPaint;
+        std::function<void (const WindowEventResize&)>       OnResize;
+        std::function<void (const WindowEventLostFocus&)>    OnLostFocus;
+        std::function<void (const WindowEventGainFocus&)>    OnGainFocus;
+        std::function<void (const WindowEventWantClose&)>    OnWantClose;
+        std::function<void (const WindowEventKeyDown&)>      OnKeyDown;
+        std::function<void (const WindowEventKeyUp&)>        OnKeyUp;
+        std::function<void (const WindowEventChar&)>         OnChar;
+        std::function<void (const WindowEventMouseMove&)>    OnMouseMove;
+        std::function<void (const WindowEventMousePress&)>   OnMousePress;
+        std::function<void (const WindowEventMouseRelease&)> OnMouseRelease;
     #endif
 
         Window();

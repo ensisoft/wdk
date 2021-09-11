@@ -33,7 +33,7 @@
 #include "wdk/events.h"
 #include "wdk/bitflag.h"
 
-void handle_window_keydown(const wdk::WindowEventKeydown& key, wdk::Window& win)
+void handle_window_keydown(const wdk::WindowEventKeyDown& key, wdk::Window& win)
 {
     printf("Keydown event: ");
 
@@ -53,7 +53,7 @@ void handle_window_keydown(const wdk::WindowEventKeydown& key, wdk::Window& win)
         win.SetFullscreen(!win.IsFullscreen());
 }
 
-void handle_window_keyup(const wdk::WindowEventKeyup& key, wdk::Window& win)
+void handle_window_keyup(const wdk::WindowEventKeyUp& key, wdk::Window& win)
 {
     printf("keyup event: ");
 
@@ -90,12 +90,12 @@ void handle_window_resize(const wdk::WindowEventResize& resize)
 }
 
 
-void handle_window_gain_focus(const wdk::WindowEventFocus& focus)
+void handle_window_gain_focus(const wdk::WindowEventGainFocus& focus)
 {
     printf("Window got focus\n");
 }
 
-void handle_window_lost_focus(const wdk::WindowEventFocus& focus)
+void handle_window_lost_focus(const wdk::WindowEventLostFocus& focus)
 {
     printf("Window lost focus\n");
 }
@@ -264,17 +264,17 @@ int main(int argc, char* argv[])
         vidmode.SetVideoMode(cmd.mode);
 
     wdk::Window win;
-    win.on_create     = handle_window_create;
-    win.on_lost_focus = handle_window_lost_focus;
-    win.on_gain_focus = handle_window_gain_focus;
-    win.on_resize     = handle_window_resize;
-    win.on_want_close = handle_window_want_close;
-    win.on_paint      = handle_window_paint;
-    win.on_mouse_move = handle_window_mouse_move;
-    win.on_mouse_press = handle_window_mouse_press;
-    win.on_char       = std::bind(handle_window_char, std::placeholders::_1, std::ref(win));
-    win.on_keydown    = std::bind(handle_window_keydown, std::placeholders::_1, std::ref(win));
-    win.on_keyup      = std::bind(handle_window_keyup, std::placeholders::_1, std::ref(win));
+    win.OnCreate     = handle_window_create;
+    win.OnLostFocus  = handle_window_lost_focus;
+    win.OnGainFocus  = handle_window_gain_focus;
+    win.OnResize     = handle_window_resize;
+    win.OnWantClose  = handle_window_want_close;
+    win.OnPaint      = handle_window_paint;
+    win.OnMouseMove  = handle_window_mouse_move;
+    win.OnMousePress = handle_window_mouse_press;
+    win.OnChar       = std::bind(handle_window_char, std::placeholders::_1, std::ref(win));
+    win.OnKeyDown    = std::bind(handle_window_keydown, std::placeholders::_1, std::ref(win));
+    win.OnKeyUp      = std::bind(handle_window_keyup, std::placeholders::_1, std::ref(win));
 
     win.Create("Wdk",
         cmd.surface_width,

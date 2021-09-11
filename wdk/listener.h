@@ -27,10 +27,11 @@ namespace wdk
     struct WindowEventCreate;
     struct WindowEventPaint;
     struct WindowEventResize;
-    struct WindowEventFocus;
+    struct WindowEventLostFocus;
+    struct WindowEventGainFocus;
     struct WindowEventWantClose;
-    struct WindowEventKeyup;
-    struct WindowEventKeydown;    
+    struct WindowEventKeyUp;
+    struct WindowEventKeyDown;
     struct WindowEventChar;
     struct WindowEventMouseMove;
     struct WindowEventMousePress;
@@ -49,15 +50,15 @@ namespace wdk
         // Invoked on WindowEventResize message.
         virtual void OnResize(const WindowEventResize&) {}
         // Invoked on WindowEventFocus message when window lost input focus.
-        virtual void OnLostFocus(const WindowEventFocus&) {}
+        virtual void OnLostFocus(const WindowEventLostFocus&) {}
         // Invoked on WindowEventFocus message when window gained input focus.
-        virtual void OnGainFocus(const WindowEventFocus&) {}
+        virtual void OnGainFocus(const WindowEventGainFocus&) {}
         // Invoked on WindowEventWantClose when user wants to close the window.
         virtual void OnWantClose(const WindowEventWantClose&) {}
-        // Invoked on WindowEventKeydown message. 
-        virtual void OnKeydown(const WindowEventKeydown&) {}
-        // Invoked on WindowEventKeyp message.
-        virtual void OnKeyup(const WindowEventKeyup&) {}
+        // Invoked on WindowEventKeyDown message.
+        virtual void OnKeyDown(const WindowEventKeyDown&) {}
+        // Invoked on WindowEventKeyUp message.
+        virtual void OnKeyUp(const WindowEventKeyUp&) {}
         // Invoked on WindowEventChar message.
         virtual void OnChar(const WindowEventChar&) {}
         // Invoked on WindowEventMouseMove message.

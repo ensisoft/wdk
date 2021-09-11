@@ -406,19 +406,19 @@ bool Window::ProcessEvent(const native_event_t& ev)
     switch (event.type)
     {
         case MotionNotify:
-            if (on_mouse_move)
+            if (OnMouseMove)
             {
                 WindowEventMouseMove mickey = {};
                 mickey.window_x = event.xmotion.x;
                 mickey.window_y = event.xmotion.y;
                 mickey.global_x = event.xmotion.x_root;
                 mickey.global_y = event.xmotion.y_root;
-                on_mouse_move(mickey);
+                OnMouseMove(mickey);
             }
             break;
 
         case ButtonPress:
-            if (on_mouse_press)
+            if (OnMousePress)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
 
@@ -429,12 +429,12 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 mickey.global_y = event.xbutton.y_root;
                 mickey.modifiers = button.first;
                 mickey.btn       = button.second;
-                on_mouse_press(mickey);
+                OnMousePress(mickey);
             }
             break;
 
         case ButtonRelease:
-            if (on_mouse_release)
+            if (OnMouseRelease)
             {
                 const auto& button = TranslateMouseButtonEvent(ev);
 
@@ -445,29 +445,29 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 mickey.global_y = event.xbutton.y_root;
                 mickey.modifiers = button.first;
                 mickey.btn       = button.second;
-                on_mouse_release(mickey);
+                OnMouseRelease(mickey);
             }
             break;
 
         case FocusIn:
-            if (on_gain_focus)
-                on_gain_focus(WindowEventFocus{});
+            if (OnGainFocus)
+                OnGainFocus(WindowEventGainFocus{});
             break;
 
         case FocusOut:
-            if (on_lost_focus)
-                on_lost_focus(WindowEventFocus{});
+            if (OnLostFocus)
+                OnLostFocus(WindowEventLostFocus{});
             break;
 
         case Expose:
-            if (on_paint)
+            if (OnPaint)
             {
                 WindowEventPaint paint = {0};
                 paint.x      = event.xexpose.x;
                 paint.y      = event.xexpose.y;
                 paint.width  = event.xexpose.width;
                 paint.height = event.xexpose.height;
-                on_paint(paint);
+                OnPaint(paint);
             }
             break;
 
@@ -476,25 +476,25 @@ bool Window::ProcessEvent(const native_event_t& ev)
             {
                 pimpl_->width  = event.xconfigure.width;
                 pimpl_->height = event.xconfigure.height;
-                if (on_resize)
+                if (OnResize)
                 {
                     WindowEventResize resize = {0};
                     resize.width  = event.xconfigure.width;
                     resize.height = event.xconfigure.height;
-                    on_resize(resize);
+                    OnResize(resize);
                 }
             }
             break;
 
         case CreateNotify:
-            if (on_create)
+            if (OnCreate)
             {
                 WindowEventCreate create = {0};
                 create.x      = event.xcreatewindow.x;
                 create.y      = event.xcreatewindow.y;
                 create.width  = event.xcreatewindow.width;
                 create.height = event.xcreatewindow.height;
-                on_create(create);
+                OnCreate(create);
             }
             break;
 
@@ -502,19 +502,19 @@ bool Window::ProcessEvent(const native_event_t& ev)
         case ClientMessage:
             if ((Atom)event.xclient.data.l[0] == WM_DELETE_WINDOW)
             {
-                if (on_want_close)
-                    on_want_close(WindowEventWantClose{});
+                if (OnWantClose)
+                    OnWantClose(WindowEventWantClose{});
             }
             break;
 
         case KeyPress:
-            if (on_keydown)
+            if (OnKeyDown)
             {
                 const auto& keys = TranslateKeydownEvent(ev);
                 if (keys.second != Keysym::None)
-                    on_keydown(WindowEventKeydown{keys.second, keys.first});
+                    OnKeyDown(WindowEventKeyDown{keys.second, keys.first});
             }
-            if (on_char)
+            if (OnChar)
             {
                 KeySym sym = NoSymbol;
                 XLookupString(const_cast<XKeyEvent*>(&event.xkey), nullptr, 0, &sym, nullptr);
@@ -539,11 +539,11 @@ bool Window::ProcessEvent(const native_event_t& ev)
             break;
 
         case KeyRelease:
-            if (on_keyup)
+            if (OnKeyUp)
             {
                 const auto& keys = TranslateKeydownEvent(ev);
                 if (keys.second != Keysym::None)
-                    on_keyup(WindowEventKeyup{keys.second, keys.first});
+                    OnKeyUp(WindowEventKeyUp{keys.second, keys.first});
             }
             break;
 
@@ -551,7 +551,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
             if (!event.xany.send_event)
                 break;
 
-            if (on_char)
+            if (OnChar)
             {
                 const XMapEvent& uchar = event.xmap;
                 const long ucs2 = (long)uchar.event;
@@ -565,7 +565,7 @@ bool Window::ProcessEvent(const native_event_t& ev)
                 else if (pimpl_->enc == Encoding::UTF8)
                     enc::utf8_encode(&ucs2, &ucs2 + 1, &c.utf8[0]);
 
-                on_char(c);
+                OnChar(c);
             }
             break;
 

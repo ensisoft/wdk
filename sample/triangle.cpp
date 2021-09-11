@@ -282,7 +282,7 @@ public:
     {
         GL_CHECK(gl::Viewport(0, 0, resize.width, resize.height));
     }
-    void OnKeydown(const wdk::WindowEventKeydown& key)
+    void OnKeyDown(const wdk::WindowEventKeyDown& key)
     {
         if (key.symbol == wdk::Keysym::Escape)
             mRunning = false;

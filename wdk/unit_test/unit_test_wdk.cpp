@@ -311,7 +311,7 @@ void unit_test_window_create_event()
     bool got_create_event = false;
 
     wdk::Window w;
-    w.on_create = [&](const wdk::WindowEventCreate& create) {
+    w.OnCreate = [&](const wdk::WindowEventCreate& create) {
         TEST_REQUIRE(create.width == 600);
         TEST_REQUIRE(create.height == 500);
         TEST_REQUIRE(create.x >= 0);
@@ -345,7 +345,7 @@ void unit_test_window_paint_event()
     } paintEvent;
 
     wdk::Window w;
-    w.on_paint = [&](const wdk::WindowEventPaint& paint) {
+    w.OnPaint = [&](const wdk::WindowEventPaint& paint) {
         paintEvent.x = paint.x;
         paintEvent.y = paint.y;
         paintEvent.w = paint.width;
@@ -406,7 +406,7 @@ void unit_test_window_resize_event()
     resizeEvent.clear();
 
     wdk::Window w;
-    w.on_resize = [&](const wdk::WindowEventResize& resize) {
+    w.OnResize = [&](const wdk::WindowEventResize& resize) {
         resizeEvent.fired = true;
         resizeEvent.w = resize.width;
         resizeEvent.h = resize.height;
@@ -477,18 +477,18 @@ void unit_test_window_focus_event()
 
     // create two windows and swap between these two
     wdk::Window one;
-    one.on_lost_focus = [&](const wdk::WindowEventFocus&) {
+    one.OnLostFocus = [&](const wdk::WindowEventLostFocus&) {
         oneHasFocus = false;
     };
-    one.on_gain_focus = [&](const wdk::WindowEventFocus&) {
+    one.OnGainFocus = [&](const wdk::WindowEventGainFocus&) {
         oneHasFocus = true;
     };
 
     wdk::Window two;
-    two.on_lost_focus = [&](const wdk::WindowEventFocus&) {
+    two.OnLostFocus = [&](const wdk::WindowEventLostFocus&) {
         twoHasFocus = false;
     };
-    two.on_gain_focus = [&](const wdk::WindowEventFocus&) {
+    two.OnGainFocus = [&](const wdk::WindowEventGainFocus&) {
         twoHasFocus = true;
     };
 
@@ -522,7 +522,7 @@ void unit_test_window_close_event()
 
     bool want_close = false;
 
-    win.on_want_close = [&](const wdk::WindowEventWantClose&) {
+    win.OnWantClose = [&](const wdk::WindowEventWantClose&) {
         want_close = true;
     };
 
@@ -550,11 +550,11 @@ void unit_test_window_key_event(wdk::Keysym expected_key, char expected_characte
     bool on_key_up   = false;
     char received_character = 0;
 
-    win.on_keydown = [&](const wdk::WindowEventKeydown& key) {
+    win.OnKeyDown = [&](const wdk::WindowEventKeyDown& key) {
         TEST_REQUIRE(key.symbol == expected_key);
         on_key_down = true;
     };
-    win.on_keyup = [&](const wdk::WindowEventKeyup& key) {
+    win.OnKeyUp = [&](const wdk::WindowEventKeyUp& key) {
 
         // there's a weird problem on X11 here that when this test case is
         // run something somewhere generates an Enter press in the input queue.
@@ -571,7 +571,7 @@ void unit_test_window_key_event(wdk::Keysym expected_key, char expected_characte
         TEST_REQUIRE(key.symbol == expected_key);
         on_key_up = true;
     };
-    win.on_char = [&](const wdk::WindowEventChar& c) {
+    win.OnChar = [&](const wdk::WindowEventChar& c) {
         received_character = c.ascii;
     };
 
@@ -612,14 +612,14 @@ void unit_test_window_mouse_events(wdk::MouseButton expected_button)
     bool on_mouse_press   = false;
     bool on_mouse_release = false;
 
-    win.on_mouse_move = [&](const wdk::WindowEventMouseMove& mickey) {
+    win.OnMouseMove = [&](const wdk::WindowEventMouseMove& mickey) {
         on_mouse_move = true;
     };
-    win.on_mouse_press = [&](const wdk::WindowEventMousePress& mickey) {
+    win.OnMousePress = [&](const wdk::WindowEventMousePress& mickey) {
         TEST_REQUIRE(mickey.btn == expected_button);
         on_mouse_press = true;
     };
-    win.on_mouse_release = [&](const wdk::WindowEventMouseRelease& mickey) {
+    win.OnMouseRelease = [&](const wdk::WindowEventMouseRelease& mickey) {
         TEST_REQUIRE(mickey.btn == expected_button);
         on_mouse_release = true;
     };
