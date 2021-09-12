@@ -23,8 +23,10 @@
 #pragma once
 
 #include <cstdint>
-#include "keys.h"
-#include "bitflag.h"
+#include <string>
+
+#include "wdk/keys.h"
+#include "wdk/bitflag.h"
 
 namespace wdk
 {
@@ -61,7 +63,6 @@ namespace wdk
         int height = 0;                     // new surface height
     };
 
-
     // Window has gained or lost input focus.
     struct WindowEventGainFocus {};
     struct WindowEventLostFocus {};
@@ -71,7 +72,6 @@ namespace wdk
 
     // Window was destroyed.
     struct WindowEventDestroy {};
-
 
     // Keyboard was pressed when the window had input focus.
     // This message indicates the release of the key.
@@ -162,4 +162,69 @@ namespace wdk
         // The new vertical resolution.
         unsigned yres = 0;
     };
+
+    template<typename T>
+    struct EventTraits;
+
+    template<>
+    struct EventTraits<WindowEventCreate> {
+        static constexpr auto name = "create";
+    };
+    template<>
+    struct EventTraits<WindowEventPaint> {
+        static constexpr auto name = "paint";
+    };
+    template<>
+    struct EventTraits<WindowEventResize> {
+        static constexpr auto name = "resize";
+    };
+    template<>
+    struct EventTraits<WindowEventGainFocus> {
+        static constexpr auto name = "gain_focus";
+    };
+    template<>
+    struct EventTraits<WindowEventLostFocus> {
+        static constexpr auto name = "lost_focus";
+    };
+    template<>
+    struct EventTraits<WindowEventWantClose> {
+        static constexpr auto name = "want_close";
+    };
+    template<>
+    struct EventTraits<WindowEventDestroy> {
+        static constexpr auto name = "destroy";
+    };
+    template<>
+    struct EventTraits<WindowEventKeyUp> {
+        static constexpr auto name = "key_up";
+    };
+    template<>
+    struct EventTraits<WindowEventKeyDown> {
+        static constexpr auto name = "key_down";
+    };
+    template<>
+    struct EventTraits<WindowEventChar> {
+        static constexpr auto name = "character";
+    };
+    template<>
+    struct EventTraits<WindowEventMouseMove> {
+        static constexpr auto name = "mouse_move";
+    };
+    template<>
+    struct EventTraits<WindowEventMousePress> {
+        static constexpr auto name = "mouse_press";
+    };
+    template<>
+    struct EventTraits<WindowEventMouseRelease> {
+        static constexpr auto name = "mouse_release";
+    };
+    template<>
+    struct EventTraits<SystemEventResolutionChange> {
+        static constexpr auto name = "system_resolution_change";
+    };
+
+    template<typename Event>
+    const char* GetEventName(const Event& event)
+    { return EventTraits<Event>::name; }
+
 } // wdk

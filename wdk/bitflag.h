@@ -109,6 +109,12 @@ namespace wdk
         void set_from_value(Bits b)
         { bits_ = b; }
 
+        const Bits* value_ptr() const
+        { return &bits_; }
+
+        Bits* value_ptr()
+        { return &bits_; }
+
     private:
         Bits bittify(Enum value) const 
         {
