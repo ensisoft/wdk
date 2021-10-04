@@ -42,23 +42,42 @@ namespace wdk
     class Pixmap;
 
     // Wrapper to quickly setup opengl config, context and surface
+    // By default the type of context depends on the platform being used.
+    // When linking against the "desktop libraries", i.e. WGL on Windows
+    // and GLX on Linux a desktop OpenGL context is created. When linking
+    // against EGL a "mobile" OpenGL ES context is created. However when
+    // the right extensions are present (WGL_EXT_create_context_es2_profile,
+    // GLX_EXT_create_context_es2_profile) it's also possible to create an
+    // OpenGL ES context while linking against the desktop libraries.
     class OpenGL
     {
     public:
-        // create default context version with specific attributes
+        // Create platform's native context with default version but with specific attributes.
         OpenGL(const Config::Attributes& attrs) : config_(attrs), context_(config_)
         {}
 
-        // create specific context version with specific attributes
+        // Create platform's native context with specific version and attributes.
         OpenGL(const Config::Attributes& attrs, int major_version, int minor_version, bool debug)
             : config_(attrs), context_(config_, major_version, minor_version, debug)
         {}
-
-        // create context with specific version and with default attributes
-        OpenGL(int major_version, int minor_version, bool debug) : context_(config_, major_version, minor_version, debug)
+        // Create non-native context with specific version and attributes.
+        // Requires the right platform extensions in order to work.
+        OpenGL(const Config::Attributes& attrs, Context::Type type,
+               int major_version, int minor_version, bool debug)
+            : config_(attrs), context_(config_, major_version, minor_version, debug, type)
         {}
 
-        // create default context version with default attributes
+        // Create platform's native context with specific version and with default attributes
+        OpenGL(int major_version, int minor_version, bool debug)
+            : context_(config_, major_version, minor_version, debug)
+        {}
+        // Create non-native context with specific version and with default attributes.
+        // Requires the right platform extensions in order to work.
+        OpenGL(Context::Type type, int major_version, int minor_version, bool debug)
+            : context_(config_, major_version, minor_version, debug, type)
+        {}
+
+        // Create default context version with default attributes.
         OpenGL() : context_(config_)
         {}
 

@@ -34,7 +34,7 @@ namespace wdk
     // for each thread that wants to perform rendering.
     // The context is the "main" object that contains all the current
     // graphics state.
-    // The context is alwys "implicit" in the API state i.e. instead
+    // The context is always "implicit" in the API state i.e. instead
     // of it getting passed to the OpenGL API calls it's just set as the
     // "current context" for the calling thread.
     class Context
@@ -58,11 +58,16 @@ namespace wdk
         // configuration and with a specific GL version.
         // if debug is true the context is created as a debug context if possible.
         // Using the ContextType one can ask the backend to create a "non native"
-        // context. By default WGL and GLX will create a OpenGL context,
-        // and EGL will create a OpenGL ES context. Some platforms provide support
-        // through extensions such as WGL_EXT_create_context_es2 to create a
-        // another type of context.
-        // Currently only supported on WGL if the driver supports WGL_EXT_create_context_es2.
+        // context.
+        // By default WGL and GLX will create a OpenGL context and EGL will
+        // create a OpenGL ES context. In other words if you're linking against
+        // the "desktop libraries" by default you'll get an Open GL context
+        // and if you're linking against EGL you'll get an Open GL ES context.
+        // However on some platforms it's possible to use an extension to
+        // use the desktop library to create an OpenGL ES context.
+        // On Windows (WGL) This requires WGL_EXT_create_context_es2_profile and
+        // on Linux (GLX) this requires GLX_EXT_create_context_es2_profile
+        // Currently it's not possible to use EGL to create a desktop context.
         Context(const Config& conf, int major_version, int minor_version, bool debug,
             Type requested_type);
 
