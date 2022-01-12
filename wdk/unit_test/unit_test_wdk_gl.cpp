@@ -210,6 +210,8 @@ void unit_test_context_might_pass()
         std::printf("GL ES 1.0 Context, pass\n");        
         Context ctx_3_1(Config::DEFAULT, 3, 1, false);
         std::printf("GL ES 3.1 Context, pass\n");
+        Context ctx_3_2(Config::DEFAULT, 3, 2, false);
+        std::printf("GL ES 3.2 Context, pass\n");
 #else
         Context ctx_4_6(Config::DEFAULT, 4, 6, false);      
         std::printf("GL 4.6 Context, pass\n");        

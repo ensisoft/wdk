@@ -78,7 +78,8 @@ struct Context::impl {
         // if this extension is not available at runtime context creation
         // will simply fail.
         const EGLint attrs[] = {
-            EGL_CONTEXT_CLIENT_VERSION, (EGLint)major_version,
+            EGL_CONTEXT_MAJOR_VERSION_KHR, (EGLint)major_version,
+            EGL_CONTEXT_MINOR_VERSION_KHR, (EGLint)minor_version,
             EGL_CONTEXT_FLAGS_KHR, FLAGS,
             EGL_NONE
         };
