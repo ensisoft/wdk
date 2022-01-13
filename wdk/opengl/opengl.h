@@ -105,7 +105,15 @@ namespace wdk
             context_.MakeCurrent(&surf);
         }
 
-        // Detach and dipose he currently set renderable from the rendering context.
+        // Make the context current for the calling thread
+        // with a surface that was created previously through
+        // a call to Attach.
+        void MakeCurrent()
+        {
+            context_.MakeCurrent(surface_.get());
+        }
+
+        // Detach and dispose he currently set renderable from the rendering context.
         // After having detached the rendering surface the context can no longer
         // be used to render.
         void Detach()
@@ -115,7 +123,7 @@ namespace wdk
                 surface_->Dispose();
         }
 
-        // Swap the back/fron buffers. See Context::SwapBuffers.
+        // Swap the back/front buffers. See Context::SwapBuffers.
         void SwapBuffers()
         {
             context_.SwapBuffers();
@@ -148,6 +156,12 @@ namespace wdk
         void* Resolve(const char* function) const
         {
             return context_.Resolve(function);
+        }
+
+        // Get the native underlying OpenGL context handle.
+        void* GetNativeHandle() const
+        {
+            return context_.GetNativeHandle();
         }
     private:
         Config  config_;

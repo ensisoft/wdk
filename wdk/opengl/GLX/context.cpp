@@ -288,5 +288,8 @@ void* Context::Resolve(const char* function) const
 
     return ret;
 }
-
+void* Context::GetNativeHandle() const
+{
+    return pimpl_->context;
+}
 } // wdk

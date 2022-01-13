@@ -86,10 +86,10 @@ struct Context::impl {
     impl(const Config& conf, int major, int minor, bool debug, Context::Type type)
     {
         // when config was created it has created a fake gl context.
-        // we'll need to retrive that context now to query for the "real"
+        // we'll need to retrieve that context now to query for the "real"
         // context creation functions.
-        // also we'll use the fake window hdc (that the context has created)
-        // untill the the user sets the real surface to this context.
+        // also, we'll use the fake window hdc (that the context has created)
+        // until the user sets the real surface to this context.
         wgl::FetchFakeContext(&conf, fake);
         assert(fake);
 
@@ -288,6 +288,11 @@ void* Context::Resolve(const char* function) const
         return nullptr;
 
     return ret;
+}
+
+void* Context::GetNativeHandle() const
+{
+    return (void*)pimpl_->context;
 }
 
 } // wdk

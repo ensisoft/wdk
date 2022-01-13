@@ -35,7 +35,7 @@ namespace wdk
     // The context is the "main" object that contains all the current
     // graphics state.
     // The context is always "implicit" in the API state i.e. instead
-    // of it getting passed to the OpenGL API calls it's just set as the
+    // of it getting passed to the OpenGL API calls, it's just set as the
     // "current context" for the calling thread.
     class Context
     {
@@ -80,9 +80,9 @@ namespace wdk
         // rendering is possible until a new surface object is provided.
         void MakeCurrent(Surface* surf);
 
-        // Typical OpenGL applications use a so called "double buffered"
+        // Typical OpenGL applications use a so-called "double buffered"
         // rendering surfaces to avoid a problem where the user would be
-        // displayed partially rendered image. Instead one buffer is being
+        // displayed partially rendered image. Instead, one buffer is being
         // displayed to the user while the other (so called back buffer)
         // buffer is used as the rendering target for rendering the next
         // image to be displayed. Once all the rendering commands have been
@@ -98,12 +98,12 @@ namespace wdk
         // to the current surface are synced to the video display, i.e.
         // before SwapBuffers actually displays the current rendering surface.
         // When interval = 0, this effectively turns off display sync
-        // When interval = 1, rendering is synced to display sync (i.e
+        // When interval = 1, rendering is synced to display sync (i.e.
         // one buffer swap per each display sync)
         // This requires the implementation to provide the appropriate
         // extensions: GLX_EXT_swap_control on GLX (Linux) and
         // WGL_EXT_swap_control on WGL. (Windows).
-        // Returns true if setting was succesful or false if anything failed.
+        // Returns true if setting was successful or false if anything failed.
         // Before this can be called the context has to have been made
         // current with a non-null surface object.
         // After that the setting will take effect from the next SwapBuffers on.
@@ -119,6 +119,8 @@ namespace wdk
         // Returns nullptr if no such function is available.
         void* Resolve(const char* function) const;
 
+        // Get the native underlying OpenGL context handle.
+        void* GetNativeHandle() const;
     private:
         struct impl;
 
