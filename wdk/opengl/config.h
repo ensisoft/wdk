@@ -23,15 +23,60 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
 
 #include "wdk/types.h"
 #include "types.h"
 
 // X11 poison
 #undef None
+#undef True
+#undef False
 
 namespace wdk
 {
+    class TriBool
+    {
+    public:
+        enum class State {
+            True, False, NotSet
+        };
+        TriBool(bool value)
+        { mState = value ? State::True : State::False; }
+        TriBool(State s)
+        { mState = s; }
+        TriBool() = default;
+        bool operator()() const
+        {
+            if (mState == State::NotSet)
+                throw std::runtime_error("tribool not set");
+            return mState == State::True ? true : false;
+        }
+        bool ValueOr(bool b) const
+        {
+            if (mState == State::NotSet)
+                return b;
+            return mState == State::True ? true : false;
+        }
+        bool HasValue() const
+        { return mState != State::NotSet; }
+        bool Value() const
+        {
+            if (mState == State::NotSet)
+                throw std::runtime_error("tribool not set");
+            return mState == State::True ? true : false;
+        }
+        void Clear()
+        { mState = State::NotSet; }
+        TriBool& operator=(bool b)
+        {
+            mState = b ? State::True : State::False;
+            return *this;
+        }
+    private:
+        State mState = State::NotSet;
+    };
+
     // OpenGL framebuffer configuration. Normal OpenGL context creation
     // first decides on some configuration parameters such as stencil buffer
     // size, color buffer (rgb) sizes, multisampling etc.
@@ -88,14 +133,18 @@ namespace wdk
             uint_t configid = 0;
 
             // double buffered or not. you'll generally want this to be true.
-            bool double_buffer = true;
+            // if not set then this attribute is ignored and either
+            // double or single buffered is fine.
+            TriBool double_buffer = TriBool::State::NotSet;
 
             // use sRGB frame buffer. 
             // see EXT_framebuffer_sRGB.txt.
             // this might not always be available, but depends on the driver.
             // remember to glEnable(FRAMEBUFFER_SRGB_EXT)
-            // https://www.opengl.org/registry/specs/EXT/framebuffer_sRGB.txt            
-            bool srgb_buffer = true;
+            // https://www.opengl.org/registry/specs/EXT/framebuffer_sRGB.txt
+            // if not set then this attribute is ignored and either
+            // srgb or linear color buffer is fine.
+            TriBool srgb_buffer = TriBool::State::NotSet;
 
             // possible rendering surfaces.
             struct {
@@ -153,3 +202,5 @@ namespace wdk
 
 } // wdk
 
+#define True 1
+#define False 0

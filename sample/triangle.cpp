@@ -317,7 +317,7 @@ double ElapsedSeconds()
 int launch(int argc, char* argv[])
 {
     auto msaa = wdk::Config::Multisampling::None;
-    bool srgb = false;
+    bool srgb = true;
     int swap_interval = 0;
 
     for (int i=1; i<argc; ++i)
@@ -331,8 +331,8 @@ int launch(int argc, char* argv[])
         else if (!std::strcmp(argv[i], "--sync"))
             swap_interval = 1;
 
-        if (!std::strcmp(argv[i], "--srgb"))
-          srgb = true;
+        if (!std::strcmp(argv[i], "--no-srgb"))
+          srgb = false;
     }
 
     // start with opengl with default config

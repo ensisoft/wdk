@@ -144,7 +144,7 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
     pimpl_->config   = config;
     pimpl_->visualid = 0;
     pimpl_->configid = 0;
-    pimpl_->srgb     = attrs.srgb_buffer;
+    pimpl_->srgb     = attrs.srgb_buffer.ValueOr(false);
 
     // Note that the visual id may or may not be zero. On windows there's no single
     // integer value that maps to a visual id, but the "visualid" is more like PIXELFORMATDESCRIPTOR.

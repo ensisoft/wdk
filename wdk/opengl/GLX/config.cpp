@@ -36,21 +36,61 @@
 #define GLX_FRAMEBUFFER_SRGB_CAPABLE_EXT             0x20B2
 
 namespace {
-    void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
+void set(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
+{
+    v.push_back(attr);
+    v.push_back(value);
+}
+void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
+{
+    if (value)
     {
-        if (value)
-        {
-            v.push_back(attr);
-            v.push_back(value);
-        }
+        v.push_back(attr);
+        v.push_back(value);
     }
+}
+wdk::Config::Attributes GetDefaultAttrs()
+{
+    wdk::Config::Attributes attrs;
+    attrs.red_size         = 8;
+    attrs.green_size       = 8;
+    attrs.blue_size        = 8;
+    attrs.alpha_size       = 8;
+    attrs.depth_size       = 16;
+    attrs.stencil_size     = 8;
+    attrs.configid         = 0;
+    attrs.double_buffer    = true;
+    attrs.srgb_buffer      = true;
+    attrs.surfaces.window  = true;
+    attrs.surfaces.pbuffer = false;
+    attrs.surfaces.pixmap  = false;
+    attrs.sampling         = wdk::Config::Multisampling::None;
+    return attrs;
+}
+wdk::Config::Attributes GetDontCareAttrs()
+{
+    wdk::Config::Attributes attrs;
+    attrs.red_size   = 0;
+    attrs.green_size = 0;
+    attrs.blue_size  = 0;
+    attrs.alpha_size = 0;
+    attrs.depth_size = 0;
+    attrs.configid   = 0;
+    attrs.double_buffer = wdk::TriBool::State::NotSet;
+    attrs.srgb_buffer   = wdk::TriBool::State::NotSet;
+    attrs.surfaces.window = true;
+    attrs.surfaces.pixmap = false;
+    attrs.surfaces.pixmap = false;
+    attrs.sampling        = wdk::Config::Multisampling::None;
+    return attrs;
+}
 } // namespace
 
 namespace wdk
 {
 
-Config::Attributes Config::DONT_CARE = {0, 0, 0, 0, 0, 0, 0, false, false, {true, false, false}, Multisampling::None};
-Config::Attributes Config::DEFAULT = {8, 8, 8, 8, 16, 8, 0, true, false, {true, false, false}, Multisampling::None};
+Config::Attributes Config::DONT_CARE = GetDontCareAttrs();
+Config::Attributes Config::DEFAULT   = GetDefaultAttrs();
 
 struct Config::impl {
     GLXFBConfig* configs;
@@ -86,21 +126,23 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
 
     set_if(criteria, GLX_DRAWABLE_TYPE, drawable_bits);
 
-    if (attrs.double_buffer)
-        set_if(criteria, GLX_DOUBLEBUFFER, (uint_t)True);
+    if (attrs.double_buffer.HasValue())
+        set(criteria, GLX_DOUBLEBUFFER, attrs.double_buffer.Value());
+    else set(criteria, GLX_DOUBLEBUFFER, GLX_DONT_CARE);
 
-    if (attrs.srgb_buffer)
-        set_if(criteria, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, (uint_t)True);
+    if (attrs.srgb_buffer.HasValue())
+        set(criteria, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, attrs.srgb_buffer.Value());
+    else set(criteria, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, GLX_DONT_CARE);
 
     if (attrs.sampling != Multisampling::None)
     {
-        set_if(criteria, GLX_SAMPLE_BUFFERS, 1);
+        set(criteria, GLX_SAMPLE_BUFFERS, 1);
         if (attrs.sampling == Multisampling::MSAA4)
-            set_if(criteria, GLX_SAMPLES, 4);
+            set(criteria, GLX_SAMPLES, 4);
         else if (attrs.sampling == Multisampling::MSAA8)
-            set_if(criteria, GLX_SAMPLES, 8);
+            set(criteria, GLX_SAMPLES, 8);
         else if (attrs.sampling == Multisampling::MSAA16)
-            set_if(criteria, GLX_SAMPLES, 16);
+            set(criteria, GLX_SAMPLES, 16);
     }
 
     criteria.push_back(X11_None);
@@ -120,15 +162,18 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
     // todo: sort matches?
     GLXFBConfig best = configs[best_index];
 
+    int srgb_buffer = 0;
+    int config_id   = 0;
+    glXGetFBConfigAttrib(dpy, best, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &srgb_buffer);
+    glXGetFBConfigAttrib(dpy, best, GLX_FBCONFIG_ID, &config_id);
     auto visual = MakeUniqueHandle(glXGetVisualFromFBConfig(dpy, best), XFree);
 
     pimpl_->configs  = matches.release();
     pimpl_->config   = best;
     pimpl_->visualid = visual->visualid;
     pimpl_->configid = 0;
-    pimpl_->srgb     = attrs.srgb_buffer;
-
-    glXGetFBConfigAttrib(dpy, best, GLX_FBCONFIG_ID, (int*)&pimpl_->configid);
+    pimpl_->srgb     = srgb_buffer;
+    pimpl_->configid = config_id;
 }
 
 Config::~Config()

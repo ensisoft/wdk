@@ -108,40 +108,63 @@
 #define WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT             0x20A9
 
 namespace {
-    void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
+void set(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
+{
+    v.push_back(attr);
+    v.push_back(value);
+}
+void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)
+{
+    if (value)
     {
-        if (value)
-        {
-            v.push_back(attr);
-            v.push_back(value);
-        }
+        v.push_back(attr);
+        v.push_back(value);
     }
-    typedef BOOL (APIENTRY *wglChoosePixelFormatARBProc)(HDC hdc, const int* piAttribIList,  const FLOAT* pfAttribFList, UINT nMaxFormats,  int* piFormats, UINT* nNumFormats);
+}
+typedef BOOL (APIENTRY *wglChoosePixelFormatARBProc)(HDC hdc, const int* piAttribIList,  const FLOAT* pfAttribFList, UINT nMaxFormats,  int* piFormats, UINT* nNumFormats);
 
+wdk::Config::Attributes GetDefaultAttrs()
+{
+    wdk::Config::Attributes attrs;
+    attrs.red_size         = 8;
+    attrs.green_size       = 8;
+    attrs.blue_size        = 8;
+    attrs.alpha_size       = 8;
+    attrs.depth_size       = 16;
+    attrs.stencil_size     = 8;
+    attrs.configid         = 0;
+    attrs.double_buffer    = true;
+    attrs.srgb_buffer      = true;
+    attrs.surfaces.window  = true;
+    attrs.surfaces.pbuffer = false;
+    attrs.surfaces.pixmap  = false;
+    attrs.sampling         = wdk::Config::Multisampling::None;
+    return attrs;
+}
+wdk::Config::Attributes GetDontCareAttrs()
+{
+    wdk::Config::Attributes attrs;
+    attrs.red_size   = 0;
+    attrs.green_size = 0;
+    attrs.blue_size  = 0;
+    attrs.alpha_size = 0;
+    attrs.depth_size = 0;
+    attrs.configid   = 0;
+    attrs.double_buffer = wdk::TriBool::State::NotSet;
+    attrs.srgb_buffer   = wdk::TriBool::State::NotSet;
+    attrs.surfaces.window = true;
+    attrs.surfaces.pixmap = false;
+    attrs.surfaces.pixmap = false;
+    attrs.sampling        = wdk::Config::Multisampling::None;
+    return attrs;
+}
 } // namespace
 
 namespace wdk
 {
 
-
-Config::Attributes GetDefaultAttrs()
-{
-    Config::Attributes attrs;
-    attrs.red_size = 8;
-    attrs.green_size = 8;
-    attrs.blue_size = 8;
-    attrs.alpha_size = 8;
-    attrs.depth_size = 16;
-    attrs.stencil_size = 8;
-    attrs.double_buffer = true;
-    attrs.srgb_buffer = false;
-    attrs.surfaces.window = true;
-    attrs.sampling = Config::Multisampling::None;
-    return attrs;
-}
-
-Config::Attributes Config::DONT_CARE;
-Config::Attributes Config::DEFAULT = GetDefaultAttrs(); 
+Config::Attributes Config::DONT_CARE = GetDontCareAttrs();
+Config::Attributes Config::DEFAULT   = GetDefaultAttrs();
 
 struct Config::impl {
     PIXELFORMATDESCRIPTOR desc;
@@ -152,6 +175,13 @@ struct Config::impl {
 
 Config::Config(const Attributes& attrs) : pimpl_(new impl)
 {
+    // there doesn't seem to be a "GLX_DONT_CARE" counterpart for
+    // WGL so in case the sRGB or double buffer setting isn't set
+    // we're going to make a decision here. The client doesn't care
+    // so whatever is fine, right?
+    const auto srgb_buffer = attrs.srgb_buffer.ValueOr(true);
+    const auto double_buffer = attrs.double_buffer.ValueOr(true);
+
     // Create the dummy context first, so we can query it for better WGL functions
     // for creating the actual context later.
     PIXELFORMATDESCRIPTOR desc = {0};
@@ -161,7 +191,7 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
     desc.dwFlags      = PFD_SUPPORT_OPENGL;
     desc.dwFlags     |= attrs.surfaces.window ? PFD_DRAW_TO_WINDOW : 0;
     desc.dwFlags     |= attrs.surfaces.pixmap ? PFD_DRAW_TO_BITMAP : 0;
-    desc.dwFlags     |= attrs.double_buffer ? PFD_DOUBLEBUFFER : 0;
+    desc.dwFlags     |= double_buffer ? PFD_DOUBLEBUFFER : 0;
     desc.cRedBits     = attrs.red_size ? attrs.red_size : 8;
     desc.cGreenBits   = attrs.green_size ? attrs.green_size : 8;
     desc.cBlueBits    = attrs.blue_size ? attrs.blue_size : 8;
@@ -187,11 +217,8 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
     set_if(criteria, WGL_DEPTH_BITS_ARB, attrs.depth_size);
     set_if(criteria, WGL_STENCIL_BITS_ARB, attrs.stencil_size);
 
-    if (attrs.double_buffer)
-        set_if(criteria, WGL_DOUBLE_BUFFER_ARB, TRUE);
-
-    if (attrs.srgb_buffer)
-        set_if(criteria, WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT, TRUE);
+    set(criteria, WGL_DOUBLE_BUFFER_ARB, double_buffer);
+    set(criteria, WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT, srgb_buffer);
 
     set_if(criteria, WGL_DRAW_TO_WINDOW_ARB, (uint_t)attrs.surfaces.window);
     set_if(criteria, WGL_DRAW_TO_BITMAP_ARB, (uint_t)attrs.surfaces.pixmap);
@@ -199,13 +226,13 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
 
     if (attrs.sampling != Multisampling::None)
     {
-        set_if(criteria, WGL_SAMPLE_BUFFERS_ARB, 1);
+        set(criteria, WGL_SAMPLE_BUFFERS_ARB, 1);
         if (attrs.sampling == Multisampling::MSAA4)
-            set_if(criteria, WGL_SAMPLES_ARB, 4);
+            set(criteria, WGL_SAMPLES_ARB, 4);
         else if (attrs.sampling == Multisampling::MSAA8)
-            set_if(criteria, WGL_SAMPLES_ARB, 8);            
+            set(criteria, WGL_SAMPLES_ARB, 8);
         else if (attrs.sampling == Multisampling::MSAA16)
-            set_if(criteria, WGL_SAMPLES_ARB, 16);                        
+            set(criteria, WGL_SAMPLES_ARB, 16);
     }
 
     const int ARNOLD = 0;
@@ -216,7 +243,7 @@ Config::Config(const Attributes& attrs) : pimpl_(new impl)
     if (!wglChoosePixelFormat(fake->GetDC(), (const int*)&criteria[0], nullptr, 1, &pixelformat, &num_matches) || !num_matches)
         throw std::runtime_error("no matching framebuffer configuration available");
 
-    pimpl_->srgb   = attrs.srgb_buffer;
+    pimpl_->srgb   = srgb_buffer;
     pimpl_->fake   = fake;
     pimpl_->format = pixelformat;
     DescribePixelFormat(fake->GetDC(), pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pimpl_->desc);
