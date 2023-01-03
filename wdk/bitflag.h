@@ -161,6 +161,14 @@ namespace wdk
         return lhs & bitflag<Enum>(e);
     }
 
+    template<typename Enum, typename Bits>
+    bool operator == (const bitflag<Enum, Bits>& lhs, const bitflag<Enum, Bits>& rhs)
+    { return lhs.value() == rhs.value(); }
+
+    template<typename Enum, typename Bits>
+    bool operator != (const bitflag<Enum, Bits>& lhs, const bitflag<Enum, Bits>& rhs)
+    { return lhs.value() != rhs.value(); }
+
 } // wdk
 
 
