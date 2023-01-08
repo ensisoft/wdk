@@ -403,7 +403,7 @@ void WaitEvent(native_event_t& ev)
 
 std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& key)
 {
-    std::pair<bitflag<Keymod>, Keysym> ret = {Keymod::None, Keysym::None};
+    std::pair<bitflag<Keymod>, Keysym> ret = {{}, Keysym::None};
 
     const XEvent& ev = key;
 

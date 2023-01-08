@@ -385,7 +385,7 @@ std::pair<bitflag<Keymod>, Keysym> TranslateKeydownEvent(const native_event_t& k
     const MSG& m = key;
     const uint_t native_keycode = (uint_t)m.wParam;
 
-    std::pair<bitflag<Keymod>, Keysym> ret = {Keymod::None, Keysym::None};
+    std::pair<bitflag<Keymod>, Keysym> ret = {{}, Keysym::None};
 
     const auto it = std::find_if(std::begin(keymap), std::end(keymap),
         [=](const key_mapping& map)
