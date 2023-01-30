@@ -31,7 +31,7 @@
 #include "wdk/system.h"
 #include "wdk/opengl/surface.h"
 #include "wdk/opengl/config.h"
-#include "fakecontext.h"
+#include "wdk/opengl/WGL/fakecontext.h"
 
 DECLARE_HANDLE(HPBUFFERARB);
 

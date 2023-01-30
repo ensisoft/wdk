@@ -33,7 +33,7 @@
 
 #include "wdk/system.h"
 #include "wdk/opengl/config.h"
-#include "egldisplay.h"
+#include "wdk/opengl/EGL/egldisplay.h"
 
 namespace {
     void set_if(std::vector<wdk::uint_t>& v, wdk::uint_t attr, wdk::uint_t value)

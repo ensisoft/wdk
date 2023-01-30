@@ -26,12 +26,12 @@
 // for opengl - window system glue integration.
 
 #if defined(WDK_MOBILE)
-#  include "EGL/types.h"
+#  include "wdk/opengl/EGL/types.h"
 #else
 #  if defined(WINDOWS) || defined(_WIN32)
-#    include "WGL/types.h"
+#    include "wdk/opengl/WGL/types.h"
 #  else
-#    include "GLX/types.h"
+#    include "wdk/opengl/GLX/types.h"
 #  endif
 #endif
 

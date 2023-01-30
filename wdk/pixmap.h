@@ -24,7 +24,7 @@
 
 #include <memory>
 
-#include "types.h"
+#include "wdk/types.h"
 
 namespace wdk
 {

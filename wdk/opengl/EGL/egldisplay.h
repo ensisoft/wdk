@@ -23,7 +23,7 @@
 #include <EGL/egl.h>
 
 #include "wdk/types.h"
-#include "types.h"
+#include "wdk/opengl/EGL/types.h"
 
 namespace wdk
 {

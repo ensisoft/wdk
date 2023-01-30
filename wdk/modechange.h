@@ -24,8 +24,8 @@
 
 #include <cassert>
 
-#include "videomode.h"
-#include "system.h"
+#include "wdk/videomode.h"
+#include "wdk/system.h"
 
 namespace wdk
 {

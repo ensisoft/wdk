@@ -26,9 +26,9 @@
 #include <stdexcept>
 #include <functional>
 #include <cassert>
-#include "../pixmap.h"
-#include "../system.h"
-#include "errorhandler.h"
+#include "wdk/pixmap.h"
+#include "wdk/system.h"
+#include "wdk/X11/errorhandler.h"
 
 namespace wdk
 {

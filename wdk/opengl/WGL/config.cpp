@@ -24,10 +24,10 @@
 #include <stdexcept>
 #include <vector>
 #include <cassert>
-#include <wdk/utility.h>
-#include "../config.h"
-#include "../context.h"
-#include "fakecontext.h"
+#include "wdk/utility.h"
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/WGL/fakecontext.h"
 
 #pragma comment(lib, "Gdi32.lib") // For PixelFormat funcs
 

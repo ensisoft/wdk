@@ -32,7 +32,7 @@
 #include "wdk/window.h"
 #include "wdk/system.h"
 #include "wdk/utf8.h"
-#include "msgqueue.h"
+#include "wdk/win32/msgqueue.h"
 
 #pragma comment(lib, "User32.lib")
 

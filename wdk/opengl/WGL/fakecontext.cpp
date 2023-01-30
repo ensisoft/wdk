@@ -2,7 +2,7 @@
 #include <map>
 #include <cassert>
 
-#include "fakecontext.h"
+#include "wdk/opengl/WGL/fakecontext.h"
 
 namespace wgl
 {

@@ -38,10 +38,10 @@
 #include <chrono>
 #include <thread>
 #include <cassert>
-#include "../system.h"
-#include "../utility.h"
-#include "../videomode.h"
-#include "../keys.h"
+#include "wdk/system.h"
+#include "wdk/utility.h"
+#include "wdk/videomode.h"
+#include "wdk/keys.h"
 
 namespace {
 

@@ -26,7 +26,7 @@
 #include "wdk/system.h"
 #include "wdk/videomode.h"
 #include "wdk/keys.h"
-#include "msgqueue.h"
+#include "wdk/win32/msgqueue.h"
 
 namespace {
     using namespace wdk;

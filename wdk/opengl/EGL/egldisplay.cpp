@@ -21,7 +21,7 @@
 //  THE SOFTWARE.
 
 #include <stdexcept>
-#include "egldisplay.h"
+#include "wdk/opengl/EGL/egldisplay.h"
 
 namespace wdk
 {

@@ -25,9 +25,9 @@
 #include <vector>
 #include <string>
 
-#include "keys.h"
-#include "types.h"
-#include "bitflag.h"
+#include "wdk/keys.h"
+#include "wdk/types.h"
+#include "wdk/bitflag.h"
 
 namespace wdk
 {

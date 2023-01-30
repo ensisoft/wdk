@@ -21,7 +21,7 @@
 //  THE SOFTWARE.
 
 #include <cassert>
-#include "keys.h"
+#include "wdk/keys.h"
 
 namespace wdk
 {

@@ -29,7 +29,7 @@
 #include "wdk/pixmap.h"
 #include "wdk/opengl/surface.h"
 #include "wdk/opengl/config.h"
-#include "egldisplay.h"
+#include "wdk/opengl/EGL/egldisplay.h"
 
 // EGK_KHR_gl_colorspace.txt
 //

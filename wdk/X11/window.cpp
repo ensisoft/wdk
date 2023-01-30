@@ -33,8 +33,8 @@
 #include "wdk/system.h"
 #include "wdk/videomode.h"
 #include "wdk/utf8.h"
-#include "errorhandler.h"
-#include "atoms.h"
+#include "wdk/X11/errorhandler.h"
+#include "wdk/X11/atoms.h"
 
 #define X11_None 0L
 #define X11_RevertToNone 0

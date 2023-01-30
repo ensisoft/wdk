@@ -36,7 +36,7 @@ namespace wdk
 // include windowing types too these are needed throughout.
 
 #if defined(WINDOWS) || defined(_WIN32)
-#  include "win32/types.h"
+#  include "wdk/win32/types.h"
 #else
-#  include "X11/types.h"
+#  include "wdk/X11/types.h"
 #endif

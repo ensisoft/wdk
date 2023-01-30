@@ -35,7 +35,7 @@
 #include "wdk/opengl/context.h"
 #include "wdk/opengl/config.h"
 #include "wdk/opengl/surface.h"
-#include "fakecontext.h"
+#include "wdk/opengl/WGL/fakecontext.h"
 
 #pragma comment(lib, "opengl32.lib") // needed for wgl functions
 

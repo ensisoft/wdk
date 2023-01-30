@@ -25,7 +25,7 @@
 #include <memory>
 
 #include "wdk/types.h"
-#include "types.h"
+#include "wdk/opengl/types.h"
 
 namespace wdk
 {

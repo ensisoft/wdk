@@ -24,9 +24,9 @@
 
 #include <memory>
 
-#include "context.h"
-#include "config.h"
-#include "surface.h"
+#include "wdk/opengl/context.h"
+#include "wdk/opengl/config.h"
+#include "wdk/opengl/surface.h"
 
 namespace wdk
 {

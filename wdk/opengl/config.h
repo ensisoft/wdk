@@ -26,7 +26,7 @@
 #include <stdexcept>
 
 #include "wdk/types.h"
-#include "types.h"
+#include "wdk/opengl/types.h"
 
 // X11 poison
 #undef None

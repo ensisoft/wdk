@@ -31,7 +31,7 @@
 #include "wdk/opengl/types.h"
 #include "wdk/opengl/config.h"
 #include "wdk/opengl/surface.h"
-#include "egldisplay.h"
+#include "wdk/opengl/EGL/egldisplay.h"
 
 // http://www.khronos.org/registry/egl/extensions/KHR/EGL_KHR_create_context.txt
 

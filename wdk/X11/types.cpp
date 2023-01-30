@@ -23,8 +23,8 @@
 
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
-#include "atoms.h"
-#include "types.h"
+#include "wdk/X11/atoms.h"
+#include "wdk/X11/types.h"
 
 namespace wdk
 {
