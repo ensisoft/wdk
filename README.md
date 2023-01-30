@@ -1,25 +1,56 @@
 WDK (Window Development Kit)
 ================================
 
-WDK is a minimalistic library to knock up a window for OpenGL rendering.
-It also provides simple input handling for mouse and keyboard, fullscreen windows and changing the system resolution. (Probably doesn't work in case of multiple monitors, patches welcome!)
-Code requires a C++11 compatible compiler and should compile with
-the following compilers:
+![Logo](logo/opengl.png) ![Logo](logo/opengles.png)
 
-    * gcc   >= 4.8.1
-    * clang >= 3.4.2
-    * msvc  >= 2013 Express RC
+WDK is a minimalistic library to knock up a window for OpenGL rendering.
+It also provides simple input handling for mouse and keyboard, fullscreen windows and changing the system resolution.
+(Probably doesn't work in case of multiple monitors, patches welcome!)
+
+Key features and differentiators 😎
+--------------------------------
+* Supports Win32 and X11 (Wayland  is not yet implemented)
+* Supports both OpenGL and OpenGL ES
+* OpenGL context creation without a window (just the context)
+* Window creation without an OpenGL context (just the window)
+* Headless rendering into a pbuffer or even (limited) pixmap
+* Doesn't freeze the Win32 event handling when a window is resized/moved !!
+* Offers complete control over OpenGL Config:
+  * Stencil, color and depth buffer bit depths
+  * MSAA setting  (off, 4x, 8x, 16x)
+  * Default config, "don't care" config out of the box
+  * Double buffering
+  * sRGB profile
+  * Config ID
+* Swap interval setting
+* Native display resolution setting and query
+* Fullscreen window mode support
+* Minimal header pollution !
+* Reusable/flexible window system event handling interfaces
+  * Possible to bind C++ lambdas or std::function as event handlers
+  * Possible to use a WindowListener interface as an event handler
+
+Extremely simple context setup! ️👨🏼‍💻
+--------------------------------
+```
+    // start with OpenGL with default config
+    wdk::Config::Attributes attr = wdk::Config::DEFAULT;
+
+    // create context
+    wdk::OpenGL gl(attr);
+```
+
 
 ![Screenshot](https://raw.githubusercontent.com/ensisoft/wdk/master/screens/triangle.png "Triangle demo")
 
 Supported Platforms and Features
---------------------------------
+=================================
 
 The following APIs are supported:
 * Windows: EGL, WGL
 * Linux:   EGL, GLX
 
-You can use the library to create both "big desktop" GL and "mobile" GL ES rendering contexts. 
+You can use the library to create both "desktop" GL and "mobile" GL ES rendering contexts. 
 The default build will create two libraries one that links against the desktop windowing system library
 (GLX on Linux and WGL on Windows) and creates a "desktop" lib. The other library will link against EGL
 and will create a "mobile" lib.
@@ -28,7 +59,7 @@ Both WGL and GLX can be used to also create GL ES context if the appropriate ext
 * GLX_EXT_create_context_es2_profile
 * WGL_EXT_create_context_es2_profile
 
-Currently the inverse is not possible, i.e it's not possible to use EGL to create "big desktop" GL contexts.
+Currently, the inverse is not possible, i.e. it's not possible to use EGL to create "big desktop" GL contexts.
 
 The following rendering surfaces are supported:
 * GLX: window, pbuffer, pixmap
@@ -37,13 +68,16 @@ The following rendering surfaces are supported:
 
 Note that pbuffer support on Windows requires WGL_ARB_pbuffer extension.
 
-1. Building the library
---------------------------------
+Building The Library 📚
+====================== 
 
-You need to have CMake installed.
+![Logo](logo/cmake.png) ![Logo](logo/linux.png) ![Logo](logo/win10.png)
+
+You need to have CMake installed.  
 You'll also need GL headers + runtime and possibly EGL/GLESv2 for the mobile version.
 
-For Linux:
+Linux
+-------------
 
 ```
   $ git clone https://github.com/ensisoft/wdk
@@ -55,7 +89,8 @@ For Linux:
   $ bin/DesktopGLSample
 ```
 
-For Windows
+Windows
+--------------
 
 ```
   $ git clone https://github.com/ensisoft/wdk
@@ -67,8 +102,8 @@ For Windows
   $ bin\DesktopGLSample.exe
 ```
 
-2. How to use the library?
---------------------------------
+Detailed Context Setup 🤔
+=========================================
 
 Typical simple usage scenario:
 
@@ -82,7 +117,7 @@ Typical simple usage scenario:
     // 2. select a configuration uusing the attributes
     wdk::Config conf(attrs);
 
-    // 3. create OpenGL context with the config and opengl version
+    // 3. create OpenGL context with the config and OpenGL version
     wdk::OpenGL gl(attrs, 3, 2, false);
 
     // The calling thread now has a OpenGL rendering context
@@ -96,7 +131,6 @@ Typical simple usage scenario:
     win.Create("My Window", WIDTH, HEIGHT, gl.GetVisualID());
 
     // 4. attach the window to opengl as the current rendering surface.
-    // You can now draw!
     gl.Attach(win);
 
     // 5. run your rendering/game loop.
@@ -118,7 +152,7 @@ Typical simple usage scenario:
     gl.Detach();
 ```
 
-3. Quick Intro to OpenGL Context Creation
+Quick intro to OpenGL context creation 💭
 -----------------------------------------
 
 Each OpenGL implementation comes with a something referred to as configuration.
