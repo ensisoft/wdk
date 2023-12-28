@@ -63,6 +63,12 @@ namespace wdk
         operator bool() const
         { return !handlers_.empty(); }
 
+        void Clear() noexcept
+        {
+            for (auto& handler : handlers_)
+                handler = nullptr;
+        }
+
     private:
         std::vector<Handler> handlers_;
     };

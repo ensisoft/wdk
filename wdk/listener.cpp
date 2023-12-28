@@ -63,6 +63,37 @@ void Connect(wdk::Window& window, wdk::WindowListener& listener)
 
 }
 
+void Disconnect(wdk::Window& window)
+{
+#ifdef WDK_MULTIPLE_WINDOW_LISTENERS
+    window.OnCreate.Clear();
+    window.OnPaint.Clear();
+    window.OnResize.Clear();
+    window.OnLostFocus.Clear();
+    window.OnGainFocus.Clear();
+    window.OnWantClose.Clear();
+    window.OnKeyDown.Clear();
+    window.OnKeyUp.Clear();
+    window.OnChar.Clear();
+    window.OnMouseMove.Clear();
+    window.OnMousePress.Clear();
+    window.OnMouseRelease.Clear();
+#else
+    window.OnCreate       = nullptr;
+    window.OnPaint        = nullptr;
+    window.OnResize       = nullptr;
+    window.OnLostFocus    = nullptr;
+    window.OnGainFocus    = nullptr;
+    window.OnWantClose    = nullptr;
+    window.OnKeyDown      = nullptr;
+    window.OnKeyUp        = nullptr;
+    window.OnChar         = nullptr;
+    window.OnMouseMove    = nullptr;
+    window.OnMousePress   = nullptr;
+    window.OnMouseRelease = nullptr;
+#endif
+}
+
 
 } // wdk
 

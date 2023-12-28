@@ -73,6 +73,8 @@ namespace wdk
 
     // connect all events in the window to the listener
     void Connect(wdk::Window& window, wdk::WindowListener& listener);
+    void Disconnect(wdk::Window& window);
+
     // ugly set of Dispatch overloads for cases when one wants to generically
     // dispatch a window event to a listener.
     inline void Dispatch(const WindowEventCreate& event, WindowListener& listener)
