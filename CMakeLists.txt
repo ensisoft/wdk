@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 
 PROJECT(wdk)
 
@@ -6,11 +6,11 @@ message(STATUS "
         ~~ Window Development Kit ~~
 
     \\\\o Brought to you by Ensisoft o//
-        http://www.ensisoft.com
-    Copyright (c) 2016 Sami Väisänen
-              Ensisoft
+         http://www.ensisoft.com
+    Copyright (c) 2016-2026 Sami Väisänen
+                Ensisoft
 
-https://github.com/ensisoft/wdk
+     https://github.com/ensisoft/wdk
 
 ")
 
